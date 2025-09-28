@@ -7,6 +7,7 @@ import Movie from './pages/Movie'
 import Feed from './pages/Feed'
 import Users from './pages/Users'
 import Layout from './components/Layout'
+import Import from './pages/Import'
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/movie/:id" element={<Movie />} />
         <Route path="/feed" element={<Feed />} />
         <Route path="/users" element={<Users />} />
+        <Route path="/import" element={<Import />} />
       </Routes>
     </Layout>
   )
