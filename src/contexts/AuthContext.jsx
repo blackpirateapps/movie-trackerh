@@ -8,7 +8,20 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(false);
+    // Check for existing session on app load
+    const checkAuthStatus = async () => {
+      try {
+        const { data } = await api.get('/api/auth/me');
+        setUser(data.user);
+      } catch (error) {
+        // No valid session found, user stays null
+        console.log('No active session');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuthStatus();
   }, []);
 
   const login = async (email, password) => {

@@ -1,45 +1,55 @@
-// A simple script to execute the schema.sql file on your Turso database.
-// Usage: `node ./db/migrate.js` from the `/backend` directory.
+import { db } from './backend/lib/turso.js';
+import fs from 'fs';
+import path from 'path';
 
-import { createClient } from "@turso/db";
-import * as fs from "fs/promises";
-import * as path from "path";
-import "dotenv/config";
-
-async function main() {
-  if (!process.env.TURSO_DATABASE_URL || !process.env.TURSO_AUTH_TOKEN) {
-    console.error(
-      "Error: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN env variables are required."
-    );
-    process.exit(1);
-  }
-
-  const db = createClient({
-    url: process.env.TURSO_DATABASE_URL,
-    authToken: process.env.TURSO_AUTH_TOKEN,
-  });
-
-  console.log("Connected to Turso database.");
-
+async function migrate() {
   try {
-    const schemaPath = path.resolve(__dirname, "schema.sql");
-    const schema = await fs.readFile(schemaPath, "utf-8");
-    const statements = schema.split(';').filter(s => s.trim() !== '');
-
-    console.log("Executing schema migrations...");
+    // Read and execute the schema
+    const schema = fs.readFileSync(path.join(process.cwd(), 'schema.sql'), 'utf8');
+    const statements = schema.split(';').filter(stmt => stmt.trim());
+    
+    console.log('Starting database migration...');
+    
     for (const statement of statements) {
-      console.log(`Executing:\n${statement.trim()}\n`);
-      await db.execute(statement);
+      if (statement.trim()) {
+        await db.execute(statement.trim());
+        console.log('Executed:', statement.substring(0, 50) + '...');
+      }
     }
-
-    console.log("✅ Database migration successful!");
+    
+    // Check if we need to migrate existing password_hash column to password
+    try {
+      const result = await db.execute("PRAGMA table_info(users)");
+      const hasPasswordHash = result.rows.some(row => row.name === 'password_hash');
+      const hasPassword = result.rows.some(row => row.name === 'password');
+      
+      if (hasPasswordHash && !hasPassword) {
+        console.log('Migrating password_hash column to password...');
+        await db.execute(`
+          ALTER TABLE users ADD COLUMN password TEXT;
+        `);
+        await db.execute(`
+          UPDATE users SET password = password_hash WHERE password_hash IS NOT NULL;
+        `);
+        // Note: SQLite doesn't support dropping columns easily, so we'll leave password_hash
+        console.log('Password column migration completed');
+      }
+    } catch (migrationError) {
+      console.log('Password column migration not needed or already done');
+    }
+    
+    console.log('Migration completed successfully!');
+    
+    // Verify tables exist
+    const tables = await db.execute("SELECT name FROM sqlite_master WHERE type='table'");
+    console.log('Available tables:', tables.rows.map(row => row.name));
+    
   } catch (error) {
-    console.error("❌ Database migration failed:", error);
+    console.error('Migration failed:', error);
     process.exit(1);
   } finally {
-    db.close();
-    console.log("Database connection closed.");
+    process.exit(0);
   }
 }
 
-main();
+migrate();
