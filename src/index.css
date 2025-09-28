@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 @layer base {
   html {
@@ -12,12 +12,12 @@
   }
   
   body {
-    @apply bg-gray-950 text-white antialiased;
+    @apply bg-slate-950 text-white antialiased;
     font-family: 'Inter Variable', 'Inter', system-ui, sans-serif;
   }
 
   * {
-    @apply border-gray-800/50;
+    @apply border-slate-800/50;
   }
 }
 
@@ -26,7 +26,7 @@
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium 
            transition-all duration-200 focus:outline-none focus-visible:ring-2 
            focus-visible:ring-primary-500 focus-visible:ring-offset-2 
-           focus-visible:ring-offset-gray-950 disabled:opacity-50 disabled:cursor-not-allowed;
+           focus-visible:ring-offset-slate-950 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   
   .btn-primary {
@@ -36,26 +36,26 @@
   }
   
   .btn-secondary {
-    @apply bg-gray-800/80 text-gray-200 border border-gray-700/50 
-           hover:bg-gray-700/80 hover:border-gray-600/50 hover:text-white;
+    @apply bg-slate-800/80 text-slate-200 border border-slate-700/50 
+           hover:bg-slate-700/80 hover:border-slate-600/50 hover:text-white;
   }
   
   .btn-ghost {
-    @apply text-gray-400 hover:text-white hover:bg-white/5 
+    @apply text-slate-400 hover:text-white hover:bg-white/5 
            active:bg-white/10;
   }
   
   .form-input {
-    @apply w-full px-4 py-3 bg-gray-900/50 border border-gray-700/50 
-           rounded-lg text-white placeholder-gray-400 
+    @apply w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 
+           rounded-lg text-white placeholder-slate-400 
            focus:border-primary-500/50 focus:ring-1 focus:ring-primary-500/50 
-           transition-all duration-200 hover:border-gray-600/50;
+           transition-all duration-200 hover:border-slate-600/50;
   }
   
   .card {
-    @apply bg-gray-900/30 backdrop-blur-sm border border-gray-800/50 
+    @apply bg-slate-900/30 backdrop-blur-sm border border-slate-800/50 
            rounded-xl p-6 transition-all duration-300 
-           hover:border-gray-700/50 hover:shadow-xl hover:shadow-black/20;
+           hover:border-slate-700/50 hover:shadow-xl hover:shadow-black/20;
   }
 
   .glass {
@@ -110,7 +110,7 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-900/50;
+  @apply bg-slate-900/50;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -124,5 +124,5 @@
 /* Firefox scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgb(139 92 246 / 0.5) rgb(17 24 39 / 0.5);
+  scrollbar-color: rgb(139 92 246 / 0.5) rgb(15 23 42 / 0.5);
 }
