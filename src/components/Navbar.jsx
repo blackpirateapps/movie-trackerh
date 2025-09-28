@@ -1,71 +1,70 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
-  const location = useLocation();
 
-  const isActive = (path) => location.pathname === path;
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/10">
+    <nav className="bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Brand */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="text-2xl group-hover:animate-bounce-gentle">🎬</div>
-            <span className="text-xl font-bold text-gradient">CineTracker</span>
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-3 font-bold text-xl text-white">
+            <span className="text-2xl">🎬</span>
+            <span className="bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
+              CineTracker
+            </span>
           </Link>
 
-          {/* Navigation */}
-          <div className="flex items-center gap-6">
+          {/* Navigation Links */}
+          <div className="hidden md:flex items-center gap-8">
             <Link 
               to="/" 
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                isActive('/') 
-                  ? 'bg-primary-600 text-white shadow-lg' 
-                  : 'text-gray-300 hover:text-white hover:bg-white/5'
-              }`}
+              className="text-slate-300 hover:text-white transition-colors"
             >
-              <span className="text-sm">🏠</span>
               Home
             </Link>
-            
+            <Link 
+              to="/users" 
+              className="text-slate-300 hover:text-white transition-colors"
+            >
+              Users
+            </Link>
             {user && (
-              <>
-                <Link 
-                  to="/feed" 
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                    isActive('/feed') 
-                      ? 'bg-primary-600 text-white shadow-lg' 
-                      : 'text-gray-300 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <span className="text-sm">📺</span>
-                  Feed
-                </Link>
-                <Link 
-                  to={`/profile/${user.username}`} 
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                    location.pathname.includes('/profile') 
-                      ? 'bg-primary-600 text-white shadow-lg' 
-                      : 'text-gray-300 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <span className="text-sm">👤</span>
-                  Profile
-                </Link>
-              </>
+              <Link 
+                to="/feed" 
+                className="text-slate-300 hover:text-white transition-colors"
+              >
+                Feed
+              </Link>
             )}
           </div>
 
-          {/* Auth */}
+          {/* User Menu */}
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-300">Hi, {user.username}</span>
-                <button onClick={logout} className="btn btn-ghost">
-                  <span className="text-sm">🚪</span>
+                <Link 
+                  to={`/profile/${user.username}`}
+                  className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                    {user.username.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="hidden md:inline">{user.username}</span>
+                </Link>
+                <button 
+                  onClick={handleLogout}
+                  className="btn btn-ghost text-sm"
+                >
                   Logout
                 </button>
               </div>

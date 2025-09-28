@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Profile from './pages/Profile'
 import Movie from './pages/Movie'
 import Feed from './pages/Feed'
+import Users from './pages/Users'
 import Layout from './components/Layout'
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
         <Route path="/profile/:username" element={<Profile />} />
         <Route path="/movie/:id" element={<Movie />} />
         <Route path="/feed" element={<Feed />} />
+        <Route path="/users" element={<Users />} />
       </Routes>
     </Layout>
   )
