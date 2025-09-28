@@ -12,7 +12,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
-  const [filter, setFilter] = useState('all'); // all, watched, rated, reviewed
+  const [filter, setFilter] = useState('all');
 
   const fetchProfile = async () => {
     try {
@@ -34,13 +34,17 @@ const Profile = () => {
   const handleFollow = async () => {
     setActionLoading(true);
     try {
-      await api.post(`/api/user?action=follow`, { followingId: profile.user.id });
+      const { data } = await api.post(`/api/user`, { 
+        action: 'follow', 
+        followingId: profile.user.id 
+      });
+
       setProfile(prev => ({ 
         ...prev, 
         isFollowing: true,
         stats: {
           ...prev.stats,
-          followers: (prev.stats?.followers || 0) + 1
+          followers: data.followers // Use actual count from server
         }
       }));
     } catch (err) {
@@ -53,13 +57,17 @@ const Profile = () => {
   const handleUnfollow = async () => {
     setActionLoading(true);
     try {
-      await api.post(`/api/user?action=unfollow`, { followingId: profile.user.id });
+      const { data } = await api.post(`/api/user`, { 
+        action: 'unfollow', 
+        followingId: profile.user.id 
+      });
+
       setProfile(prev => ({ 
         ...prev, 
         isFollowing: false,
         stats: {
           ...prev.stats,
-          followers: Math.max((prev.stats?.followers || 0) - 1, 0)
+          followers: data.followers // Use actual count from server
         }
       }));
     } catch (err) {
@@ -87,8 +95,8 @@ const Profile = () => {
           <span className="text-6xl mb-4 block">😔</span>
           <h2 className="text-2xl font-bold mb-2">Profile Not Found</h2>
           <p className="text-slate-400 mb-6">{error}</p>
-          <Link to="/" className="btn btn-primary">
-            Back to Home
+          <Link to="/users" className="btn btn-primary">
+            Browse Users
           </Link>
         </div>
       </div>
@@ -97,7 +105,6 @@ const Profile = () => {
 
   const isOwnProfile = currentUser?.username === profile.user.username;
 
-  // Calculate filter counts
   const watchedMovies = profile.movies.filter(movie => movie.watched_date);
   const ratedMovies = profile.movies.filter(movie => movie.rating > 0);
   const reviewedMovies = profile.movies.filter(movie => movie.review && movie.review.trim().length > 0);
@@ -115,10 +122,6 @@ const Profile = () => {
     }
   });
 
-  const watchedCount = watchedMovies.length;
-  const ratedCount = ratedMovies.length;
-  const reviewedCount = reviewedMovies.length;
-
   return (
     <div className="min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -126,19 +129,16 @@ const Profile = () => {
         <div className="card mb-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex items-center gap-6">
-              {/* Avatar */}
               <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white text-2xl md:text-3xl font-bold shadow-xl ring-4 ring-primary-500/20">
                 {profile.user.username.charAt(0).toUpperCase()}
               </div>
 
-              {/* User Info */}
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold mb-2">
                   {profile.user.username}
                   {isOwnProfile && <span className="text-primary-400 ml-2 text-lg">(You)</span>}
                 </h1>
 
-                {/* Stats */}
                 <div className="flex items-center gap-6 text-sm text-slate-400">
                   <div className="flex items-center gap-1">
                     <span className="text-primary-400">🎬</span>
@@ -147,17 +147,17 @@ const Profile = () => {
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-green-400">👁️</span>
-                    <span className="font-semibold text-white">{watchedCount}</span>
+                    <span className="font-semibold text-white">{watchedMovies.length}</span>
                     <span>Watched</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-yellow-400">⭐</span>
-                    <span className="font-semibold text-white">{ratedCount}</span>
+                    <span className="font-semibold text-white">{ratedMovies.length}</span>
                     <span>Rated</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-blue-400">📝</span>
-                    <span className="font-semibold text-white">{reviewedCount}</span>
+                    <span className="font-semibold text-white">{reviewedMovies.length}</span>
                     <span>Reviews</span>
                   </div>
                   <div className="flex items-center gap-1">
@@ -174,7 +174,6 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Follow/Unfollow Button */}
             {!isOwnProfile && currentUser && (
               <div className="flex items-center gap-3">
                 <button 
@@ -210,38 +209,30 @@ const Profile = () => {
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setFilter('all')}
-                  className={`btn text-sm ${
-                    filter === 'all' ? 'btn-primary' : 'btn-ghost'
-                  }`}
+                  className={`btn text-sm ${filter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
                 >
                   All ({profile.movies.length})
                 </button>
                 <button
                   onClick={() => setFilter('watched')}
-                  className={`btn text-sm ${
-                    filter === 'watched' ? 'btn-primary' : 'btn-ghost'
-                  }`}
+                  className={`btn text-sm ${filter === 'watched' ? 'btn-primary' : 'btn-ghost'}`}
                 >
                   <span className="text-green-400 mr-1">👁️</span>
-                  Watched ({watchedCount})
+                  Watched ({watchedMovies.length})
                 </button>
                 <button
                   onClick={() => setFilter('rated')}
-                  className={`btn text-sm ${
-                    filter === 'rated' ? 'btn-primary' : 'btn-ghost'
-                  }`}
+                  className={`btn text-sm ${filter === 'rated' ? 'btn-primary' : 'btn-ghost'}`}
                 >
                   <span className="text-yellow-400 mr-1">⭐</span>
-                  Rated ({ratedCount})
+                  Rated ({ratedMovies.length})
                 </button>
                 <button
                   onClick={() => setFilter('reviewed')}
-                  className={`btn text-sm ${
-                    filter === 'reviewed' ? 'btn-primary' : 'btn-ghost'
-                  }`}
+                  className={`btn text-sm ${filter === 'reviewed' ? 'btn-primary' : 'btn-ghost'}`}
                 >
                   <span className="text-blue-400 mr-1">📝</span>
-                  Reviewed ({reviewedCount})
+                  Reviewed ({reviewedMovies.length})
                 </button>
               </div>
             </div>
@@ -255,8 +246,7 @@ const Profile = () => {
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
                 🎭 {isOwnProfile ? 'Your Movies' : `${profile.user.username}'s Movies`}
                 <span className="text-primary-400 text-lg">
-                  ({filteredMovies.length}
-                  {filter !== 'all' && ` ${filter}`})
+                  ({filteredMovies.length}{filter !== 'all' && ` ${filter}`})
                 </span>
               </h2>
 
@@ -267,7 +257,6 @@ const Profile = () => {
                       <MovieCard movie={movie} showUserRating />
                     </Link>
 
-                    {/* Movie Details Card */}
                     <div className="mt-3 p-4 bg-slate-900/30 rounded-lg border border-slate-800 hover:border-slate-700 transition-colors">
                       <div className="flex items-center justify-between mb-2">
                         {movie.rating > 0 && (
@@ -312,8 +301,8 @@ const Profile = () => {
                 <p className="text-slate-500 max-w-md mx-auto">
                   {filter === 'all' 
                     ? (isOwnProfile 
-                        ? 'Start exploring and rating movies to build your personal collection!' 
-                        : `${profile.user.username} hasn't added any movies to their collection yet.`
+                        ? 'Start exploring and rating movies to build your collection!' 
+                        : `${profile.user.username} hasn't added any movies yet.`
                       )
                     : `${isOwnProfile ? 'You haven\'t' : `${profile.user.username} hasn't`} ${filter} any movies yet.`
                   }
