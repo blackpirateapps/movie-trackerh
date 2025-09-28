@@ -17,7 +17,7 @@
     "bcryptjs": "latest",
     "cookie": "latest",
     "jsonwebtoken": "latest",
-    "@libsql/client": "latest"
+    "@libsql/client": "latest", 
     "csv-parser": "latest"
   },
   "devDependencies": {
