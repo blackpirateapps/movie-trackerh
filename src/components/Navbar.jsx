@@ -46,8 +46,6 @@ const Navbar = () => {
                 Feed
               </Link>
             )}
-            
-            // In navigation links
             {user && (<Link to="/import" className="text-slate-300 hover:text-white transition-colors">
   Import
 </Link>
