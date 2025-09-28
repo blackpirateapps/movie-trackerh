@@ -11,7 +11,7 @@
     "install:all": "npm install && npm install --prefix frontend && npm install --prefix backend"
   },
   "dependencies": {
-    "@turso/db": "latest",
+    "@libsql/client": "latest",
     "axios": "latest",
     "bcryptjs": "latest",
     "cookie": "latest",
@@ -37,3 +37,4 @@
     "vite": "latest"
   }
 }
+
