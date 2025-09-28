@@ -5,9 +5,14 @@ import axios from 'axios';
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
+// Add a check to ensure the API key is set.
+// This provides a clearer error if the environment variable is missing.
+if (!TMDB_API_KEY) {
+    throw new Error("TMDB_API_KEY is not defined in environment variables.");
+}
+
 // Function to get movie from TMDB and cache it
 async function getAndCacheMovie(movieId) {
-    // Check if movie exists in our DB
     const { rows } = await db.execute({
         sql: 'SELECT * FROM movies WHERE id = ?',
         args: [movieId],
@@ -17,7 +22,6 @@ async function getAndCacheMovie(movieId) {
         return rows[0];
     }
 
-    // If not, fetch from TMDB
     try {
         const response = await axios.get(`${TMDB_BASE_URL}/movie/${movieId}?api_key=${TMDB_API_KEY}`);
         const movie = response.data;
@@ -34,13 +38,12 @@ async function getAndCacheMovie(movieId) {
 }
 
 export default async function handler(req, res) {
-    const authUser = authenticate(req, res);
-    if (!authUser) {
-        return; // authenticate() handles the response
-    }
-
+    // --- FIX 1: SEARCH (GET) IS NOW PUBLIC ---
+    // Authentication is only checked for actions that require a logged-in user (like POST).
     if (req.method === 'GET') {
-        const { query } = req.query;
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        const query = url.searchParams.get('query');
+
         if (!query) {
             return res.status(400).json({ message: 'Search query is required.' });
         }
@@ -53,12 +56,19 @@ export default async function handler(req, res) {
             });
             return res.status(200).json(response.data.results);
         } catch (error) {
-            console.error('TMDB search error:', error);
-            return res.status(500).json({ message: 'Failed to search movies.' });
+            console.error('TMDB search error:', error.response ? error.response.data : error.message);
+            return res.status(500).json({ message: 'Failed to search movies due to an external service error.' });
         }
     }
 
+    // --- FIX 2: AUTHENTICATION IS CHECKED HERE ---
+    // Actions like adding a movie to a user's list require authentication.
     if (req.method === 'POST') {
+        const authUser = authenticate(req, res);
+        if (!authUser) {
+            return; // The authenticate function handles sending the 401 response.
+        }
+
         const { movieId, rating, review } = req.body;
         if (!movieId) {
             return res.status(400).json({ message: 'Movie ID is required.' });
