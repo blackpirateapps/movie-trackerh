@@ -5,12 +5,10 @@ import axios from 'axios';
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-// Add a check to ensure the API key is set
 if (!TMDB_API_KEY) {
   throw new Error("TMDB_API_KEY is not defined in environment variables.");
 }
 
-// Function to get movie from TMDB and cache it
 async function getAndCacheMovie(movieId) {
   try {
     const { rows } = await db.execute({
@@ -38,35 +36,46 @@ async function getAndCacheMovie(movieId) {
 }
 
 export default async function handler(req, res) {
-  // Handle GET requests for movie search
   if (req.method === 'GET') {
-    // Parse query parameters from URL - Vercel compatible approach
-    const { query } = req.query;
+    const { query, id } = req.query;
     
-    if (!query) {
-      return res.status(400).json({ message: 'Search query is required.' });
+    // Handle movie search
+    if (query) {
+      try {
+        const response = await axios.get(`${TMDB_BASE_URL}/search/movie`, {
+          params: {
+            api_key: TMDB_API_KEY,
+            query: query,
+          },
+        });
+        return res.status(200).json(response.data.results);
+      } catch (error) {
+        console.error('TMDB search error:', error.response ? error.response.data : error.message);
+        return res.status(500).json({ message: 'Failed to search movies due to an external service error.' });
+      }
+    }
+    
+    // Handle single movie fetch
+    if (id) {
+      try {
+        const movie = await getAndCacheMovie(id);
+        if (!movie) {
+          return res.status(404).json({ message: 'Movie not found.' });
+        }
+        return res.status(200).json(movie);
+      } catch (error) {
+        console.error('Error fetching movie:', error);
+        return res.status(500).json({ message: 'Failed to fetch movie.' });
+      }
     }
 
-    try {
-      const response = await axios.get(`${TMDB_BASE_URL}/search/movie`, {
-        params: {
-          api_key: TMDB_API_KEY,
-          query: query,
-        },
-      });
-
-      return res.status(200).json(response.data.results);
-    } catch (error) {
-      console.error('TMDB search error:', error.response ? error.response.data : error.message);
-      return res.status(500).json({ message: 'Failed to search movies due to an external service error.' });
-    }
+    return res.status(400).json({ message: 'Query or ID parameter is required.' });
   }
 
-  // Handle POST requests for adding movies
   if (req.method === 'POST') {
     const authUser = authenticate(req, res);
     if (!authUser) {
-      return; // The authenticate function handles sending the 401 response
+      return;
     }
 
     const { movieId, rating, review } = req.body;
@@ -95,7 +104,6 @@ export default async function handler(req, res) {
     }
   }
 
-  // Handle unsupported methods
   res.setHeader('Allow', ['GET', 'POST']);
   res.status(405).end(`Method ${req.method} Not Allowed`);
 }
