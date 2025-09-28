@@ -1,27 +1,22 @@
-import { parse } from 'cookie';
-import { verifyToken } from './jwt.js';
+import jwt from 'jsonwebtoken';
+import cookie from 'cookie';
 
-export function authenticate(req) {
-    const cookies = parse(req.headers.get('cookie') || '');
-    const token = cookies.auth_token;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-    if (!token) {
-        return null;
-    }
+export function authenticate(req, res) {
+  const cookies = cookie.parse(req.headers.cookie || '');
+  const token = cookies.token;
 
-    const user = verifyToken(token);
-    return user;
-}
+  if (!token) {
+    res.status(401).json({ message: 'Authentication required.' });
+    return null;
+  }
 
-export function createProtectedHandler(handler) {
-    return async (req, res) => {
-        const user = authenticate(req);
-        if (!user) {
-            return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-                status: 401,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-        return handler(req, res, user);
-    };
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return decoded;
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid token.' });
+    return null;
+  }
 }
