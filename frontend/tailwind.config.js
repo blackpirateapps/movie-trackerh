@@ -1,16 +1,10 @@
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-// Recreate the __dirname functionality for ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 /** @type {import('tailwindcss').Config} */
 export default {
-  // Use absolute paths constructed from the current file's location.
+  // Use relative paths from the config file's location.
+  // This is the standard and most reliable method for ES Modules.
   content: [
-    path.join(__dirname, 'index.html'),
-    path.join(__dirname, 'src/**/*.{js,ts,jsx,tsx}'),
+    '/frontend/index.html',
+    '/frontend/src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {},
