@@ -7,35 +7,32 @@ import { Readable } from 'stream';
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-async function searchMovieOnTMDB(title, year) {
+async function searchMoviesOnTMDB(title) {
   try {
     const cleanTitle = title.replace(/["""]/g, '').trim();
     
-    let searchQuery = cleanTitle;
-    if (year) {
-      const response = await axios.get(`${TMDB_BASE_URL}/search/movie`, {
-        params: {
-          api_key: TMDB_API_KEY,
-          query: searchQuery,
-          year: year
-        }
-      });
-
-      if (response.data.results.length > 0) {
-        return response.data.results[0];
-      }
-    }
-
-    const fallbackResponse = await axios.get(`${TMDB_BASE_URL}/search/movie`, {
+    const response = await axios.get(`${TMDB_BASE_URL}/search/movie`, {
       params: {
         api_key: TMDB_API_KEY,
         query: cleanTitle
       }
     });
 
-    return fallbackResponse.data.results[0] || null;
+    return response.data.results.slice(0, 10); // Return top 10 matches
   } catch (error) {
     console.error(`Error searching for movie: ${title}`, error);
+    return [];
+  }
+}
+
+async function getMovieDetails(movieId) {
+  try {
+    const response = await axios.get(`${TMDB_BASE_URL}/movie/${movieId}`, {
+      params: { api_key: TMDB_API_KEY }
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching movie details for ID ${movieId}:`, error);
     return null;
   }
 }
@@ -69,161 +66,126 @@ function parseLetterboxdDate(dateStr) {
   }
 }
 
-async function processWatchedMovie(authUser, row, processed) {
-  const name = row.Name || row.name;
-  const year = row.Year || row.year;
-  const date = parseLetterboxdDate(row.Date || row.date);
-
-  if (!name) {
-    return { error: { row: processed, error: 'Missing movie name' } };
-  }
-
-  const tmdbMovie = await searchMovieOnTMDB(name, year);
-  if (!tmdbMovie) {
-    return { 
-      error: { 
-        row: processed, 
-        title: name, 
-        year,
-        error: 'Movie not found on TMDB' 
-      } 
-    };
-  }
-
-  await cacheMovie(tmdbMovie);
-
-  await db.execute({
-    sql: `
-      INSERT INTO user_movies (user_id, movie_id, watched_date)
-      VALUES (?, ?, ?)
-      ON CONFLICT(user_id, movie_id) DO UPDATE SET
-      watched_date = COALESCE(excluded.watched_date, watched_date),
-      updated_at = CURRENT_TIMESTAMP
-    `,
-    args: [authUser.sub, tmdbMovie.id, date]
-  });
-
-  return {
-    result: {
-      title: tmdbMovie.title,
-      year: tmdbMovie.release_date ? new Date(tmdbMovie.release_date).getFullYear() : null,
-      watchedDate: date,
-      imported: true,
-      type: 'watched'
-    }
-  };
-}
-
-async function processWatchlistMovie(authUser, row, processed) {
-  const name = row.Name || row.name;
-  const year = row.Year || row.year;
-  const dateAdded = parseLetterboxdDate(row.Date || row.date);
-
-  if (!name) {
-    return { error: { row: processed, error: 'Missing movie name' } };
-  }
-
-  const tmdbMovie = await searchMovieOnTMDB(name, year);
-  if (!tmdbMovie) {
-    return { 
-      error: { 
-        row: processed, 
-        title: name, 
-        year,
-        error: 'Movie not found on TMDB' 
-      } 
-    };
-  }
-
-  await cacheMovie(tmdbMovie);
-
-  await db.execute({
-    sql: 'INSERT OR IGNORE INTO watchlist (user_id, movie_id, created_at) VALUES (?, ?, ?)',
-    args: [authUser.sub, tmdbMovie.id, dateAdded || new Date().toISOString()]
-  });
-
-  return {
-    result: {
-      title: tmdbMovie.title,
-      year: tmdbMovie.release_date ? new Date(tmdbMovie.release_date).getFullYear() : null,
-      dateAdded,
-      imported: true,
-      type: 'watchlist'
-    }
-  };
-}
-
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', ['POST']);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
-  }
-
   const authUser = authenticate(req, res);
   if (!authUser) {
     return;
   }
 
-  try {
-    const { csvData, importType } = req.body;
+  if (req.method === 'POST') {
+    const { action, csvData, importType } = req.body;
 
-    if (!csvData) {
-      return res.status(400).json({ message: 'CSV data is required.' });
-    }
+    // Parse CSV and return all movies for interactive processing
+    if (action === 'parse') {
+      if (!csvData || !importType) {
+        return res.status(400).json({ message: 'CSV data and import type are required.' });
+      }
 
-    if (!importType || !['watched', 'watchlist'].includes(importType)) {
-      return res.status(400).json({ message: 'Import type must be either "watched" or "watchlist".' });
-    }
-
-    const results = [];
-    const errors = [];
-    let processed = 0;
-
-    return new Promise((resolve, reject) => {
-      const readable = Readable.from([csvData]);
-      const processFunction = importType === 'watched' ? processWatchedMovie : processWatchlistMovie;
-      
-      readable
-        .pipe(csv())
-        .on('data', async (row) => {
-          try {
-            processed++;
-            
-            const result = await processFunction(authUser, row, processed);
-            
-            if (result.error) {
-              errors.push(result.error);
-            } else if (result.result) {
-              results.push(result.result);
-            }
-
-          } catch (error) {
-            console.error(`Error processing row ${processed}:`, error);
-            errors.push({ 
-              row: processed, 
-              title: row.Name || row.name,
-              error: error.message 
+      try {
+        const movies = [];
+        return new Promise((resolve, reject) => {
+          const readable = Readable.from([csvData]);
+          
+          readable
+            .pipe(csv())
+            .on('data', (row) => {
+              const name = row.Name || row.name;
+              const year = row.Year || row.year;
+              const date = row.Date || row.date;
+              
+              if (name) {
+                movies.push({
+                  originalName: name,
+                  year: year,
+                  date: parseLetterboxdDate(date),
+                  letterboxdURI: row['Letterboxd URI'] || row.letterboxdURI
+                });
+              }
+            })
+            .on('end', () => {
+              resolve(res.status(200).json({
+                movies,
+                total: movies.length,
+                importType
+              }));
+            })
+            .on('error', (error) => {
+              reject(res.status(500).json({ message: 'Failed to parse CSV', error: error.message }));
             });
-          }
-        })
-        .on('end', () => {
-          resolve(res.status(200).json({
-            message: `${importType === 'watched' ? 'Watched movies' : 'Watchlist'} import completed`,
-            imported: results.length,
-            errors: errors.length,
-            total: processed,
-            importType,
-            results: results.slice(0, 20),
-            errors: errors.slice(0, 10)
-          }));
-        })
-        .on('error', (error) => {
-          reject(res.status(500).json({ message: 'Failed to process CSV', error: error.message }));
         });
-    });
+      } catch (error) {
+        return res.status(500).json({ message: 'Parse failed', error: error.message });
+      }
+    }
 
-  } catch (error) {
-    console.error('Import error:', error);
-    return res.status(500).json({ message: 'Import failed', error: error.message });
+    // Search for a specific movie
+    if (action === 'search') {
+      const { movieName } = req.body;
+      
+      if (!movieName) {
+        return res.status(400).json({ message: 'Movie name is required.' });
+      }
+
+      try {
+        const searchResults = await searchMoviesOnTMDB(movieName);
+        return res.status(200).json({ results: searchResults });
+      } catch (error) {
+        return res.status(500).json({ message: 'Search failed', error: error.message });
+      }
+    }
+
+    // Import selected movie
+    if (action === 'import') {
+      const { movieId, originalData, importType } = req.body;
+      
+      if (!movieId || !originalData || !importType) {
+        return res.status(400).json({ message: 'Movie ID, original data, and import type are required.' });
+      }
+
+      try {
+        const movieDetails = await getMovieDetails(movieId);
+        if (!movieDetails) {
+          return res.status(404).json({ message: 'Movie not found.' });
+        }
+
+        await cacheMovie(movieDetails);
+
+        if (importType === 'watched') {
+          await db.execute({
+            sql: `
+              INSERT INTO user_movies (user_id, movie_id, watched_date)
+              VALUES (?, ?, ?)
+              ON CONFLICT(user_id, movie_id) DO UPDATE SET
+              watched_date = COALESCE(excluded.watched_date, watched_date),
+              updated_at = CURRENT_TIMESTAMP
+            `,
+            args: [authUser.sub, movieId, originalData.date]
+          });
+        } else if (importType === 'watchlist') {
+          await db.execute({
+            sql: 'INSERT OR IGNORE INTO watchlist (user_id, movie_id, created_at) VALUES (?, ?, ?)',
+            args: [authUser.sub, movieId, originalData.date || new Date().toISOString()]
+          });
+        }
+
+        return res.status(200).json({
+          message: 'Movie imported successfully',
+          movie: {
+            id: movieDetails.id,
+            title: movieDetails.title,
+            year: movieDetails.release_date ? new Date(movieDetails.release_date).getFullYear() : null,
+            poster_path: movieDetails.poster_path
+          }
+        });
+
+      } catch (error) {
+        return res.status(500).json({ message: 'Import failed', error: error.message });
+      }
+    }
+
+    return res.status(400).json({ message: 'Invalid action.' });
   }
+
+  res.setHeader('Allow', ['POST']);
+  res.status(405).end(`Method ${req.method} Not Allowed`);
 }
