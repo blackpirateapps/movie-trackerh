@@ -7,29 +7,38 @@ import { Readable } from 'stream';
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-async function searchMovieOnTMDB(title, year, directors) {
-  try {
-    // First try searching by title and year
-    let searchQuery = title;
-    if (year) searchQuery += ` y:${year}`;
-    
-    const response = await axios.get(`${TMDB_BASE_URL}/search/movie`, {
-      params: {
-        api_key: TMDB_API_KEY,
-        query: searchQuery,
-        year: year || undefined
-      },
-    });
+async function getLetterboxdMovieId(letterboxdURI) {
+  // Extract movie ID from Letterboxd URI like https://boxd.it/1skk
+  if (!letterboxdURI) return null;
+  const match = letterboxdURI.match(/boxd.it/([a-zA-Z0-9]+)/);
+  return match ? match[1] : null;
+}
 
-    if (response.data.results.length > 0) {
-      return response.data.results[0];
+async function searchMovieOnTMDB(title, year) {
+  try {
+    // Clean title - remove extra quotes and special characters
+    const cleanTitle = title.replace(/["""]/g, '').trim();
+    
+    let searchQuery = cleanTitle;
+    if (year) {
+      const response = await axios.get(`${TMDB_BASE_URL}/search/movie`, {
+        params: {
+          api_key: TMDB_API_KEY,
+          query: searchQuery,
+          year: year
+        },
+      });
+
+      if (response.data.results.length > 0) {
+        return response.data.results[0];
+      }
     }
 
-    // If no results, try just title
+    // Fallback search without year
     const fallbackResponse = await axios.get(`${TMDB_BASE_URL}/search/movie`, {
       params: {
         api_key: TMDB_API_KEY,
-        query: title
+        query: cleanTitle
       },
     });
 
@@ -69,10 +78,92 @@ function parseLetterboxdDate(dateStr) {
   }
 }
 
-function parseLetterboxdRating(ratingStr) {
-  if (!ratingStr) return null;
-  const rating = parseFloat(ratingStr);
-  return isNaN(rating) ? null : Math.min(Math.max(rating, 0.5), 5);
+async function processWatchedMovie(authUser, row, processed) {
+  const name = row.Name || row.name;
+  const year = row.Year || row.year;
+  const date = parseLetterboxdDate(row.Date || row.date);
+  const letterboxdURI = row['Letterboxd URI'] || row.letterboxdURI;
+
+  if (!name) {
+    return { error: { row: processed, error: 'Missing movie name' } };
+  }
+
+  const tmdbMovie = await searchMovieOnTMDB(name, year);
+  if (!tmdbMovie) {
+    return { 
+      error: { 
+        row: processed, 
+        title: name, 
+        year,
+        error: 'Movie not found on TMDB' 
+      } 
+    };
+  }
+
+  await cacheMovie(tmdbMovie);
+
+  // Add to user_movies as watched
+  await db.execute({
+    sql: `
+      INSERT INTO user_movies (user_id, movie_id, watched_date)
+      VALUES (?, ?, ?)
+      ON CONFLICT(user_id, movie_id) DO UPDATE SET
+      watched_date = COALESCE(excluded.watched_date, watched_date),
+      updated_at = CURRENT_TIMESTAMP
+    `,
+    args: [authUser.sub, tmdbMovie.id, date],
+  });
+
+  return {
+    result: {
+      title: tmdbMovie.title,
+      year: tmdbMovie.release_date ? new Date(tmdbMovie.release_date).getFullYear() : null,
+      watchedDate: date,
+      imported: true,
+      type: 'watched'
+    }
+  };
+}
+
+async function processWatchlistMovie(authUser, row, processed) {
+  const name = row.Name || row.name;
+  const year = row.Year || row.year;
+  const dateAdded = parseLetterboxdDate(row.Date || row.date);
+  const letterboxdURI = row['Letterboxd URI'] || row.letterboxdURI;
+
+  if (!name) {
+    return { error: { row: processed, error: 'Missing movie name' } };
+  }
+
+  const tmdbMovie = await searchMovieOnTMDB(name, year);
+  if (!tmdbMovie) {
+    return { 
+      error: { 
+        row: processed, 
+        title: name, 
+        year,
+        error: 'Movie not found on TMDB' 
+      } 
+    };
+  }
+
+  await cacheMovie(tmdbMovie);
+
+  // Add to watchlist
+  await db.execute({
+    sql: 'INSERT OR IGNORE INTO watchlist (user_id, movie_id, created_at) VALUES (?, ?, ?)',
+    args: [authUser.sub, tmdbMovie.id, dateAdded || new Date().toISOString()],
+  });
+
+  return {
+    result: {
+      title: tmdbMovie.title,
+      year: tmdbMovie.release_date ? new Date(tmdbMovie.release_date).getFullYear() : null,
+      dateAdded,
+      imported: true,
+      type: 'watchlist'
+    }
+  };
 }
 
 export default async function handler(req, res) {
@@ -87,19 +178,23 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { csvData, importType = 'diary' } = req.body;
+    const { csvData, importType } = req.body;
 
     if (!csvData) {
       return res.status(400).json({ message: 'CSV data is required.' });
+    }
+
+    if (!importType || !['watched', 'watchlist'].includes(importType)) {
+      return res.status(400).json({ message: 'Import type must be either "watched" or "watchlist".' });
     }
 
     const results = [];
     const errors = [];
     let processed = 0;
 
-    // Parse CSV data
     return new Promise((resolve, reject) => {
       const readable = Readable.from([csvData]);
+      const processFunction = importType === 'watched' ? processWatchedMovie : processWatchlistMovie;
       
       readable
         .pipe(csv())
@@ -107,95 +202,31 @@ export default async function handler(req, res) {
           try {
             processed++;
             
-            // Extract data from CSV row
-            const title = row.Title || row.title;
-            const year = row.Year || row.year;
-            const directors = row.Directors || row.directors;
-            const rating = parseLetterboxdRating(row.Rating || row.rating);
-            const review = row.Review || row.review || '';
-            const watchedDate = parseLetterboxdDate(row.WatchedDate || row['Watched Date'] || row.Date);
-            const tmdbId = row.tmdbID || row.tmdbId;
-            const imdbId = row.imdbID || row.imdbId;
-
-            if (!title) {
-              errors.push({ row: processed, error: 'Missing title' });
-              return;
-            }
-
-            // Find movie on TMDB
-            let tmdbMovie = null;
+            const result = await processFunction(authUser, row, processed);
             
-            if (tmdbId) {
-              // Use TMDB ID if available
-              try {
-                const response = await axios.get(`${TMDB_BASE_URL}/movie/${tmdbId}`, {
-                  params: { api_key: TMDB_API_KEY }
-                });
-                tmdbMovie = response.data;
-              } catch (error) {
-                console.log(`TMDB ID ${tmdbId} not found, falling back to search`);
-              }
+            if (result.error) {
+              errors.push(result.error);
+            } else if (result.result) {
+              results.push(result.result);
             }
-
-            if (!tmdbMovie) {
-              // Search by title, year, directors
-              tmdbMovie = await searchMovieOnTMDB(title, year, directors);
-            }
-
-            if (!tmdbMovie) {
-              errors.push({ 
-                row: processed, 
-                title, 
-                year,
-                error: 'Movie not found on TMDB' 
-              });
-              return;
-            }
-
-            // Cache movie in database
-            await cacheMovie(tmdbMovie);
-
-            // Add to user's collection
-            if (rating || review || watchedDate) {
-              await db.execute({
-                sql: `
-                  INSERT INTO user_movies (user_id, movie_id, rating, review, watched_date)
-                  VALUES (?, ?, ?, ?, ?)
-                  ON CONFLICT(user_id, movie_id) DO UPDATE SET
-                  rating = COALESCE(excluded.rating, rating),
-                  review = CASE WHEN excluded.review != '' THEN excluded.review ELSE review END,
-                  watched_date = COALESCE(excluded.watched_date, watched_date),
-                  updated_at = CURRENT_TIMESTAMP
-                `,
-                args: [authUser.sub, tmdbMovie.id, rating, review.trim() || null, watchedDate],
-              });
-            }
-
-            results.push({
-              title: tmdbMovie.title,
-              year: tmdbMovie.release_date ? new Date(tmdbMovie.release_date).getFullYear() : null,
-              rating,
-              review: review ? review.substring(0, 100) + '...' : null,
-              watchedDate,
-              imported: true
-            });
 
           } catch (error) {
             console.error(`Error processing row ${processed}:`, error);
             errors.push({ 
               row: processed, 
-              title: row.Title || row.title,
+              title: row.Name || row.name,
               error: error.message 
             });
           }
         })
         .on('end', () => {
           resolve(res.status(200).json({
-            message: 'Import completed',
+            message: `${importType === 'watched' ? 'Watched movies' : 'Watchlist'} import completed`,
             imported: results.length,
             errors: errors.length,
             total: processed,
-            results: results.slice(0, 10), // Show first 10 results
+            importType,
+            results: results.slice(0, 20), // Show first 20 results
             errors: errors.slice(0, 10)   // Show first 10 errors
           }));
         })
