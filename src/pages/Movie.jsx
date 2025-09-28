@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 import StarRating from '../components/StarRating';
@@ -11,6 +11,7 @@ const Movie = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [watchlistLoading, setWatchlistLoading] = useState(false);
 
   // Review form state
   const [rating, setRating] = useState(0);
@@ -58,12 +59,34 @@ const Movie = () => {
         watchedDate: isWatched ? watchedDate : null
       });
       
-      await fetchMovieData(); // Refresh movie data
+      await fetchMovieData();
     } catch (err) {
       console.error('Error submitting review:', err);
       setError('Failed to save review. Please try again.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleWatchlistToggle = async () => {
+    if (!user) return;
+    
+    setWatchlistLoading(true);
+    try {
+      const { data } = await api.post('/api/movies', {
+        movieId: id,
+        action: 'watchlist'
+      });
+      
+      setMovie(prev => ({
+        ...prev,
+        isInWatchlist: data.isInWatchlist
+      }));
+    } catch (err) {
+      console.error('Error toggling watchlist:', err);
+      setError('Failed to update watchlist.');
+    } finally {
+      setWatchlistLoading(false);
     }
   };
 
@@ -93,7 +116,7 @@ const Movie = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4" />
-          <p className="text-gray-400">Loading movie details...</p>
+          <p className="text-slate-400">Loading movie details...</p>
         </div>
       </div>
     );
@@ -156,7 +179,7 @@ const Movie = () => {
             <div className="flex-1 space-y-6">
               <h1 className="text-4xl lg:text-5xl font-bold">{movie.title}</h1>
               
-              <div className="flex flex-wrap items-center gap-4 text-gray-300">
+              <div className="flex flex-wrap items-center gap-4 text-slate-300">
                 {movie.release_date && (
                   <span className="flex items-center gap-2">
                     📅 {new Date(movie.release_date).getFullYear()}
@@ -187,13 +210,28 @@ const Movie = () => {
               {movie.overview && (
                 <div>
                   <h3 className="text-xl font-semibold mb-3">Overview</h3>
-                  <p className="text-gray-300 leading-relaxed">{movie.overview}</p>
+                  <p className="text-slate-300 leading-relaxed">{movie.overview}</p>
                 </div>
               )}
 
               {/* Quick Actions */}
               {user && (
                 <div className="flex flex-wrap gap-4">
+                  <button 
+                    onClick={handleWatchlistToggle}
+                    disabled={watchlistLoading}
+                    className={`btn ${movie.isInWatchlist ? 'btn-secondary' : 'btn-primary'}`}
+                  >
+                    {watchlistLoading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                    ) : (
+                      <>
+                        <span className="text-lg">{movie.isInWatchlist ? '✓' : '+'}</span>
+                        {movie.isInWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
+                      </>
+                    )}
+                  </button>
+                  
                   {!isWatched ? (
                     <button 
                       onClick={handleMarkAsWatched}
@@ -213,7 +251,46 @@ const Movie = () => {
             </div>
           </div>
 
-          {/* Review Section */}
+          {/* Reviews Section */}
+          {movie.reviews && movie.reviews.length > 0 && (
+            <div className="card mb-8">
+              <h3 className="text-2xl font-bold mb-6">User Reviews</h3>
+              <div className="space-y-6">
+                {movie.reviews.map((review, index) => (
+                  <div key={index} className="border-b border-slate-800 last:border-b-0 pb-6 last:pb-0">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white font-bold">
+                        {review.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-4 mb-2">
+                          <Link 
+                            to={`/profile/${review.username}`}
+                            className="font-semibold hover:text-primary-400 transition-colors"
+                          >
+                            {review.username}
+                          </Link>
+                          <StarRating rating={review.rating} readOnly size="small" />
+                          <span className="text-sm text-slate-500">
+                            {new Date(review.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {review.watched_date && (
+                          <div className="text-sm text-green-400 mb-2 flex items-center gap-1">
+                            <span>👁️</span>
+                            Watched on {new Date(review.watched_date).toLocaleDateString()}
+                          </div>
+                        )}
+                        <p className="text-slate-300 leading-relaxed">{review.review}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Review Form */}
           {user && (
             <div className="card max-w-2xl">
               <h3 className="text-2xl font-bold mb-6">
@@ -221,7 +298,6 @@ const Movie = () => {
               </h3>
               
               <form onSubmit={handleSubmitReview} className="space-y-6">
-                {/* Watched Status */}
                 <div className="flex items-center gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -233,13 +309,12 @@ const Movie = () => {
                           setWatchedDate(new Date().toISOString().split('T')[0]);
                         }
                       }}
-                      className="w-4 h-4 text-primary-600 bg-gray-800 border-gray-600 rounded focus:ring-primary-500"
+                      className="w-4 h-4 text-primary-600 bg-slate-800 border-slate-600 rounded focus:ring-primary-500"
                     />
                     <span className="text-sm font-medium">I've watched this movie</span>
                   </label>
                 </div>
 
-                {/* Watched Date */}
                 {isWatched && (
                   <div>
                     <label htmlFor="watchedDate" className="block text-sm font-medium mb-2">
@@ -300,10 +375,10 @@ const Movie = () => {
           {!user && (
             <div className="card max-w-2xl text-center">
               <h3 className="text-xl font-bold mb-4">Want to track this movie?</h3>
-              <p className="text-gray-400 mb-6">Sign up or log in to rate, review, and track your watched movies!</p>
+              <p className="text-slate-400 mb-6">Sign up or log in to rate, review, and add movies to your watchlist!</p>
               <div className="flex gap-4 justify-center">
-                <a href="/login" className="btn btn-primary">Login</a>
-                <a href="/signup" className="btn btn-secondary">Sign Up</a>
+                <Link to="/login" className="btn btn-primary">Login</Link>
+                <Link to="/signup" className="btn btn-secondary">Sign Up</Link>
               </div>
             </div>
           )}

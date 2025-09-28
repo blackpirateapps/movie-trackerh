@@ -43,9 +43,47 @@ async function getUserReview(userId, movieId) {
   }
 }
 
+async function getMovieReviews(movieId) {
+  try {
+    const { rows } = await db.execute({
+      sql: `
+        SELECT 
+          um.rating, 
+          um.review, 
+          um.watched_date, 
+          um.created_at,
+          u.username 
+        FROM user_movies um
+        JOIN users u ON um.user_id = u.id
+        WHERE um.movie_id = ? AND (um.review IS NOT NULL AND um.review != '')
+        ORDER BY um.created_at DESC
+        LIMIT 10
+      `,
+      args: [movieId],
+    });
+    return rows;
+  } catch (error) {
+    console.log('Could not fetch movie reviews (non-critical):', error);
+    return [];
+  }
+}
+
+async function checkWatchlistStatus(userId, movieId) {
+  try {
+    const { rows } = await db.execute({
+      sql: 'SELECT id FROM watchlist WHERE user_id = ? AND movie_id = ?',
+      args: [userId, movieId],
+    });
+    return rows.length > 0;
+  } catch (error) {
+    console.log('Could not check watchlist status (non-critical):', error);
+    return false;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
-    const { query, id } = req.query;
+    const { query, id, action } = req.query;
     
     if (query) {
       try {
@@ -67,18 +105,25 @@ export default async function handler(req, res) {
         const movie = await getAndCacheMovie(id);
         
         let currentUserReview = null;
+        let isInWatchlist = false;
         try {
-          const authUser = authenticate(req, res, false); // Non-blocking auth
+          const authUser = authenticate(req, res, false);
           if (authUser) {
             currentUserReview = await getUserReview(authUser.sub, id);
+            isInWatchlist = await checkWatchlistStatus(authUser.sub, id);
           }
         } catch (authError) {
           // User not authenticated - that's fine
         }
 
+        // Get public reviews
+        const reviews = await getMovieReviews(id);
+
         return res.status(200).json({
           ...movie,
-          currentUserReview
+          currentUserReview,
+          isInWatchlist,
+          reviews
         });
       } catch (error) {
         console.error('Error fetching movie:', error);
@@ -95,7 +140,42 @@ export default async function handler(req, res) {
       return;
     }
 
-    const { movieId, rating, review, watchedDate } = req.body;
+    const { movieId, rating, review, watchedDate, action } = req.body;
+    
+    // Handle watchlist actions
+    if (action === 'watchlist') {
+      if (!movieId) {
+        return res.status(400).json({ message: 'Movie ID is required.' });
+      }
+
+      try {
+        await getAndCacheMovie(movieId); // Cache movie data
+        
+        // Check if already in watchlist
+        const isInWatchlist = await checkWatchlistStatus(authUser.sub, movieId);
+        
+        if (isInWatchlist) {
+          // Remove from watchlist
+          await db.execute({
+            sql: 'DELETE FROM watchlist WHERE user_id = ? AND movie_id = ?',
+            args: [authUser.sub, movieId],
+          });
+          return res.status(200).json({ message: 'Removed from watchlist', isInWatchlist: false });
+        } else {
+          // Add to watchlist
+          await db.execute({
+            sql: 'INSERT INTO watchlist (user_id, movie_id) VALUES (?, ?)',
+            args: [authUser.sub, movieId],
+          });
+          return res.status(200).json({ message: 'Added to watchlist', isInWatchlist: true });
+        }
+      } catch (error) {
+        console.error('Error managing watchlist:', error);
+        return res.status(500).json({ message: 'Failed to update watchlist.' });
+      }
+    }
+
+    // Handle review/rating
     if (!movieId) {
       return res.status(400).json({ message: 'Movie ID is required.' });
     }
