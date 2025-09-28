@@ -29,6 +29,7 @@
     "eslint-plugin-react-refresh": "latest",
     "vite": "latest",
     "tailwindcss": "latest",
+    "@tailwindcss/postcss": "latest",
     "autoprefixer": "latest",
     "postcss": "latest"
   }
