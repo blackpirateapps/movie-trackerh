@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import MovieCard from '../components/MovieCard';
-import './Home.css';
 
 const Home = () => {
   const [query, setQuery] = useState('');
@@ -11,7 +10,6 @@ const Home = () => {
   const [trending, setTrending] = useState([]);
 
   useEffect(() => {
-    // Load trending movies on component mount
     const loadTrending = async () => {
       try {
         const { data } = await api.get('/api/movies?query=popular');
@@ -39,33 +37,35 @@ const Home = () => {
   };
 
   return (
-    <div className="home">
-      <div className="hero-section">
-        <div className="hero-content">
-          <h1 className="hero-title">
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="relative py-20 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in">
             Track Your Favorite 
             <span className="text-gradient"> Movies</span>
           </h1>
-          <p className="hero-subtitle">
+          <p className="text-xl text-gray-300 mb-12 max-w-2xl mx-auto animate-fade-in">
             Discover, rate, and review movies. Share your thoughts with friends and build your personal movie collection.
           </p>
           
-          <form onSubmit={handleSearch} className="search-form">
-            <div className="search-input-group">
+          {/* Search Form */}
+          <form onSubmit={handleSearch} className="max-w-2xl mx-auto animate-fade-in">
+            <div className="flex gap-3">
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search for movies, actors, genres..."
-                className="search-input form-input"
+                className="form-input flex-1 text-lg py-4"
               />
               <button 
                 type="submit" 
                 disabled={loading}
-                className="search-button btn btn-primary"
+                className="btn btn-primary px-8 py-4 text-lg"
               >
                 {loading ? (
-                  <div className="loading-spinner" />
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
                 ) : (
                   <>🔍 Search</>
                 )}
@@ -73,15 +73,16 @@ const Home = () => {
             </div>
           </form>
         </div>
-      </div>
+      </section>
 
+      {/* Search Results */}
       {results.length > 0 && (
-        <section className="search-results">
-          <div className="container">
-            <h2 className="section-title">Search Results</h2>
-            <div className="movies-grid grid grid-4">
+        <section className="py-16 px-4">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-3xl font-bold mb-8">Search Results</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {results.map(movie => (
-                <Link key={movie.id} to={`/movie/${movie.id}`} className="movie-link">
+                <Link key={movie.id} to={`/movie/${movie.id}`} className="group">
                   <MovieCard movie={movie} />
                 </Link>
               ))}
@@ -90,15 +91,16 @@ const Home = () => {
         </section>
       )}
 
+      {/* Trending Movies */}
       {trending.length > 0 && (
-        <section className="trending-section">
-          <div className="container">
-            <h2 className="section-title">
+        <section className="py-16 px-4">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-3xl font-bold mb-8 flex items-center gap-3">
               🔥 Trending Movies
             </h2>
-            <div className="movies-grid grid grid-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {trending.map(movie => (
-                <Link key={movie.id} to={`/movie/${movie.id}`} className="movie-link">
+                <Link key={movie.id} to={`/movie/${movie.id}`} className="group">
                   <MovieCard movie={movie} />
                 </Link>
               ))}

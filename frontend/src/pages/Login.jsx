@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import './Auth.css';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -27,44 +26,48 @@ const Login = () => {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-card card">
-          <div className="auth-header">
-            <h1 className="auth-title">Welcome Back</h1>
-            <p className="auth-subtitle">Sign in to your account</p>
+    <div className="min-h-screen flex items-center justify-center py-12 px-4">
+      <div className="max-w-md w-full">
+        <div className="card">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
+            <p className="text-gray-400">Sign in to your account</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="auth-form">
-            <div className="form-group">
-              <label htmlFor="email" className="form-label">Email</label>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium mb-2">
+                Email
+              </label>
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="form-input focus-ring"
+                className="form-input"
                 placeholder="Enter your email"
                 required
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="password" className="form-label">Password</label>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium mb-2">
+                Password
+              </label>
               <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="form-input focus-ring"
+                className="form-input"
                 placeholder="Enter your password"
                 required
               />
             </div>
 
             {error && (
-              <div className="error-message">
-                <span className="error-icon">⚠️</span>
+              <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 flex items-center gap-2 text-red-300">
+                <span>⚠️</span>
                 {error}
               </div>
             )}
@@ -72,11 +75,11 @@ const Login = () => {
             <button 
               type="submit" 
               disabled={loading}
-              className="btn btn-primary auth-submit"
+              className="btn btn-primary w-full py-3"
             >
               {loading ? (
                 <>
-                  <div className="loading-spinner" />
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                   Signing in...
                 </>
               ) : (
@@ -85,10 +88,12 @@ const Login = () => {
             </button>
           </form>
 
-          <div className="auth-footer">
-            <p>
+          <div className="mt-8 text-center">
+            <p className="text-gray-400">
               Don't have an account? 
-              <Link to="/signup" className="auth-link"> Sign up</Link>
+              <Link to="/signup" className="text-primary-400 hover:text-primary-300 ml-1">
+                Sign up
+              </Link>
             </p>
           </div>
         </div>

@@ -1,16 +1,14 @@
 import Navbar from './Navbar';
-import './Layout.css';
 
 const Layout = ({ children }) => {
   return (
-    <div className="layout">
+    <div className="min-h-screen bg-gray-950">
       <Navbar />
-      <main className="main-content">
-        <div className="content-wrapper">
-          {children}
-        </div>
+      <main className="pt-20">
+        {children}
       </main>
-      <div className="bg-gradient"></div>
+      {/* Background gradient */}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-primary-900/10 via-transparent to-purple-900/10" />
     </div>
   );
 };

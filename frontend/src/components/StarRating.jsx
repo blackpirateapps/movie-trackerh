@@ -1,9 +1,14 @@
 import { useState } from 'react';
-import './StarRating.css';
 
 const StarRating = ({ rating = 0, onRatingChange, readOnly = false, size = 'medium' }) => {
   const [hover, setHover] = useState(0);
   const [currentRating, setCurrentRating] = useState(rating);
+
+  const sizeClasses = {
+    small: 'text-sm gap-0.5',
+    medium: 'text-lg gap-1',
+    large: 'text-xl gap-1'
+  };
 
   const handleClick = (ratingValue) => {
     if (readOnly) return;
@@ -26,28 +31,30 @@ const StarRating = ({ rating = 0, onRatingChange, readOnly = false, size = 'medi
   };
 
   return (
-    <div className={`star-rating star-rating--${size} ${readOnly ? 'readonly' : ''}`}>
+    <div className={`flex items-center ${sizeClasses[size]} ${readOnly ? '' : 'cursor-pointer'}`}>
       {[...Array(5)].map((_, index) => {
         const ratingValue = index + 1;
         return (
           <button
             key={index}
             type="button"
-            className={`star ${
-              ratingValue <= (hover || currentRating) ? 'star--filled' : 'star--empty'
-            }`}
+            className={`transition-colors ${
+              ratingValue <= (hover || currentRating) 
+                ? 'text-yellow-400' 
+                : 'text-gray-600'
+            } ${readOnly ? 'cursor-default' : 'hover:text-yellow-300'}`}
             onClick={() => handleClick(ratingValue)}
             onMouseEnter={() => handleMouseEnter(ratingValue)}
             onMouseLeave={handleMouseLeave}
             disabled={readOnly}
             aria-label={`Rate ${ratingValue} stars`}
           >
-            <span className="star-icon">★</span>
+            ★
           </button>
         );
       })}
       {!readOnly && (
-        <span className="rating-text">
+        <span className="ml-2 text-sm text-gray-400">
           {currentRating > 0 ? `${currentRating}/5` : 'Rate this movie'}
         </span>
       )}
