@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "backend/api/*": {
-      "memory": 128
-    }
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
