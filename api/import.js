@@ -7,16 +7,8 @@ import { Readable } from 'stream';
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-async function getLetterboxdMovieId(letterboxdURI) {
-  // Extract movie ID from Letterboxd URI like https://boxd.it/1skk
-  if (!letterboxdURI) return null;
-  const match = letterboxdURI.match(/boxd.it/([a-zA-Z0-9]+)/);
-  return match ? match[1] : null;
-}
-
 async function searchMovieOnTMDB(title, year) {
   try {
-    // Clean title - remove extra quotes and special characters
     const cleanTitle = title.replace(/["""]/g, '').trim();
     
     let searchQuery = cleanTitle;
@@ -26,7 +18,7 @@ async function searchMovieOnTMDB(title, year) {
           api_key: TMDB_API_KEY,
           query: searchQuery,
           year: year
-        },
+        }
       });
 
       if (response.data.results.length > 0) {
@@ -34,12 +26,11 @@ async function searchMovieOnTMDB(title, year) {
       }
     }
 
-    // Fallback search without year
     const fallbackResponse = await axios.get(`${TMDB_BASE_URL}/search/movie`, {
       params: {
         api_key: TMDB_API_KEY,
         query: cleanTitle
-      },
+      }
     });
 
     return fallbackResponse.data.results[0] || null;
@@ -62,7 +53,7 @@ async function cacheMovie(tmdbMovie) {
         tmdbMovie.backdrop_path,
         tmdbMovie.runtime || null,
         tmdbMovie.vote_average
-      ],
+      ]
     });
   } catch (error) {
     console.log('Movie caching failed (non-critical):', error);
@@ -82,7 +73,6 @@ async function processWatchedMovie(authUser, row, processed) {
   const name = row.Name || row.name;
   const year = row.Year || row.year;
   const date = parseLetterboxdDate(row.Date || row.date);
-  const letterboxdURI = row['Letterboxd URI'] || row.letterboxdURI;
 
   if (!name) {
     return { error: { row: processed, error: 'Missing movie name' } };
@@ -102,7 +92,6 @@ async function processWatchedMovie(authUser, row, processed) {
 
   await cacheMovie(tmdbMovie);
 
-  // Add to user_movies as watched
   await db.execute({
     sql: `
       INSERT INTO user_movies (user_id, movie_id, watched_date)
@@ -111,7 +100,7 @@ async function processWatchedMovie(authUser, row, processed) {
       watched_date = COALESCE(excluded.watched_date, watched_date),
       updated_at = CURRENT_TIMESTAMP
     `,
-    args: [authUser.sub, tmdbMovie.id, date],
+    args: [authUser.sub, tmdbMovie.id, date]
   });
 
   return {
@@ -129,7 +118,6 @@ async function processWatchlistMovie(authUser, row, processed) {
   const name = row.Name || row.name;
   const year = row.Year || row.year;
   const dateAdded = parseLetterboxdDate(row.Date || row.date);
-  const letterboxdURI = row['Letterboxd URI'] || row.letterboxdURI;
 
   if (!name) {
     return { error: { row: processed, error: 'Missing movie name' } };
@@ -149,10 +137,9 @@ async function processWatchlistMovie(authUser, row, processed) {
 
   await cacheMovie(tmdbMovie);
 
-  // Add to watchlist
   await db.execute({
     sql: 'INSERT OR IGNORE INTO watchlist (user_id, movie_id, created_at) VALUES (?, ?, ?)',
-    args: [authUser.sub, tmdbMovie.id, dateAdded || new Date().toISOString()],
+    args: [authUser.sub, tmdbMovie.id, dateAdded || new Date().toISOString()]
   });
 
   return {
@@ -226,8 +213,8 @@ export default async function handler(req, res) {
             errors: errors.length,
             total: processed,
             importType,
-            results: results.slice(0, 20), // Show first 20 results
-            errors: errors.slice(0, 10)   // Show first 10 errors
+            results: results.slice(0, 20),
+            errors: errors.slice(0, 10)
           }));
         })
         .on('error', (error) => {
