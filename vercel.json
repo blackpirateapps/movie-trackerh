@@ -1,6 +1,6 @@
 {
   "functions": {
-    "backend/api/*.js": {
+    "/backend/api/*.js": {
       "memory": 128
     }
   },
