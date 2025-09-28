@@ -1,15 +1,18 @@
-import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
+import './Layout.css';
 
-const Layout = () => {
-    return (
-        <>
-            <Navbar />
-            <main className="container mx-auto max-w-5xl p-4">
-                <Outlet />
-            </main>
-        </>
-    );
+const Layout = ({ children }) => {
+  return (
+    <div className="layout">
+      <Navbar />
+      <main className="main-content">
+        <div className="content-wrapper">
+          {children}
+        </div>
+      </main>
+      <div className="bg-gradient"></div>
+    </div>
+  );
 };
 
 export default Layout;
