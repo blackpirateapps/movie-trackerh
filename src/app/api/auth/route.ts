@@ -51,7 +51,45 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, email, password, username } = body;
+    const { action, email, password, username, rootPassword, usernameOrEmail, newPassword } = body;
+
+    if (action === 'reset-password') {
+      const ROOT_ADMIN_PASSWORD = process.env.ROOT_ADMIN_PASSWORD || 'admin123';
+      
+      if (!rootPassword || rootPassword !== ROOT_ADMIN_PASSWORD) {
+        return NextResponse.json({ message: 'Invalid root admin password.' }, { status: 403 });
+      }
+
+      if (!usernameOrEmail || !newPassword) {
+        return NextResponse.json({ message: 'Target username/email and new password are required.' }, { status: 400 });
+      }
+
+      if (newPassword.length < 6) {
+        return NextResponse.json({ message: 'New password must be at least 6 characters long.' }, { status: 400 });
+      }
+
+      const { rows } = await db.execute({
+        sql: 'SELECT id, username, email FROM users WHERE username = ? OR email = ?',
+        args: [usernameOrEmail, usernameOrEmail],
+      });
+
+      if (rows.length === 0) {
+        return NextResponse.json({ message: 'User not found.' }, { status: 404 });
+      }
+
+      const user = rows[0] as any;
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+      const passwordCol = await getPasswordColumnName();
+
+      await db.execute({
+        sql: `UPDATE users SET ${passwordCol} = ? WHERE id = ?`,
+        args: [hashedPassword, user.id],
+      });
+
+      return NextResponse.json({ 
+        message: `Password for user "${user.username}" successfully reset.` 
+      }, { status: 200 });
+    }
 
     if (action === 'signup') {
       if (!email || !password || !username) {

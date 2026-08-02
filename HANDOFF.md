@@ -12,6 +12,7 @@ This document provides a comprehensive technical overview of the **CineTracker**
 - **Letterboxd CSV Import**: Interactively import watched history (`watched.csv`) or watchlists (`watchlist.csv`) exported from Letterboxd with TMDB title matching and manual selection.
 - **Social Graph & Feed**: Follow/unfollow other users, view community profiles, and see recent movie activity from followed users.
 - **User Authentication**: Secure signup/login using bcrypt-hashed passwords and JWT tokens set in HTTP-only cookies.
+- **Temporary Root Admin Password Reset**: Allows resetting any user password by authenticating with `ROOT_ADMIN_PASSWORD` stored in environment variables.
 
 ---
 
@@ -46,7 +47,7 @@ movie-trackerh/
 │   ├── app/                 # Next.js App Router Routes & API Handlers
 │   │   ├── api/
 │   │   │   ├── auth/
-│   │   │   │   └── route.ts # GET session check; POST login, signup, logout
+│   │   │   │   └── route.ts # GET session check; POST login, signup, logout, reset-password
 │   │   │   ├── import/
 │   │   │   │   └── route.ts # POST parse CSV, search TMDB, import movie to DB
 │   │   │   ├── movies/
@@ -58,7 +59,7 @@ movie-trackerh/
 │   │   ├── import/
 │   │   │   └── page.tsx     # Interactive Letterboxd CSV importer page
 │   │   ├── login/
-│   │   │   └── page.tsx     # User login form
+│   │   │   └── page.tsx     # User login form & temporary Forgot Password modal
 │   │   ├── movie/
 │   │   │   └── [id]/
 │   │   │       └── page.tsx # Dynamic Movie details page
@@ -151,6 +152,7 @@ The database relies on Turso (SQLite/LibSQL).
   - `action: 'signup'`: Creates user. Body: `{ username, email, password }`.
   - `action: 'login'`: Authenticates user. Body: `{ email, password }`.
   - `action: 'logout'`: Clears token cookie.
+  - `action: 'reset-password'`: (Temporary Admin feature) Validates `rootPassword` against `process.env.ROOT_ADMIN_PASSWORD` and updates target user's password. Body: `{ rootPassword, usernameOrEmail, newPassword }`.
 
 ### `/api/movies`
 - `GET`:
@@ -187,6 +189,7 @@ The application requires the following environment variables (defined in Vercel 
 | `TURSO_AUTH_TOKEN` | Turso database API access token |
 | `JWT_SECRET` | Secret key used for signing & verifying session JWT tokens |
 | `TMDB_API_KEY` | API Key for The Movie Database API (v3) |
+| `ROOT_ADMIN_PASSWORD` | (Temporary) Secret root admin password for emergency user password resets |
 | `NODE_ENV` | Environment mode (`development` or `production`) |
 
 ---
