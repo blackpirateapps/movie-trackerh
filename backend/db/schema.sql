@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS user_movies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     movie_id INTEGER NOT NULL,
-    rating INTEGER, -- e.g., 1-5
+    rating INTEGER, -- 1-10 scale
     review TEXT,
     watched_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -54,4 +54,85 @@ CREATE TABLE IF NOT EXISTS watchlist (
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     FOREIGN KEY (movie_id) REFERENCES movies (id) ON DELETE CASCADE,
     UNIQUE (user_id, movie_id)
+);
+
+-- TV Shows table (caches data from TMDB)
+CREATE TABLE IF NOT EXISTS tv_shows (
+    id INTEGER PRIMARY KEY, -- TMDB TV show ID
+    name TEXT NOT NULL,
+    overview TEXT,
+    first_air_date TEXT,
+    poster_path TEXT,
+    backdrop_path TEXT,
+    number_of_seasons INTEGER,
+    number_of_episodes INTEGER,
+    vote_average REAL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Seasons table (caches season metadata from TMDB)
+CREATE TABLE IF NOT EXISTS seasons (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tv_show_id INTEGER NOT NULL,
+    season_number INTEGER NOT NULL,
+    name TEXT,
+    overview TEXT,
+    poster_path TEXT,
+    air_date TEXT,
+    episode_count INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tv_show_id) REFERENCES tv_shows (id) ON DELETE CASCADE,
+    UNIQUE (tv_show_id, season_number)
+);
+
+-- Episodes table (caches episode metadata from TMDB)
+CREATE TABLE IF NOT EXISTS episodes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tv_show_id INTEGER NOT NULL,
+    season_number INTEGER NOT NULL,
+    episode_number INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    overview TEXT,
+    still_path TEXT,
+    air_date TEXT,
+    vote_average REAL,
+    runtime INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tv_show_id) REFERENCES tv_shows (id) ON DELETE CASCADE,
+    UNIQUE (tv_show_id, season_number, episode_number)
+);
+
+-- User-TV Show relationship table (reviews, ratings, favorite, start/end dates, platform tags)
+CREATE TABLE IF NOT EXISTS user_tv_shows (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    tv_show_id INTEGER NOT NULL,
+    rating INTEGER, -- 1-10 scale
+    review TEXT,
+    is_favorite INTEGER DEFAULT 0,
+    start_date DATE,
+    end_date DATE,
+    watched_where TEXT, -- JSON string of tags e.g. ["Netflix", "Hotstar", "Pirated"]
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (tv_show_id) REFERENCES tv_shows (id) ON DELETE CASCADE,
+    UNIQUE (user_id, tv_show_id)
+);
+
+-- User-Episode relationship table (watched status & rating per episode)
+CREATE TABLE IF NOT EXISTS user_episodes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    tv_show_id INTEGER NOT NULL,
+    season_number INTEGER NOT NULL,
+    episode_number INTEGER NOT NULL,
+    watched INTEGER DEFAULT 1,
+    watched_date DATE,
+    rating INTEGER, -- 1-10 scale
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (tv_show_id) REFERENCES tv_shows (id) ON DELETE CASCADE,
+    UNIQUE (user_id, tv_show_id, season_number, episode_number)
 );

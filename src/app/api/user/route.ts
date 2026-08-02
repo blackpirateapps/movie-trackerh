@@ -20,31 +20,65 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ message: 'Authentication required for feed.' }, { status: 401 });
       }
 
-      const { rows: feed } = await db.execute({
+      // Movie feed items
+      const { rows: movieFeed } = await db.execute({
         sql: `
           SELECT 
             um.id, 
             um.user_id, 
+            'movie' as type,
             um.movie_id as movieId, 
+            NULL as tvShowId,
             um.rating, 
             um.review, 
             um.watched_date, 
             um.created_at, 
             um.updated_at,
             u.username,
-            m.title as movieTitle
+            m.title as movieTitle,
+            NULL as tvShowName
           FROM user_movies um
           JOIN users u ON um.user_id = u.id
           JOIN movies m ON um.movie_id = m.id
           WHERE um.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
              OR um.user_id = ?
-          ORDER BY um.updated_at DESC, um.created_at DESC
-          LIMIT 50
         `,
         args: [authUser.sub, authUser.sub],
       });
 
-      return NextResponse.json(feed, { status: 200 });
+      // TV Show feed items
+      const { rows: tvFeed } = await db.execute({
+        sql: `
+          SELECT 
+            uts.id, 
+            uts.user_id, 
+            'tv' as type,
+            NULL as movieId,
+            uts.tv_show_id as tvShowId, 
+            uts.rating, 
+            uts.review, 
+            NULL as watched_date, 
+            uts.created_at, 
+            uts.updated_at,
+            u.username,
+            NULL as movieTitle,
+            t.name as tvShowName
+          FROM user_tv_shows uts
+          JOIN users u ON uts.user_id = u.id
+          JOIN tv_shows t ON uts.tv_show_id = t.id
+          WHERE uts.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
+             OR uts.user_id = ?
+        `,
+        args: [authUser.sub, authUser.sub],
+      });
+
+      const combined = [...movieFeed, ...tvFeed].sort((a: any, b: any) => {
+        const timeA = new Date(a.updated_at || a.created_at).getTime();
+        const timeB = new Date(b.updated_at || b.created_at).getTime();
+        return timeB - timeA;
+      }).slice(0, 50);
+
+      return NextResponse.json(combined, { status: 200 });
     } catch (error) {
       console.error('Error fetching feed:', error);
       return NextResponse.json({ message: 'Failed to fetch feed.' }, { status: 500 });
@@ -71,10 +105,12 @@ export async function GET(request: NextRequest) {
             u.email, 
             u.created_at,
             COUNT(DISTINCT um.id) as movies_count,
+            COUNT(DISTINCT uts.id) as tv_count,
             COUNT(DISTINCT f1.follower_id) as followers_count,
             COUNT(DISTINCT f2.following_id) as following_count
           FROM users u
           LEFT JOIN user_movies um ON u.id = um.user_id
+          LEFT JOIN user_tv_shows uts ON u.id = uts.user_id
           LEFT JOIN follows f1 ON u.id = f1.following_id
           LEFT JOIN follows f2 ON u.id = f2.follower_id
           ${searchQuery}
@@ -101,6 +137,7 @@ export async function GET(request: NextRequest) {
           created_at: user.created_at,
           stats: {
             movies: user.movies_count,
+            tv_shows: user.tv_count,
             followers: user.followers_count,
             following: user.following_count
           }
@@ -133,6 +170,7 @@ export async function GET(request: NextRequest) {
 
       const user = rows[0] as any;
 
+      // User tracked movies
       const { rows: movies } = await db.execute({
         sql: `
           SELECT 
@@ -144,6 +182,37 @@ export async function GET(request: NextRequest) {
           ORDER BY um.updated_at DESC, um.created_at DESC
         `,
         args: [user.id],
+      });
+
+      // User tracked TV shows
+      const { rows: rawTvShows } = await db.execute({
+        sql: `
+          SELECT 
+            t.id, t.name, t.poster_path, t.backdrop_path, t.first_air_date,
+            uts.rating, uts.review, uts.is_favorite, uts.start_date, uts.end_date, uts.watched_where,
+            uts.created_at, uts.updated_at
+          FROM user_tv_shows uts
+          JOIN tv_shows t ON uts.tv_show_id = t.id
+          WHERE uts.user_id = ?
+          ORDER BY uts.updated_at DESC, uts.created_at DESC
+        `,
+        args: [user.id],
+      });
+
+      const tvShows = rawTvShows.map((row: any) => {
+        let watchedWhere: string[] = [];
+        if (row.watched_where) {
+          try {
+            watchedWhere = JSON.parse(row.watched_where as string);
+          } catch (e) {
+            watchedWhere = (row.watched_where as string).split(',').map((s: string) => s.trim()).filter(Boolean);
+          }
+        }
+        return {
+          ...row,
+          is_favorite: Boolean(row.is_favorite),
+          watched_where: watchedWhere
+        };
       });
 
       const { rows: followerStats } = await db.execute({
@@ -174,6 +243,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         user,
         movies,
+        tvShows,
         stats,
         isFollowing,
       });

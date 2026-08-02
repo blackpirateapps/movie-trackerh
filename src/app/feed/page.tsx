@@ -5,13 +5,13 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import StarRating from '@/components/StarRating';
 import { FeedItem } from '@/types';
-import { Rss, Filter, Film, User, Eye, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Rss, Filter, Film, Tv, User, Eye, AlertTriangle, RefreshCw } from 'lucide-react';
 
 export default function Feed() {
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
-  const [filter, setFilter] = useState<'all' | 'reviews' | 'ratings'>('all');
+  const [filter, setFilter] = useState<'all' | 'movies' | 'tv' | 'reviews'>('all');
 
   useEffect(() => {
     const fetchFeed = async () => {
@@ -30,8 +30,9 @@ export default function Feed() {
   }, []);
 
   const filteredItems = feedItems.filter(item => {
+    if (filter === 'movies') return item.type === 'movie' || item.movieId;
+    if (filter === 'tv') return item.type === 'tv' || item.tvShowId;
     if (filter === 'reviews') return item.review && item.review.trim().length > 0;
-    if (filter === 'ratings') return item.rating > 0;
     return true;
   });
 
@@ -40,7 +41,7 @@ export default function Feed() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="card text-center max-w-sm w-full">
           <div className="animate-spin rounded-full h-12 w-12 border-b-3 border-[#ff4d4d] mx-auto mb-4" />
-          <p className="font-bold text-xl text-[#2d2d2d]">Loading your movie feed...</p>
+          <p className="font-bold text-xl text-[#2d2d2d]">Loading your activity feed...</p>
         </div>
       </div>
     );
@@ -80,7 +81,7 @@ export default function Feed() {
                 Community Activity Feed
               </h1>
               <p className="text-lg text-[#2d2d2d]/80 mt-1">
-                See what your friends and fellow movie lovers are watching and reviewing!
+                See what your friends are watching (Movies & TV Shows)!
               </p>
             </div>
             
@@ -110,20 +111,28 @@ export default function Feed() {
                     All ({feedItems.length})
                   </button>
                   <button
+                    onClick={() => setFilter('movies')}
+                    className={`btn text-sm py-1.5 px-4 ${
+                      filter === 'movies' ? 'btn-primary' : 'btn-ghost'
+                    }`}
+                  >
+                    Movies
+                  </button>
+                  <button
+                    onClick={() => setFilter('tv')}
+                    className={`btn text-sm py-1.5 px-4 ${
+                      filter === 'tv' ? 'btn-primary' : 'btn-ghost'
+                    }`}
+                  >
+                    TV Shows
+                  </button>
+                  <button
                     onClick={() => setFilter('reviews')}
                     className={`btn text-sm py-1.5 px-4 ${
                       filter === 'reviews' ? 'btn-primary' : 'btn-ghost'
                     }`}
                   >
-                    Reviews ({feedItems.filter(item => item.review && item.review.trim().length > 0).length})
-                  </button>
-                  <button
-                    onClick={() => setFilter('ratings')}
-                    className={`btn text-sm py-1.5 px-4 ${
-                      filter === 'ratings' ? 'btn-primary' : 'btn-ghost'
-                    }`}
-                  >
-                    Ratings ({feedItems.filter(item => item.rating > 0).length})
+                    Reviews
                   </button>
                 </div>
               </div>
@@ -131,114 +140,116 @@ export default function Feed() {
 
             {/* Feed Items */}
             <div className="space-y-8">
-              {filteredItems.map((item, index) => (
-                <div 
-                  key={index} 
-                  className={`card relative transition-all duration-200 hover:-translate-y-1 hover:shadow-[6px_6px_0px_#2d2d2d] ${
-                    index % 2 === 0 ? '-rotate-1' : 'rotate-1'
-                  }`}
-                >
-                  <div className={index % 2 === 0 ? "tape-strip" : "thumbtack"} />
+              {filteredItems.map((item, index) => {
+                const isTv = item.type === 'tv' || item.tvShowId || item.tv_show_id;
+                const title = isTv ? (item.tvShowName || 'TV Show') : (item.movieTitle || 'Movie');
+                const linkHref = isTv ? `/tv/${item.tvShowId || item.tv_show_id}` : `/movie/${item.movieId || item.movie_id}`;
 
-                  {/* Feed Item Header */}
-                  <div className="flex items-center justify-between mb-4 border-b-2 border-dashed border-[#2d2d2d]/30 pb-3">
-                    <Link 
-                      href={`/profile/${item.username}`} 
-                      className="flex items-center gap-3 group"
-                    >
-                      <div className="w-11 h-11 bg-[#ff4d4d] text-white border-2 border-[#2d2d2d] rounded-full flex items-center justify-center font-heading text-lg font-bold shadow-[2px_2px_0px_#2d2d2d] group-hover:scale-110 transition-transform">
-                        {item.username ? item.username.charAt(0).toUpperCase() : '?'}
-                      </div>
-                      <div>
-                        <span className="font-heading font-bold text-xl text-[#2d2d2d] group-hover:text-[#ff4d4d] transition-colors">
-                          {item.username}
-                        </span>
-                        <span className="text-[#2d2d2d]/70 text-sm ml-2 font-semibold">
-                          reviewed a movie
-                        </span>
-                      </div>
-                    </Link>
-
-                    <time className="text-xs font-bold bg-[#e5e0d8] border border-[#2d2d2d] px-2.5 py-1 rounded-full">
-                      {new Date(item.updated_at || item.created_at).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </time>
-                  </div>
-
-                  {/* Movie Title Link */}
-                  <Link 
-                    href={`/movie/${item.movieId || item.movie_id}`} 
-                    className="inline-block mb-3 group"
+                return (
+                  <div 
+                    key={index} 
+                    className={`card relative transition-all duration-200 hover:-translate-y-1 hover:shadow-[6px_6px_0px_#2d2d2d] ${
+                      index % 2 === 0 ? '-rotate-1' : 'rotate-1'
+                    }`}
                   >
-                    <h3 className="text-2xl font-heading font-bold text-[#2d5da1] group-hover:text-[#ff4d4d] transition-colors underline decoration-wavy decoration-[#ff4d4d]/40">
-                      {item.movieTitle}
-                    </h3>
-                  </Link>
+                    <div className={index % 2 === 0 ? "tape-strip" : "thumbtack"} />
 
-                  {/* Rating */}
-                  {item.rating > 0 && (
-                    <div className="flex items-center gap-3 mb-4">
-                      <StarRating rating={item.rating} readOnly size="medium" />
-                      <span className="font-bold text-sm bg-[#fff9c4] border border-[#2d2d2d] px-2 py-0.5 rounded">
-                        Rated {item.rating}/5 Stars
-                      </span>
+                    {/* Feed Item Header */}
+                    <div className="flex items-center justify-between mb-4 border-b-2 border-dashed border-[#2d2d2d]/30 pb-3">
+                      <Link 
+                        href={`/profile/${item.username}`} 
+                        className="flex items-center gap-3 group"
+                      >
+                        <div className="w-11 h-11 bg-[#ff4d4d] text-white border-2 border-[#2d2d2d] rounded-full flex items-center justify-center font-heading text-lg font-bold shadow-[2px_2px_0px_#2d2d2d] group-hover:scale-110 transition-transform">
+                          {item.username ? item.username.charAt(0).toUpperCase() : '?'}
+                        </div>
+                        <div>
+                          <span className="font-heading font-bold text-xl text-[#2d2d2d] group-hover:text-[#ff4d4d] transition-colors">
+                            {item.username}
+                          </span>
+                          <span className="text-[#2d2d2d]/70 text-sm ml-2 font-semibold">
+                            {isTv ? 'reviewed a TV Show' : 'reviewed a movie'}
+                          </span>
+                        </div>
+                      </Link>
+
+                      <time className="text-xs font-bold bg-[#e5e0d8] border border-[#2d2d2d] px-2.5 py-1 rounded-full">
+                        {new Date(item.updated_at || item.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </time>
                     </div>
-                  )}
 
-                  {/* Review Text in Hand-drawn Quote Box */}
-                  {item.review && item.review.trim().length > 0 && (
-                    <div className="bg-[#fdfbf7] border-3 border-[#2d2d2d] p-4 rounded-[15px_225px_15px_255px/255px_15px_225px_15px] shadow-[3px_3px_0px_#2d2d2d] mb-4 relative">
-                      <p className="text-xl text-[#2d2d2d] font-body leading-relaxed italic">
-                        &ldquo;{item.review}&rdquo;
-                      </p>
+                    {/* Title Link */}
+                    <Link 
+                      href={linkHref} 
+                      className="inline-flex items-center gap-2 mb-3 group"
+                    >
+                      {isTv ? (
+                        <Tv className="w-6 h-6 text-[#2d5da1] stroke-[2.5]" />
+                      ) : (
+                        <Film className="w-6 h-6 text-[#ff4d4d] stroke-[2.5]" />
+                      )}
+                      <h3 className="text-2xl font-heading font-bold text-[#2d5da1] group-hover:text-[#ff4d4d] transition-colors underline decoration-wavy decoration-[#ff4d4d]/40">
+                        {title}
+                      </h3>
+                    </Link>
+
+                    {/* Rating */}
+                    {item.rating > 0 && (
+                      <div className="flex items-center gap-3 mb-4">
+                        <StarRating rating={item.rating} maxStars={10} readOnly size="medium" />
+                      </div>
+                    )}
+
+                    {/* Review Text */}
+                    {item.review && item.review.trim().length > 0 && (
+                      <div className="bg-[#fdfbf7] border-3 border-[#2d2d2d] p-4 rounded-[15px_225px_15px_255px/255px_15px_225px_15px] shadow-[3px_3px_0px_#2d2d2d] mb-4 relative">
+                        <p className="text-xl text-[#2d2d2d] font-body leading-relaxed italic">
+                          &ldquo;{item.review}&rdquo;
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-3 pt-2">
+                      <Link 
+                        href={linkHref}
+                        className="btn btn-secondary text-sm flex items-center gap-1.5"
+                      >
+                        <Eye className="w-4 h-4 stroke-[2.5]" />
+                        <span>View Details</span>
+                      </Link>
+                      <Link 
+                        href={`/profile/${item.username}`}
+                        className="btn btn-ghost text-sm flex items-center gap-1.5"
+                      >
+                        <User className="w-4 h-4 stroke-[2.5]" />
+                        <span>View Profile</span>
+                      </Link>
                     </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-3 pt-2">
-                    <Link 
-                      href={`/movie/${item.movieId || item.movie_id}`}
-                      className="btn btn-secondary text-sm flex items-center gap-1.5"
-                    >
-                      <Eye className="w-4 h-4 stroke-[2.5]" />
-                      <span>View Movie</span>
-                    </Link>
-                    <Link 
-                      href={`/profile/${item.username}`}
-                      className="btn btn-ghost text-sm flex items-center gap-1.5"
-                    >
-                      <User className="w-4 h-4 stroke-[2.5]" />
-                      <span>View Profile</span>
-                    </Link>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         ) : (
-          /* Empty State */
           <div className="card-postit text-center py-12 px-6">
-            <div className="w-20 h-20 bg-[#2d5da1] text-white border-3 border-[#2d2d2d] rounded-full flex items-center justify-center mx-auto mb-6 shadow-[4px_4px_0px_#2d2d2d] -rotate-6">
-              <Film className="w-10 h-10 stroke-[2.5]" />
-            </div>
-
             <h2 className="text-3xl font-heading font-bold mb-3 text-[#2d2d2d]">
               Your Feed is Empty!
             </h2>
             <p className="text-xl text-[#2d2d2d]/80 max-w-md mx-auto mb-8 leading-relaxed">
-              Follow other movie enthusiasts to see their latest movie reviews and ratings here.
+              Follow other enthusiasts to see their movie & TV show reviews here.
             </p>
-            
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/" className="btn btn-primary text-lg">
-                Discover Movies
+                Discover Content
               </Link>
               <Link href="/users" className="btn btn-secondary text-lg">
-                Find People to Follow
+                Find Community Members
               </Link>
             </div>
           </div>

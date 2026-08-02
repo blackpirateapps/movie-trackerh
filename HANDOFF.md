@@ -6,11 +6,12 @@ This document provides a comprehensive technical overview of the **CineTracker**
 
 ## 1. Executive Summary & Application Purpose
 
-**CineTracker** is a full-stack movie tracking and social networking web application built with **Next.js 16+ App Router (Turbopack)**, **TypeScript**, and a custom **Hand-Drawn Design System**. Key user capabilities include:
-- **Movie Discovery & Search**: Query movies using TMDB (The Movie Database) API with local caching in a LibSQL (Turso) database.
-- **Personal Movie Tracking**: Rate movies (1–5 stars), write text reviews, record watched dates, and toggle watchlist status.
+**CineTracker** is a full-stack movie and TV show tracking & social networking web application built with **Next.js 16+ App Router (Turbopack)**, **TypeScript**, and a custom **Hand-Drawn Design System**. Key user capabilities include:
+- **Movie & TV Show Discovery & Search**: Query movies and TV series using TMDB (The Movie Database) API with local caching in a LibSQL (Turso) database.
+- **Personal Media Tracking**: Rate movies, TV shows, and individual episodes on a **1–10 star rating scale**, write text reviews, record start/end dates, mark favorites, and select/create "Watched Where" platform tags (e.g., Netflix, Hotstar, Pirated, Prime Video).
+- **Season & Episode Breakdown**: Browse full season and episode breakdowns with titles, descriptions, air dates, still images, watched toggles, and episode ratings (1-10).
 - **Letterboxd CSV Import**: Interactively import watched history (`watched.csv`) or watchlists (`watchlist.csv`) exported from Letterboxd with TMDB title matching and manual selection.
-- **Social Graph & Feed**: Follow/unfollow other users, view community profiles, and see recent movie activity from followed users.
+- **Social Graph & Feed**: Follow/unfollow other users, view community profiles, and see recent movie & TV show activity from followed users.
 - **User Authentication**: Secure signup/login using bcrypt-hashed passwords and JWT tokens set in HTTP-only cookies.
 - **Temporary Root Admin Password Reset**: Allows resetting any user password by authenticating with `ROOT_ADMIN_PASSWORD` stored in environment variables.
 
@@ -23,6 +24,7 @@ The application is built on a modern full-stack **TypeScript + Next.js App Route
 - **Framework**: Next.js 16+ (App Router with `src/app` and Turbopack compiler)
 - **Language**: TypeScript (`tsconfig.json` with strict type-checking and path alias `@/*`)
 - **Icons**: Lucide React (`lucide-react`) with thick stroke width (`2.5` to `3`)
+- **Rating System**: 1 to 10 scale supported across all media types (movies, TV series, individual episodes)
 - **Styling & Design System**: Custom Hand-Drawn UI built on Tailwind CSS v4 (`@tailwindcss/postcss`)
   - **Typography**: Google Fonts (`Kalam` for felt-tip marker titles, `Patrick Hand` for legible handwritten body text)
   - **Color Palette**: Warm Paper (`#fdfbf7`), Soft Pencil Black (`#2d2d2d`), Erased Paper Muted (`#e5e0d8`), Red Correction Marker (`#ff4d4d`), Blue Pen (`#2d5da1`), Post-it Yellow (`#fff9c4`)
@@ -45,7 +47,7 @@ movie-trackerh/
 ├── backend/
 │   ├── db/
 │   │   ├── migrate.ts       # Database migration script (reads schema.sql & updates table structure)
-│   │   └── schema.sql       # Initial SQLite database schema DDL (includes users, movies, user_movies, follows, watchlist)
+│   │   └── schema.sql       # Initial SQLite database schema DDL (includes users, movies, user_movies, tv_shows, seasons, episodes, user_tv_shows, user_episodes, follows, watchlist)
 │   └── lib/
 │       ├── auth.ts          # Authentication helper function (verifies token from cookie)
 │       ├── jwt.ts           # JWT signing (`signToken`) & verification (`verifyToken`) helpers
@@ -59,10 +61,12 @@ movie-trackerh/
 │   │   │   │   └── route.ts # POST parse CSV, search TMDB, import movie to DB
 │   │   │   ├── movies/
 │   │   │   │   └── route.ts # GET search TMDB / get movie details; POST rate/review & watchlist toggle
+│   │   │   ├── tv/
+│   │   │   │   └── route.ts # GET search TMDB TV, show details & seasons; POST track TV, favorite, delete, episode watched/rated
 │   │   │   └── user/
-│   │   │       └── route.ts # GET list users, single profile, action=feed; POST follow/unfollow user
+│   │   │       └── route.ts # GET list users, single profile (movies & TV), action=feed; POST follow/unfollow user
 │   │   ├── feed/
-│   │   │   └── page.tsx     # Hand-Drawn activity feed pinboard
+│   │   │   └── page.tsx     # Hand-Drawn activity feed pinboard (Movies & TV)
 │   │   ├── import/
 │   │   │   └── page.tsx     # Interactive Letterboxd CSV importer notebook page
 │   │   ├── login/
@@ -70,20 +74,24 @@ movie-trackerh/
 │   │   ├── movie/
 │   │   │   └── [id]/
 │   │   │       └── page.tsx # Dynamic Movie detail scrapbook page
+│   │   ├── tv/
+│   │   │   └── [id]/
+│   │   │       └── page.tsx # Dynamic TV Show detail & season/episode breakdown page
 │   │   ├── profile/
 │   │   │   └── [username]/
-│   │   │       └── page.tsx # Dynamic User personal profile page
+│   │   │       └── page.tsx # Dynamic User personal profile page (Movies & TV tabs)
 │   │   ├── signup/
 │   │   │   └── page.tsx     # Hand-Drawn post-it signup form
 │   │   ├── users/
 │   │   │   └── page.tsx     # Hand-Drawn community directory board
 │   │   ├── globals.css      # Hand-Drawn design system tokens, wobbly borders, paper texture, custom styles
 │   │   ├── layout.tsx       # Root layout wrapping app in AuthProvider and Navbar
-│   │   └── page.tsx         # Home page with hero banner & movie search
+│   │   └── page.tsx         # Home page with hero banner, movie/TV search switcher & trenders
 │   ├── components/
-│   │   ├── MovieCard.tsx    # Photo print / sketch frame card with tape top accent, hard shadow & wobbly border
+│   │   ├── MovieCard.tsx    # Photo print / sketch frame card for movies
+│   │   ├── TVShowCard.tsx   # Photo print / sketch frame card for TV shows with favorite & platform tags
 │   │   ├── Navbar.tsx       # Hand-drawn navigation header with brand logo & mobile dropdown
-│   │   └── StarRating.tsx   # Interactive and read-only hand-drawn star rating component (1-5 stars)
+│   │   └── StarRating.tsx   # Interactive and read-only hand-drawn star rating component (1-10 scale)
 │   ├── contexts/
 │   │   └── AuthContext.tsx  # React Client Context providing user session & auth actions
 │   ├── hooks/
@@ -91,7 +99,7 @@ movie-trackerh/
 │   ├── lib/
 │   │   └── api.ts           # Pre-configured Axios instance using relative API paths
 │   └── types/
-│       └── index.ts         # Shared TypeScript interfaces (User, Movie, FeedItem, etc.)
+│       └── index.ts         # Shared TypeScript interfaces (User, Movie, TVShow, Season, Episode, etc.)
 ├── design.md                # Comprehensive Hand-Drawn Design System Specification
 ├── tsconfig.json            # TypeScript configuration (`compilerOptions`, `@/*` path mapping)
 ├── next.config.js           # Next.js configuration (remote image domains)
@@ -115,7 +123,7 @@ The database relies on Turso (SQLite/LibSQL).
    - `password`: TEXT NOT NULL (hashed with bcrypt)
    - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
-2. `movies` (caches metadata from TMDB)
+2. `movies` (caches data from TMDB)
    - `id`: INTEGER PRIMARY KEY (Matches TMDB movie ID)
    - `title`: TEXT NOT NULL
    - `overview`: TEXT
@@ -128,31 +136,107 @@ The database relies on Turso (SQLite/LibSQL).
 
 3. `user_movies` (user reviews & ratings)
    - `id`: INTEGER PRIMARY KEY AUTOINCREMENT
-   - `user_id`: INTEGER NOT NULL (FK -> users.id)
-   - `movie_id`: INTEGER NOT NULL (FK -> movies.id)
-   - `rating`: INTEGER (1-5 scale)
+   - `user_id`: INTEGER NOT NULL
+   - `movie_id`: INTEGER NOT NULL
+   - `rating`: INTEGER (1-10 scale)
    - `review`: TEXT
    - `watched_date`: DATE
    - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
    - `updated_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
    - `UNIQUE(user_id, movie_id)` constraint used for `UPSERT` / `ON CONFLICT` operations
 
-4. `follows` (social connection graph)
-   - `follower_id`: INTEGER NOT NULL (FK -> users.id)
-   - `following_id`: INTEGER NOT NULL (FK -> users.id)
+4. `tv_shows` (caches data from TMDB)
+   - `id`: INTEGER PRIMARY KEY (Matches TMDB TV ID)
+   - `name`: TEXT NOT NULL
+   - `overview`: TEXT
+   - `first_air_date`: TEXT
+   - `poster_path`: TEXT
+   - `backdrop_path`: TEXT
+   - `number_of_seasons`: INTEGER
+   - `number_of_episodes`: INTEGER
+   - `vote_average`: REAL
+   - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+5. `seasons` (caches season metadata from TMDB)
+   - `id`: INTEGER PRIMARY KEY AUTOINCREMENT
+   - `tv_show_id`: INTEGER NOT NULL
+   - `season_number`: INTEGER NOT NULL
+   - `name`: TEXT
+   - `overview`: TEXT
+   - `poster_path`: TEXT
+   - `air_date`: TEXT
+   - `episode_count`: INTEGER
+   - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   - `UNIQUE(tv_show_id, season_number)`
+
+6. `episodes` (caches episode metadata from TMDB)
+   - `id`: INTEGER PRIMARY KEY AUTOINCREMENT
+   - `tv_show_id`: INTEGER NOT NULL
+   - `season_number`: INTEGER NOT NULL
+   - `episode_number`: INTEGER NOT NULL
+   - `name`: TEXT NOT NULL
+   - `overview`: TEXT
+   - `still_path`: TEXT
+   - `air_date`: TEXT
+   - `vote_average`: REAL
+   - `runtime`: INTEGER
+   - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   - `UNIQUE(tv_show_id, season_number, episode_number)`
+
+7. `user_tv_shows` (user reviews, ratings, favorite, start/end dates, platform tags)
+   - `id`: INTEGER PRIMARY KEY AUTOINCREMENT
+   - `user_id`: INTEGER NOT NULL
+   - `tv_show_id`: INTEGER NOT NULL
+   - `rating`: INTEGER (1-10 scale)
+   - `review`: TEXT
+   - `is_favorite`: INTEGER DEFAULT 0
+   - `start_date`: DATE
+   - `end_date`: DATE
+   - `watched_where`: TEXT (JSON array string e.g. `["Netflix","Hotstar","Pirated"]`)
+   - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   - `updated_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   - `UNIQUE(user_id, tv_show_id)`
+
+8. `user_episodes` (episode watched state & 1-10 rating)
+   - `id`: INTEGER PRIMARY KEY AUTOINCREMENT
+   - `user_id`: INTEGER NOT NULL
+   - `tv_show_id`: INTEGER NOT NULL
+   - `season_number`: INTEGER NOT NULL
+   - `episode_number`: INTEGER NOT NULL
+   - `watched`: INTEGER DEFAULT 1
+   - `watched_date`: DATE
+   - `rating`: INTEGER (1-10 scale)
+   - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   - `updated_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   - `UNIQUE(user_id, tv_show_id, season_number, episode_number)`
+
+9. `follows` (social connection graph)
+   - `follower_id`: INTEGER NOT NULL
+   - `following_id`: INTEGER NOT NULL
    - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
    - `PRIMARY KEY (follower_id, following_id)`
 
-5. `watchlist`
-   - `id`: INTEGER PRIMARY KEY AUTOINCREMENT
-   - `user_id`: INTEGER NOT NULL (FK -> users.id)
-   - `movie_id`: INTEGER NOT NULL (FK -> movies.id)
-   - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-   - `UNIQUE(user_id, movie_id)`
+10. `watchlist`
+    - `id`: INTEGER PRIMARY KEY AUTOINCREMENT
+    - `user_id`: INTEGER NOT NULL
+    - `movie_id`: INTEGER NOT NULL
+    - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    - `UNIQUE(user_id, movie_id)`
 
 ---
 
 ## 5. API Endpoint Reference (Next.js App Router Route Handlers)
+
+### `/api/tv`
+- `GET`:
+  - `?query=<search_term>`: Search TMDB API (`/3/search/tv`). Returns list of TV shows.
+  - `?id=<tmdb_tv_id>`: Fetches TV show details, caches TV show & seasons metadata in local DB tables, returns show data with `currentUserTrack`, `userEpisodes`, and `reviews`.
+  - `?id=<tmdb_tv_id>&season=<season_number>`: Fetches Season details, caches episodes in local `episodes` DB table (with stills), returns season and episodes list with user watched/rating states.
+- `POST`:
+  - Default (Track TV Show): Body: `{ tvShowId, rating, review, isFavorite, startDate, endDate, watchedWhere }`. Upserts into `user_tv_shows`.
+  - `action: 'favorite'`: Body: `{ tvShowId, isFavorite }`. Toggles favorite in `user_tv_shows`.
+  - `action: 'delete'`: Body: `{ tvShowId }`. Removes show from user's collection and clears episode tracking records.
+  - `action: 'episode_watched'`: Body: `{ tvShowId, seasonNumber, episodeNumber, watched, rating }`. Upserts into `user_episodes`.
 
 ### `/api/auth`
 - `GET`: Validates session cookie. Returns `{ user: { id, username, email } }`.
@@ -172,18 +256,12 @@ The database relies on Turso (SQLite/LibSQL).
 
 ### `/api/user`
 - `GET`:
-  - `?action=feed`: Returns recent movie ratings and reviews from users that the current user follows.
-  - `?action=list&page=1&limit=20&search=`: Returns paginated list of users with stats (`movies`, `followers`, `following`).
-  - `?username=<username>`: Returns user profile, tracked movies list, follower/following counts, and `isFollowing` status for the authenticated user.
+  - `?action=feed`: Returns recent movie & TV show ratings/reviews from users that the current user follows.
+  - `?action=list&page=1&limit=20&search=`: Returns paginated list of users with stats (`movies`, `tv_shows`, `followers`, `following`).
+  - `?username=<username>`: Returns user profile, tracked movies, tracked TV shows (with favorite state & watched_where tags), follower/following counts, and `isFollowing` status for the authenticated user.
 - `POST`:
   - `action: 'follow'`: Inserts row into `follows` table. Body: `{ action: 'follow', followingId }`.
   - `action: 'unfollow'`: Deletes row from `follows` table. Body: `{ action: 'unfollow', followingId }`.
-
-### `/api/import`
-- `POST`:
-  - `action: 'parse'`: Accepts Letterboxd CSV string `csvData` and `importType` (`watched` or `watchlist`). Parses CSV rows to JSON array.
-  - `action: 'search'`: Searches TMDB for movie name. Body: `{ action: 'search', movieName }`.
-  - `action: 'import'`: Caches selected TMDB movie and adds entry to `user_movies` or `watchlist`. Body: `{ action: 'import', movieId, originalData, importType }`.
 
 ---
 
@@ -212,4 +290,4 @@ The application requires the following environment variables (defined in Vercel 
 
 ---
 
-*Document updated post Hand-Drawn Design System transformation on 2026-08-02.*
+*Document updated post TV Show Extension & 1-10 Rating Scale transformation on 2026-08-02.*
