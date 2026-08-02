@@ -8,6 +8,7 @@ This document provides a comprehensive technical overview of the **CineTracker**
 
 **CineTracker** is a full-stack movie and TV show tracking & social networking web application built with **Next.js 16+ App Router (Turbopack)**, **TypeScript**, and a custom **Hand-Drawn Design System**. Key user capabilities include:
 - **Movie & TV Show Discovery & Search**: Query movies and TV series using TMDB (The Movie Database) API with local caching in a LibSQL (Turso) database.
+- **Trending & Popular Releases**: Home page displays top releases of the current year (via TMDB `discover` endpoint sorted by popularity, with fallback to `trending/week`).
 - **Personal Media Tracking**: Rate movies, TV shows, and individual episodes on a **1–10 star rating scale**, write text reviews, record start/end dates, mark favorites, and select/create "Watched Where" platform tags (e.g., Netflix, Hotstar, Pirated, Prime Video).
 - **Season & Episode Breakdown**: Browse full season and episode breakdowns with titles, descriptions, air dates, still images, watched toggles, and episode ratings (1-10).
 - **Automatic Database Initialization**: Database migrations and table creations (`CREATE TABLE IF NOT EXISTS`) run automatically during `npm run build` and on cold-start API route invocations (`ensureSchema()`).
@@ -62,9 +63,9 @@ movie-trackerh/
 │   │   │   ├── import/
 │   │   │   │   └── route.ts # POST parse CSV, search TMDB, import movie to DB
 │   │   │   ├── movies/
-│   │   │   │   └── route.ts # GET search TMDB / get movie details; POST rate/review & watchlist toggle
+│   │   │   │   └── route.ts # GET search TMDB / get movie details / popular current year; POST rate/review & watchlist toggle
 │   │   │   ├── tv/
-│   │   │   │   └── route.ts # GET search TMDB TV, show details & seasons; POST track TV, favorite, delete, episode watched/rated
+│   │   │   │   └── route.ts # GET search TMDB TV / show details & seasons / popular current year; POST track TV, favorite, delete, episode watched/rated
 │   │   │   └── user/
 │   │   │       └── route.ts # GET list users, single profile (movies & TV), action=feed; POST follow/unfollow user
 │   │   ├── feed/
@@ -88,7 +89,7 @@ movie-trackerh/
 │   │   │   └── page.tsx     # Hand-Drawn community directory board
 │   │   ├── globals.css      # Hand-Drawn design system tokens, wobbly borders, paper texture, custom styles
 │   │   ├── layout.tsx       # Root layout wrapping app in AuthProvider and Navbar
-│   │   └── page.tsx         # Home page with hero banner, movie/TV search switcher & trenders
+│   │   └── page.tsx         # Home page with hero banner, movie/TV search switcher & current year trenders
 │   ├── components/
 │   │   ├── MovieCard.tsx    # Photo print / sketch frame card for movies
 │   │   ├── TVShowCard.tsx   # Photo print / sketch frame card for TV shows with favorite & platform tags
@@ -231,7 +232,7 @@ The database relies on Turso (SQLite/LibSQL).
 
 ### `/api/tv`
 - `GET`:
-  - `?query=<search_term>`: Search TMDB API (`/3/search/tv`). Returns list of TV shows.
+  - `?query=<search_term>`: Search TMDB API (`/3/search/tv`). If `query=popular` or `query=trending`, fetches current year popular TV series via TMDB `discover/tv` (with fallback to `trending/tv/week`).
   - `?id=<tmdb_tv_id>`: Fetches TV show details, caches TV show & seasons metadata in local DB tables, returns show data with `currentUserTrack`, `userEpisodes`, and `reviews`.
   - `?id=<tmdb_tv_id>&season=<season_number>`: Fetches Season details, caches episodes in local `episodes` DB table (with stills), returns season and episodes list with user watched/rating states.
 - `POST`:
@@ -250,7 +251,7 @@ The database relies on Turso (SQLite/LibSQL).
 
 ### `/api/movies`
 - `GET`:
-  - `?query=<search_term>`: Proxy search to TMDB API (`/3/search/movie`). Returns list of movies.
+  - `?query=<search_term>`: Search TMDB API (`/3/search/movie`). If `query=popular` or `query=trending`, fetches current year popular movies via TMDB `discover/movie` (with fallback to `trending/movie/week`).
   - `?id=<tmdb_movie_id>`: Fetches TMDB movie details, caches movie in local `movies` DB table, and returns movie data along with `currentUserReview`, `isInWatchlist`, and `reviews` (top 10 public reviews).
 - `POST`:
   - `action: 'watchlist'`: Toggles movie in `watchlist` table for authenticated user. Body: `{ movieId, action: 'watchlist' }`.
@@ -292,4 +293,4 @@ The application requires the following environment variables (defined in Vercel 
 
 ---
 
-*Document updated post automatic DB initialization & TV show features on 2026-08-02.*
+*Document updated post current year trending discover query implementation on 2026-08-02.*

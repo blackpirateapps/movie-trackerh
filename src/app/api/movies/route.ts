@@ -103,13 +103,30 @@ export async function GET(request: NextRequest) {
       if (!TMDB_API_KEY) {
         return NextResponse.json([]);
       }
-      const response = await axios.get(`${TMDB_BASE_URL}/search/movie`, {
-        params: {
+
+      let endpoint = `${TMDB_BASE_URL}/search/movie`;
+      let params: Record<string, any> = { api_key: TMDB_API_KEY, query };
+
+      if (query === 'popular' || query === 'trending') {
+        const currentYear = new Date().getFullYear();
+        endpoint = `${TMDB_BASE_URL}/discover/movie`;
+        params = {
           api_key: TMDB_API_KEY,
-          query: query,
-        },
-      });
-      return NextResponse.json(response.data.results);
+          sort_by: 'popularity.desc',
+          'primary_release_date.gte': `${currentYear}-01-01`,
+        };
+      }
+
+      const response = await axios.get(endpoint, { params });
+      let results = response.data.results || [];
+      
+      // Fallback to trending/movie/week if discover yields few results
+      if ((query === 'popular' || query === 'trending') && results.length === 0) {
+        const trendRes = await axios.get(`${TMDB_BASE_URL}/trending/movie/week?api_key=${TMDB_API_KEY}`);
+        results = trendRes.data.results || [];
+      }
+
+      return NextResponse.json(results);
     } catch (error: any) {
       console.error('TMDB search error:', error.response ? error.response.data : error.message);
       return NextResponse.json({ message: 'Failed to search movies due to an external service error.' }, { status: 500 });
