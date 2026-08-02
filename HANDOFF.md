@@ -104,7 +104,7 @@ The database relies on Turso (SQLite/LibSQL).
    - `id`: INTEGER PRIMARY KEY AUTOINCREMENT
    - `username`: TEXT NOT NULL UNIQUE
    - `email`: TEXT NOT NULL UNIQUE
-   - `password_hash` / `password`: TEXT NOT NULL (hashed with bcrypt)
+   - `password`: TEXT NOT NULL (hashed with bcrypt)
    - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 2. `movies` (caches metadata from TMDB)
@@ -150,9 +150,9 @@ The database relies on Turso (SQLite/LibSQL).
 - `GET`: Validates session cookie. Returns `{ user: { id, username, email } }`.
 - `POST`:
   - `action: 'signup'`: Creates user. Body: `{ username, email, password }`.
-  - `action: 'login'`: Authenticates user. Body: `{ email, password }`.
+  - `action: 'login'`: Authenticates user using `password` column. Body: `{ email, password }`.
   - `action: 'logout'`: Clears token cookie.
-  - `action: 'reset-password'`: (Temporary Admin feature) Validates `rootPassword` against `process.env.ROOT_ADMIN_PASSWORD` and updates target user's password. Body: `{ rootPassword, usernameOrEmail, newPassword }`.
+  - `action: 'reset-password'`: (Temporary Admin feature) Validates `rootPassword` against `process.env.ROOT_ADMIN_PASSWORD` and updates target user's `password` column. Body: `{ rootPassword, usernameOrEmail, newPassword }`.
 
 ### `/api/movies`
 - `GET`:
