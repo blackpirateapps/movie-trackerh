@@ -246,7 +246,7 @@ export default function Import() {
           <div className="card mb-6">
             <div className="mb-6">
               <h3 className="text-xl font-semibold mb-2">
-                Looking for: "{currentMovie.originalName}"
+                Looking for: &quot;{currentMovie.originalName}&quot;
               </h3>
               {currentMovie.year && (
                 <p className="text-slate-400">Year: {currentMovie.year}</p>
@@ -317,7 +317,7 @@ export default function Import() {
             <div className="text-4xl mb-4">😔</div>
             <h3 className="text-xl font-semibold mb-2">No movies found</h3>
             <p className="text-slate-400 mb-6">
-              Couldn't find any matches for "{currentMovie.originalName}"
+              Couldn&apos;t find any matches for &quot;{currentMovie.originalName}&quot;
             </p>
             <div className="flex gap-4 justify-center">
               <button onClick={skipMovie} className="btn btn-secondary">
@@ -384,7 +384,7 @@ export default function Import() {
         {loading && currentMovie && (
           <div className="card text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto mb-4" />
-            <p className="text-slate-400">Searching for "{currentMovie.originalName}"...</p>
+            <p className="text-slate-400">Searching for &quot;{currentMovie.originalName}&quot;...</p>
           </div>
         )}
       </div>

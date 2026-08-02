@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
@@ -23,7 +23,7 @@ export default function Movie() {
   const [watchedDate, setWatchedDate] = useState('');
   const [isWatched, setIsWatched] = useState(false);
 
-  const fetchMovieData = async () => {
+  const fetchMovieData = useCallback(async () => {
     if (!id) return;
     try {
       setLoading(true);
@@ -42,11 +42,11 @@ export default function Movie() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchMovieData();
-  }, [id]);
+  }, [fetchMovieData]);
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
@@ -316,7 +316,7 @@ export default function Movie() {
                       }}
                       className="w-4 h-4 text-primary-600 bg-slate-800 border-slate-600 rounded focus:ring-primary-500"
                     />
-                    <span className="text-sm font-medium">I've watched this movie</span>
+                    <span className="text-sm font-medium">I&apos;ve watched this movie</span>
                   </label>
                 </div>
 

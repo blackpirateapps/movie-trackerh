@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
@@ -18,7 +18,7 @@ export default function Profile() {
   const [actionLoading, setActionLoading] = useState(false);
   const [filter, setFilter] = useState('all');
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     if (!username) return;
     try {
       setLoading(true);
@@ -30,11 +30,11 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [username]);
 
   useEffect(() => {
     fetchProfile();
-  }, [username]);
+  }, [fetchProfile]);
 
   const handleFollow = async () => {
     setActionLoading(true);
@@ -281,7 +281,7 @@ export default function Profile() {
 
                       {movie.review && (
                         <blockquote className="text-sm text-slate-300 italic line-clamp-3">
-                          "{movie.review}"
+                          &quot;{movie.review}&quot;
                         </blockquote>
                       )}
                     </div>

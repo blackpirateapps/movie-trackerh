@@ -166,7 +166,7 @@ export default function Feed() {
                   {item.review && item.review.trim().length > 0 && (
                     <blockquote className="bg-gray-900/30 border-l-4 border-primary-500 pl-4 py-3 rounded-r-lg">
                       <p className="text-gray-300 italic leading-relaxed">
-                        "{item.review}"
+                        &quot;{item.review}&quot;
                       </p>
                     </blockquote>
                   )}

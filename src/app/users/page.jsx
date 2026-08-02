@@ -251,7 +251,7 @@ export default function Users() {
               Showing {users.length} of {pagination.total} users
               {searchQuery && (
                 <span className="ml-2">
-                  for "{searchQuery}"
+                  for &quot;{searchQuery}&quot;
                 </span>
               )}
             </div>
