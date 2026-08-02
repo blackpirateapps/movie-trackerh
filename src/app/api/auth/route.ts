@@ -1,12 +1,12 @@
-import { NextResponse } from 'next/server';
-import { signToken, verifyToken } from '@/../backend/lib/jwt.js';
-import { db } from '@/../backend/lib/turso.js';
+import { NextRequest, NextResponse } from 'next/server';
+import { signToken, verifyToken } from '@/../backend/lib/jwt';
+import { db } from '@/../backend/lib/turso';
 import bcrypt from 'bcryptjs';
-import { parseCookie, stringifyCookie } from 'cookie';
+import { parseCookie, stringifySetCookie } from 'cookie';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   try {
     const cookieHeader = request.headers.get('cookie') || '';
     const cookies = parseCookie(cookieHeader);
@@ -32,7 +32,7 @@ export async function GET(request) {
   }
 }
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action, email, password, username } = body;
@@ -57,11 +57,13 @@ export async function POST(request) {
         args: [username, email, hashedPassword, hashedPassword],
       });
 
-      const userId = result.lastInsertRowid.toString();
+      const userId = result.lastInsertRowid!.toString();
       const user = { id: userId, username, email };
       const token = signToken({ sub: userId, username, email });
 
-      const setCookieHeader = stringifyCookie('token', token, {
+      const setCookieHeader = stringifySetCookie({
+        name: 'token',
+        value: token,
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 60 * 60 * 24 * 30,
@@ -91,7 +93,7 @@ export async function POST(request) {
         return NextResponse.json({ message: 'Invalid email or password.' }, { status: 401 });
       }
 
-      const user = rows[0];
+      const user = rows[0] as any;
       const isPasswordValid = await bcrypt.compare(password, user.password);
 
       if (!isPasswordValid) {
@@ -104,7 +106,9 @@ export async function POST(request) {
         email: user.email 
       });
 
-      const setCookieHeader = stringifyCookie('token', token, {
+      const setCookieHeader = stringifySetCookie({
+        name: 'token',
+        value: token,
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 60 * 60 * 24 * 30,
@@ -122,7 +126,9 @@ export async function POST(request) {
     }
 
     if (action === 'logout') {
-      const setCookieHeader = stringifyCookie('token', '', {
+      const setCookieHeader = stringifySetCookie({
+        name: 'token',
+        value: '',
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         expires: new Date(0),
@@ -137,7 +143,7 @@ export async function POST(request) {
 
     return NextResponse.json({ message: 'Invalid action.' }, { status: 400 });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Auth error:', error);
 
     if (error.message && error.message.includes('UNIQUE constraint failed: users.email')) {

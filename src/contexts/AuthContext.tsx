@@ -1,20 +1,33 @@
 'use client';
 
-import { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import { User } from '@/types';
 
-export const AuthContext = createContext(null);
+export interface AuthContextType {
+  user: User | null;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  login: (email: string, password: string) => Promise<User>;
+  signup: (email: string, username: string, password: string) => Promise<User>;
+  logout: () => Promise<void>;
+  loading: boolean;
+}
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+export const AuthContext = createContext<AuthContextType | null>(null);
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Check for existing session on app load
     const checkAuthStatus = async () => {
       try {
         const response = await fetch('/api/auth', {
           method: 'GET',
-          credentials: 'include', // Important: Include cookies
+          credentials: 'include',
         });
         
         if (response.ok) {
@@ -31,13 +44,13 @@ export const AuthProvider = ({ children }) => {
     checkAuthStatus();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email: string, password: string): Promise<User> => {
     const response = await fetch('/api/auth', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'include', // Include cookies
+      credentials: 'include',
       body: JSON.stringify({ 
         action: 'login', 
         email, 
@@ -55,13 +68,13 @@ export const AuthProvider = ({ children }) => {
     return data.user;
   };
 
-  const signup = async (email, username, password) => {
+  const signup = async (email: string, username: string, password: string): Promise<User> => {
     const response = await fetch('/api/auth', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'include', // Include cookies
+      credentials: 'include',
       body: JSON.stringify({ 
         action: 'signup', 
         email, 
@@ -80,7 +93,7 @@ export const AuthProvider = ({ children }) => {
     return data.user;
   };
 
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
     await fetch('/api/auth', {
       method: 'POST',
       credentials: 'include',
@@ -92,7 +105,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  const value = { user, setUser, login, signup, logout, loading };
+  const value: AuthContextType = { user, setUser, login, signup, logout, loading };
 
   return (
     <AuthContext.Provider value={value}>

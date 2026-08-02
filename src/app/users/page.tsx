@@ -1,30 +1,36 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
+import { User, Pagination } from '@/types';
+
+interface UsersResponse {
+  users: User[];
+  pagination: Pagination;
+}
 
 export default function Users() {
   const { user: currentUser } = useAuth();
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [pagination, setPagination] = useState({
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     limit: 20,
     total: 0,
     totalPages: 0,
     hasMore: false
   });
-  const [followingUsers, setFollowingUsers] = useState(new Set());
-  const [followLoading, setFollowLoading] = useState(new Set());
+  const [followingUsers, setFollowingUsers] = useState<Set<number | string>>(new Set());
+  const [followLoading, setFollowLoading] = useState<Set<number | string>>(new Set());
 
   const fetchUsers = async (page = 1, search = '') => {
     try {
       setLoading(true);
-      const { data } = await api.get(`/api/user?action=list&page=${page}&limit=20&search=${encodeURIComponent(search)}`);
+      const { data } = await api.get<UsersResponse>(`/api/user?action=list&page=${page}&limit=20&search=${encodeURIComponent(search)}`);
       
       if (page === 1) {
         setUsers(data.users);
@@ -45,7 +51,7 @@ export default function Users() {
     fetchUsers(1, searchQuery);
   }, [searchQuery]);
 
-  const handleSearch = (e) => {
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     setPagination(prev => ({ ...prev, page: 1 }));
   };
@@ -56,16 +62,16 @@ export default function Users() {
     }
   };
 
-  const handleFollow = async (userId, username) => {
+  const handleFollow = async (userId: number | string, username: string) => {
     if (!currentUser) return;
 
-    setFollowLoading(prev => new Set(prev.add(userId)));
+    setFollowLoading(prev => new Set(prev).add(userId));
     
     try {
       const isCurrentlyFollowing = followingUsers.has(userId);
       const action = isCurrentlyFollowing ? 'unfollow' : 'follow';
       
-      const { data } = await api.post('/api/user', { 
+      const { data } = await api.post<{ followers: number }>('/api/user', { 
         action, 
         followingId: userId 
       });
@@ -80,10 +86,10 @@ export default function Users() {
         return newSet;
       });
 
-      setUsers(prev => prev.map(user => 
-        user.id === userId 
-          ? { ...user, stats: { ...user.stats, followers: data.followers } }
-          : user
+      setUsers(prev => prev.map(u => 
+        u.id === userId && u.stats
+          ? { ...u, stats: { ...u.stats, followers: data.followers } }
+          : u
       ));
 
     } catch (err) {
@@ -149,68 +155,70 @@ export default function Users() {
         {users.length > 0 ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {users.map(user => (
-                <div key={user.id} className="card group hover:border-slate-700 transition-all duration-300">
+              {users.map(userItem => (
+                <div key={userItem.id} className="card group hover:border-slate-700 transition-all duration-300">
                   <div className="text-center">
                     {/* Avatar */}
                     <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg mx-auto mb-4 ring-4 ring-primary-500/20 group-hover:ring-primary-500/30 transition-all">
-                      {user.username.charAt(0).toUpperCase()}
+                      {userItem.username.charAt(0).toUpperCase()}
                     </div>
                     
                     {/* User Info */}
                     <Link 
-                      href={`/profile/${user.username}`}
+                      href={`/profile/${userItem.username}`}
                       className="block hover:text-primary-400 transition-colors"
                     >
-                      <h3 className="text-lg font-semibold mb-2">{user.username}</h3>
+                      <h3 className="text-lg font-semibold mb-2">{userItem.username}</h3>
                     </Link>
                     
                     {/* Stats */}
-                    <div className="flex items-center justify-center gap-4 text-sm text-slate-400 mb-4">
-                      <div className="flex items-center gap-1">
-                        <span className="text-primary-400">🎬</span>
-                        <span className="font-semibold text-white">{user.stats.movies}</span>
-                        <span>Movies</span>
+                    {userItem.stats && (
+                      <div className="flex items-center justify-center gap-4 text-sm text-slate-400 mb-4">
+                        <div className="flex items-center gap-1">
+                          <span className="text-primary-400">🎬</span>
+                          <span className="font-semibold text-white">{userItem.stats.movies}</span>
+                          <span>Movies</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-pink-400">👥</span>
+                          <span className="font-semibold text-white">{userItem.stats.followers}</span>
+                          <span>Followers</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-pink-400">👥</span>
-                        <span className="font-semibold text-white">{user.stats.followers}</span>
-                        <span>Followers</span>
-                      </div>
-                    </div>
+                    )}
 
                     {/* Member Since */}
                     <p className="text-xs text-slate-500 mb-4">
-                      Member since {new Date(user.created_at).toLocaleDateString()}
+                      Member since {userItem.created_at ? new Date(userItem.created_at).toLocaleDateString() : 'N/A'}
                     </p>
                     
                     {/* Actions */}
                     <div className="flex gap-2">
                       <Link 
-                        href={`/profile/${user.username}`}
+                        href={`/profile/${userItem.username}`}
                         className="btn btn-ghost flex-1 text-sm"
                       >
                         View Profile
                       </Link>
                       
-                      {currentUser && currentUser.username !== user.username && (
+                      {currentUser && currentUser.username !== userItem.username && (
                         <button
-                          onClick={() => handleFollow(user.id, user.username)}
-                          disabled={followLoading.has(user.id)}
+                          onClick={() => handleFollow(userItem.id, userItem.username)}
+                          disabled={followLoading.has(userItem.id)}
                           className={`btn text-sm ${
-                            followingUsers.has(user.id) 
+                            followingUsers.has(userItem.id) 
                               ? 'btn-secondary hover:border-red-500 hover:text-red-400' 
                               : 'btn-primary'
                           }`}
                         >
-                          {followLoading.has(user.id) ? (
+                          {followLoading.has(userItem.id) ? (
                             <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" />
                           ) : (
                             <>
                               <span className="text-sm">
-                                {followingUsers.has(user.id) ? '✓' : '+'}
+                                {followingUsers.has(userItem.id) ? '✓' : '+'}
                               </span>
-                              {followingUsers.has(user.id) ? 'Following' : 'Follow'}
+                              {followingUsers.has(userItem.id) ? 'Following' : 'Follow'}
                             </>
                           )}
                         </button>

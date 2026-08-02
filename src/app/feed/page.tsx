@@ -1,20 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import StarRating from '@/components/StarRating';
+import { FeedItem } from '@/types';
 
 export default function Feed() {
-  const [feedItems, setFeedItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all');
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
+  const [filter, setFilter] = useState<'all' | 'reviews' | 'ratings'>('all');
 
   useEffect(() => {
     const fetchFeed = async () => {
       try {
-        const { data } = await api.get('/api/user?action=feed');
+        const { data } = await api.get<FeedItem[]>('/api/user?action=feed');
         setFeedItems(Array.isArray(data) ? data : []);
       } catch (err) {
         setError('Failed to load your feed.');

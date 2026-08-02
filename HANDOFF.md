@@ -1,12 +1,12 @@
 # CineTracker (movie-trackerh) - AI Handoff & Architecture Document
 
-This document provides a comprehensive technical overview of the **CineTracker** codebase (`movie-trackerh`). It is structured to allow future AI agents and developers to quickly understand the system architecture, code organization, database schemas, API endpoints, authentication mechanisms, and recent Next.js App Router migration without needing to re-analyze the codebase.
+This document provides a comprehensive technical overview of the **CineTracker** codebase (`movie-trackerh`). It is structured to allow future AI agents and developers to quickly understand the system architecture, code organization, database schemas, API endpoints, authentication mechanisms, Next.js App Router migration, and full-stack TypeScript architecture without needing to re-analyze the codebase.
 
 ---
 
 ## 1. Executive Summary & Application Purpose
 
-**CineTracker** is a full-stack movie tracking and social networking web application built with **Next.js App Router**. Key user capabilities include:
+**CineTracker** is a full-stack movie tracking and social networking web application built with **Next.js 16+ App Router (Turbopack)** and **TypeScript**. Key user capabilities include:
 - **Movie Discovery & Search**: Query movies using TMDB (The Movie Database) API with local caching in a LibSQL (Turso) database.
 - **Personal Movie Tracking**: Rate movies (1–5 stars), write text reviews, record watched dates, and toggle watchlist status.
 - **Letterboxd CSV Import**: Interactively import watched history (`watched.csv`) or watchlists (`watchlist.csv`) exported from Letterboxd with TMDB title matching and manual selection.
@@ -17,14 +17,15 @@ This document provides a comprehensive technical overview of the **CineTracker**
 
 ## 2. Technology Stack & Framework Conversion
 
-The application has been transformed from a Vite SPA into a modern **Next.js App Router** full-stack application:
+The application is built on a modern full-stack **TypeScript + Next.js App Router** architecture:
 
-- **Framework**: Next.js 14+ (App Router with `src/app`)
+- **Framework**: Next.js 16+ (App Router with `src/app` and Turbopack compiler)
+- **Language**: TypeScript (`tsconfig.json` with strict type-checking and path alias `@/*`)
 - **Styling**: Tailwind CSS v4 (`@tailwindcss/postcss`) with custom theme configuration (`oklch` color palette, custom components `.btn`, `.card`, `.form-input`, `.glass`)
-- **Routing & Rendering**: Next.js Client and Server Components with `next/navigation` (`useRouter`, `useParams`) and `next/link`
-- **HTTP Client**: Axios (`src/lib/api.js`) configured with relative paths (`baseURL: ''`) for API routes
-- **Backend API Routes**: Next.js Route Handlers in `src/app/api/...` (`GET`, `POST` functions returning `NextResponse`)
-- **Authentication**: JWT signed token stored in HTTP-only `token` cookie, authenticated via `backend/lib/auth.js`
+- **Routing & Rendering**: Next.js Client and Server Components (`.tsx`) with `next/navigation` (`useRouter`, `useParams`) and `next/link`
+- **HTTP Client**: Axios (`src/lib/api.ts`) configured with relative paths (`baseURL: ''`) for API routes
+- **Backend API Routes**: Next.js Route Handlers in `src/app/api/...` (`route.ts`) (`GET`, `POST` functions returning `NextResponse`)
+- **Authentication**: JWT signed token stored in HTTP-only `token` cookie, authenticated via `backend/lib/auth.ts`
 - **Database Engine**: Turso (Hosted LibSQL / SQLite) via `@libsql/client`
 
 ---
@@ -35,55 +36,58 @@ The application has been transformed from a Vite SPA into a modern **Next.js App
 movie-trackerh/
 ├── backend/
 │   ├── db/
-│   │   ├── migrate.js       # Database migration script (reads schema.sql & updates table structure)
+│   │   ├── migrate.ts       # Database migration script (reads schema.sql & updates table structure)
 │   │   └── schema.sql       # Initial SQLite database schema DDL (includes users, movies, user_movies, follows, watchlist)
 │   └── lib/
-│       ├── auth.js          # Authentication helper function (verifies token from cookie)
-│       ├── jwt.js           # JWT signing (`signToken`) & verification (`verifyToken`) helpers
-│       └── turso.js         # Turso db client instance initialization (@libsql/client)
+│       ├── auth.ts          # Authentication helper function (verifies token from cookie)
+│       ├── jwt.ts           # JWT signing (`signToken`) & verification (`verifyToken`) helpers
+│       └── turso.ts         # Turso db client instance initialization (@libsql/client)
 ├── src/
 │   ├── app/                 # Next.js App Router Routes & API Handlers
 │   │   ├── api/
 │   │   │   ├── auth/
-│   │   │   │   └── route.js # GET session check; POST login, signup, logout
+│   │   │   │   └── route.ts # GET session check; POST login, signup, logout
 │   │   │   ├── import/
-│   │   │   │   └── route.js # POST parse CSV, search TMDB, import movie to DB
+│   │   │   │   └── route.ts # POST parse CSV, search TMDB, import movie to DB
 │   │   │   ├── movies/
-│   │   │   │   └── route.js # GET search TMDB / get movie details; POST rate/review & watchlist toggle
+│   │   │   │   └── route.ts # GET search TMDB / get movie details; POST rate/review & watchlist toggle
 │   │   │   └── user/
-│   │   │       └── route.js # GET list users, single profile, action=feed; POST follow/unfollow user
+│   │   │       └── route.ts # GET list users, single profile, action=feed; POST follow/unfollow user
 │   │   ├── feed/
-│   │   │   └── page.jsx     # Activity feed page
+│   │   │   └── page.tsx     # Activity feed page
 │   │   ├── import/
-│   │   │   └── page.jsx     # Interactive Letterboxd CSV importer page
+│   │   │   └── page.tsx     # Interactive Letterboxd CSV importer page
 │   │   ├── login/
-│   │   │   └── page.jsx     # User login form
+│   │   │   └── page.tsx     # User login form
 │   │   ├── movie/
 │   │   │   └── [id]/
-│   │   │       └── page.jsx # Dynamic Movie details page
+│   │   │       └── page.tsx # Dynamic Movie details page
 │   │   ├── profile/
 │   │   │   └── [username]/
-│   │   │       └── page.jsx # Dynamic User profile page
+│   │   │       └── page.tsx # Dynamic User profile page
 │   │   ├── signup/
-│   │   │   └── page.jsx     # User signup form
+│   │   │   └── page.tsx     # User signup form
 │   │   ├── users/
-│   │   │   └── page.jsx     # Community directory page
+│   │   │   └── page.tsx     # Community directory page
 │   │   ├── globals.css      # Tailwind CSS directives & custom component styles
-│   │   ├── layout.jsx       # Root layout wrapping app in AuthProvider and Navbar
-│   │   └── page.jsx         # Home page with hero banner & movie search
+│   │   ├── layout.tsx       # Root layout wrapping app in AuthProvider and Navbar
+│   │   └── page.tsx         # Home page with hero banner & movie search
 │   ├── components/
-│   │   ├── MovieCard.jsx    # Card component displaying poster, title, rating overlay
-│   │   ├── Navbar.jsx       # Global header navigation with brand logo, links, auth state
-│   │   └── StarRating.jsx   # Interactive and read-only star rating component (1-5 stars)
+│   │   ├── MovieCard.tsx    # Card component displaying poster, title, rating overlay
+│   │   ├── Navbar.tsx       # Global header navigation with brand logo, links, auth state
+│   │   └── StarRating.tsx   # Interactive and read-only star rating component (1-5 stars)
 │   ├── contexts/
-│   │   └── AuthContext.jsx  # React Client Context providing user session & auth actions
+│   │   └── AuthContext.tsx  # React Client Context providing user session & auth actions
 │   ├── hooks/
-│   │   └── useAuth.js       # Convenience hook consuming AuthContext
-│   └── lib/
-│       └── api.js           # Pre-configured Axios instance using relative API paths
-├── jsconfig.json            # Path aliases mapping `@/*` to `./src/*`
+│   │   └── useAuth.ts       # Convenience hook consuming AuthContext
+│   ├── lib/
+│   │   └── api.ts           # Pre-configured Axios instance using relative API paths
+│   └── types/
+│       └── index.ts         # Shared TypeScript interfaces (User, Movie, FeedItem, etc.)
+├── tsconfig.json            # TypeScript configuration (`compilerOptions`, `@/*` path mapping)
 ├── next.config.js           # Next.js configuration (remote image domains)
-├── package.json             # NPM dependencies & Next.js scripts (`dev`, `build`, `start`)
+├── vercel.json              # Vercel deployment configuration (`framework: nextjs`)
+├── package.json             # NPM dependencies & Next.js scripts (`dev`, `build`, `start`, `lint`)
 └── HANDOFF.md               # AI Handoff documentation
 ```
 
@@ -189,11 +193,12 @@ The application requires the following environment variables (defined in Vercel 
 
 ## 7. Development & Build Commands
 
-- **Start Next.js Dev Server**: `npm run dev` (Runs Next.js on `http://localhost:3000`)
-- **Build Next.js App**: `npm run build` (Compiles server handlers and static pages)
+- **Start Next.js Dev Server**: `npm run dev` (Runs Next.js Turbopack on `http://localhost:3000`)
+- **Build Next.js App**: `npm run build` (Compiles TypeScript server handlers and static pages)
 - **Start Next.js Production Server**: `npm run start`
-- **Database Migration**: `node backend/db/migrate.js`
+- **TypeScript Typecheck**: `npx tsc --noEmit`
+- **Lint Check**: `npm run lint`
 
 ---
 
-*Document updated post Next.js App Router migration on 2026-08-02.*
+*Document updated post Next.js App Router & TypeScript transformation on 2026-08-02.*

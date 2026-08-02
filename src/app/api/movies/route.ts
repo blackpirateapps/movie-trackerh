@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/../backend/lib/turso.js';
-import { authenticate } from '@/../backend/lib/auth.js';
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/../backend/lib/turso';
+import { authenticate } from '@/../backend/lib/auth';
 import axios from 'axios';
 
 export const dynamic = 'force-dynamic';
@@ -8,11 +8,11 @@ export const dynamic = 'force-dynamic';
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-async function getAndCacheMovie(movieId) {
+async function getAndCacheMovie(movieId: string | number) {
   try {
     if (!TMDB_API_KEY) {
       return {
-        id: movieId,
+        id: Number(movieId),
         title: `Movie ${movieId}`,
         overview: 'No overview available.',
         release_date: '2024-01-01',
@@ -41,7 +41,7 @@ async function getAndCacheMovie(movieId) {
   }
 }
 
-async function getUserReview(userId, movieId) {
+async function getUserReview(userId: string | number, movieId: string | number) {
   try {
     const { rows } = await db.execute({
       sql: 'SELECT rating, review, watched_date, created_at FROM user_movies WHERE user_id = ? AND movie_id = ?',
@@ -54,7 +54,7 @@ async function getUserReview(userId, movieId) {
   }
 }
 
-async function getMovieReviews(movieId) {
+async function getMovieReviews(movieId: string | number) {
   try {
     const { rows } = await db.execute({
       sql: `
@@ -79,7 +79,7 @@ async function getMovieReviews(movieId) {
   }
 }
 
-async function checkWatchlistStatus(userId, movieId) {
+async function checkWatchlistStatus(userId: string | number, movieId: string | number) {
   try {
     const { rows } = await db.execute({
       sql: 'SELECT id FROM watchlist WHERE user_id = ? AND movie_id = ?',
@@ -92,7 +92,7 @@ async function checkWatchlistStatus(userId, movieId) {
   }
 }
 
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('query');
   const id = searchParams.get('id');
@@ -109,7 +109,7 @@ export async function GET(request) {
         },
       });
       return NextResponse.json(response.data.results);
-    } catch (error) {
+    } catch (error: any) {
       console.error('TMDB search error:', error.response ? error.response.data : error.message);
       return NextResponse.json({ message: 'Failed to search movies due to an external service error.' }, { status: 500 });
     }
@@ -148,7 +148,7 @@ export async function GET(request) {
   return NextResponse.json({ message: 'Query or ID parameter is required.' }, { status: 400 });
 }
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   const authUser = authenticate(request, null, true);
   if (!authUser) {
     return NextResponse.json({ message: 'Authentication required.' }, { status: 401 });

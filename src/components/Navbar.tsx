@@ -1,9 +1,10 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { useAuth } from '../hooks/useAuth';
 
-const Navbar = () => {
+const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
 
   const handleLogout = async () => {

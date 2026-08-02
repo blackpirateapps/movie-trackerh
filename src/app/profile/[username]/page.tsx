@@ -1,28 +1,39 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import MovieCard from '@/components/MovieCard';
 import StarRating from '@/components/StarRating';
+import { User, Movie } from '@/types';
+
+interface ProfileData {
+  user: User;
+  movies: Movie[];
+  stats: {
+    followers: number;
+    following: number;
+  };
+  isFollowing: boolean;
+}
 
 export default function Profile() {
   const params = useParams();
-  const username = params?.username;
+  const username = params?.username as string | undefined;
   const { user: currentUser } = useAuth();
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
-  const [filter, setFilter] = useState('all');
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
+  const [actionLoading, setActionLoading] = useState<boolean>(false);
+  const [filter, setFilter] = useState<'all' | 'watched' | 'rated' | 'reviewed'>('all');
 
   const fetchProfile = useCallback(async () => {
     if (!username) return;
     try {
       setLoading(true);
-      const { data } = await api.get(`/api/user?username=${username}`);
+      const { data } = await api.get<ProfileData>(`/api/user?username=${username}`);
       setProfile(data);
     } catch (err) {
       setError('User not found.');
@@ -37,21 +48,22 @@ export default function Profile() {
   }, [fetchProfile]);
 
   const handleFollow = async () => {
+    if (!profile) return;
     setActionLoading(true);
     try {
-      const { data } = await api.post(`/api/user`, { 
+      const { data } = await api.post<{ followers: number }>(`/api/user`, { 
         action: 'follow', 
         followingId: profile.user.id 
       });
 
-      setProfile(prev => ({ 
+      setProfile(prev => prev ? ({ 
         ...prev, 
         isFollowing: true,
         stats: {
           ...prev.stats,
           followers: data.followers
         }
-      }));
+      }) : null);
     } catch (err) {
       console.error('Follow failed:', err);
     } finally {
@@ -60,21 +72,22 @@ export default function Profile() {
   };
 
   const handleUnfollow = async () => {
+    if (!profile) return;
     setActionLoading(true);
     try {
-      const { data } = await api.post(`/api/user`, { 
+      const { data } = await api.post<{ followers: number }>(`/api/user`, { 
         action: 'unfollow', 
         followingId: profile.user.id 
       });
 
-      setProfile(prev => ({ 
+      setProfile(prev => prev ? ({ 
         ...prev, 
         isFollowing: false,
         stats: {
           ...prev.stats,
           followers: data.followers
         }
-      }));
+      }) : null);
     } catch (err) {
       console.error('Unfollow failed:', err);
     } finally {
@@ -111,7 +124,7 @@ export default function Profile() {
   const isOwnProfile = currentUser?.username === profile.user.username;
 
   const watchedMovies = profile.movies.filter(movie => movie.watched_date);
-  const ratedMovies = profile.movies.filter(movie => movie.rating > 0);
+  const ratedMovies = profile.movies.filter(movie => movie.rating && movie.rating > 0);
   const reviewedMovies = profile.movies.filter(movie => movie.review && movie.review.trim().length > 0);
 
   const filteredMovies = profile.movies.filter(movie => {
@@ -119,7 +132,7 @@ export default function Profile() {
       case 'watched':
         return movie.watched_date;
       case 'rated':
-        return movie.rating > 0;
+        return movie.rating && movie.rating > 0;
       case 'reviewed':
         return movie.review && movie.review.trim().length > 0;
       default:
@@ -264,7 +277,7 @@ export default function Profile() {
 
                     <div className="mt-3 p-4 bg-slate-900/30 rounded-lg border border-slate-800 hover:border-slate-700 transition-colors">
                       <div className="flex items-center justify-between mb-2">
-                        {movie.rating > 0 && (
+                        {movie.rating && movie.rating > 0 && (
                           <StarRating rating={movie.rating} readOnly size="small" />
                         )}
                         <span className="text-xs text-slate-500">
@@ -341,7 +354,7 @@ export default function Profile() {
             </h3>
             <div className="space-y-4">
               {profile.movies
-                .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
+                .sort((a, b) => new Date(b.updated_at || b.created_at || '').getTime() - new Date(a.updated_at || a.created_at || '').getTime())
                 .slice(0, 5)
                 .map(movie => (
                 <div key={movie.id} className="flex items-center gap-4 p-3 bg-slate-900/20 rounded-lg hover:bg-slate-900/30 transition-colors">
@@ -357,7 +370,7 @@ export default function Profile() {
                     <div className="flex-1">
                       <h4 className="font-medium hover:text-primary-400 transition-colors">{movie.title}</h4>
                       <div className="flex items-center gap-3 mt-1">
-                        {movie.rating > 0 && (
+                        {movie.rating && movie.rating > 0 && (
                           <StarRating rating={movie.rating} readOnly size="small" />
                         )}
                         {movie.watched_date && (
@@ -369,7 +382,7 @@ export default function Profile() {
                         <span className="text-xs text-slate-500">
                           {movie.updated_at ? 
                             `Updated ${new Date(movie.updated_at).toLocaleDateString()}` :
-                            `Added ${new Date(movie.created_at).toLocaleDateString()}`
+                            `Added ${new Date(movie.created_at || '').toLocaleDateString()}`
                           }
                         </span>
                       </div>

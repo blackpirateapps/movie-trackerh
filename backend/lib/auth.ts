@@ -1,9 +1,10 @@
 import jwt from 'jsonwebtoken';
 import { parseCookie } from 'cookie';
+import { JWTPayload } from '@/types';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-export function authenticate(req, res = null, required = true) {
+export function authenticate(req: any, res: any = null, required: boolean = true): JWTPayload | null {
   let cookieHeader = '';
   if (req && req.headers) {
     if (typeof req.headers.get === 'function') {
@@ -24,7 +25,7 @@ export function authenticate(req, res = null, required = true) {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
     return decoded;
   } catch (error) {
     if (required && res && typeof res.status === 'function') {

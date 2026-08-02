@@ -1,25 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/api';
+import { Movie } from '@/types';
+
+interface ImportedMovieItem {
+  id: number;
+  title: string;
+  year?: number | null;
+  poster_path?: string | null;
+  originalName: string;
+  date?: string | null;
+}
+
+interface ParsedMovie {
+  originalName: string;
+  year?: string;
+  date?: string | null;
+  letterboxdURI?: string;
+}
 
 export default function Import() {
   const { user } = useAuth();
-  const [csvData, setCsvData] = useState('');
-  const [importType, setImportType] = useState('');
-  const [movies, setMovies] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentMovie, setCurrentMovie] = useState(null);
-  const [searchResults, setSearchResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [importedMovies, setImportedMovies] = useState([]);
-  const [skippedMovies, setSkippedMovies] = useState([]);
-  const [error, setError] = useState('');
+  const [csvData, setCsvData] = useState<string>('');
+  const [importType, setImportType] = useState<string>('');
+  const [movies, setMovies] = useState<ParsedMovie[]>([]);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [currentMovie, setCurrentMovie] = useState<ParsedMovie | null>(null);
+  const [searchResults, setSearchResults] = useState<Movie[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [importedMovies, setImportedMovies] = useState<ImportedMovieItem[]>([]);
+  const [skippedMovies, setSkippedMovies] = useState<ParsedMovie[]>([]);
+  const [error, setError] = useState<string>('');
 
-  const handleFileSelect = (type, e) => {
-    const file = e.target.files[0];
+  const handleFileSelect = (type: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file && (file.type === 'text/csv' || file.name.endsWith('.csv'))) {
       setImportType(type);
       file.text().then(setCsvData);
@@ -36,7 +53,7 @@ export default function Import() {
     setError('');
 
     try {
-      const response = await api.post('/api/import', {
+      const response = await api.post<{ movies: ParsedMovie[] }>('/api/import', {
         action: 'parse',
         csvData,
         importType
@@ -47,20 +64,20 @@ export default function Import() {
       if (response.data.movies.length > 0) {
         await searchForMovie(response.data.movies[0]);
       }
-    } catch (err) {
+    } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to parse CSV file.');
     } finally {
       setLoading(false);
     }
   };
 
-  const searchForMovie = async (movie) => {
+  const searchForMovie = async (movie: ParsedMovie) => {
     setCurrentMovie(movie);
     setLoading(true);
     setSearchResults([]);
 
     try {
-      const response = await api.post('/api/import', {
+      const response = await api.post<{ results: Movie[] }>('/api/import', {
         action: 'search',
         movieName: movie.originalName
       });
@@ -74,12 +91,12 @@ export default function Import() {
     }
   };
 
-  const selectMovie = async (selectedMovie) => {
+  const selectMovie = async (selectedMovie: Movie) => {
     if (!currentMovie || !selectedMovie) return;
 
     setLoading(true);
     try {
-      const response = await api.post('/api/import', {
+      const response = await api.post<{ movie: { id: number; title: string; year?: number | null; poster_path?: string | null } }>('/api/import', {
         action: 'import',
         movieId: selectedMovie.id,
         originalData: currentMovie,

@@ -1,20 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import MovieCard from '@/components/MovieCard';
+import { Movie } from '@/types';
 
 export default function Home() {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [trending, setTrending] = useState([]);
+  const [query, setQuery] = useState<string>('');
+  const [results, setResults] = useState<Movie[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [trending, setTrending] = useState<Movie[]>([]);
 
   useEffect(() => {
     const loadTrending = async () => {
       try {
-        const { data } = await api.get('/api/movies?query=popular');
+        const { data } = await api.get<Movie[]>('/api/movies?query=popular');
         if (Array.isArray(data)) {
           setTrending(data.slice(0, 8));
         }
@@ -25,13 +26,13 @@ export default function Home() {
     loadTrending();
   }, []);
 
-  const handleSearch = async (e) => {
+  const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!query.trim()) return;
 
     setLoading(true);
     try {
-      const { data } = await api.get(`/api/movies?query=${encodeURIComponent(query)}`);
+      const { data } = await api.get<Movie[]>(`/api/movies?query=${encodeURIComponent(query)}`);
       setResults(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Search failed", error);

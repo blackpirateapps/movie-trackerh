@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/../backend/lib/turso.js';
-import { authenticate } from '@/../backend/lib/auth.js';
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/../backend/lib/turso';
+import { authenticate } from '@/../backend/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const username = searchParams.get('username');
   const action = searchParams.get('action');
@@ -56,7 +56,7 @@ export async function GET(request) {
     try {
       const offset = (parseInt(page) - 1) * parseInt(limit);
       let searchQuery = '';
-      let searchArgs = [];
+      let searchArgs: any[] = [];
       
       if (search) {
         searchQuery = 'WHERE username LIKE ? OR email LIKE ?';
@@ -90,11 +90,11 @@ export async function GET(request) {
         args: searchArgs,
       });
 
-      const total = countResult[0].total;
+      const total = countResult[0].total as number;
       const totalPages = Math.ceil(total / parseInt(limit));
 
       return NextResponse.json({
-        users: users.map(user => ({
+        users: users.map((user: any) => ({
           id: user.id,
           username: user.username,
           email: user.email,
@@ -131,7 +131,7 @@ export async function GET(request) {
         return NextResponse.json({ message: 'User not found.' }, { status: 404 });
       }
 
-      const user = rows[0];
+      const user = rows[0] as any;
 
       const { rows: movies } = await db.execute({
         sql: `
@@ -186,7 +186,7 @@ export async function GET(request) {
   return NextResponse.json({ message: 'Username or action parameter is required.' }, { status: 400 });
 }
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   const authUser = authenticate(request, null, true);
   if (!authUser) {
     return NextResponse.json({ message: 'Authentication required.' }, { status: 401 });

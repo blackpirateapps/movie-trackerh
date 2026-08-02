@@ -1,8 +1,15 @@
 'use client';
 
+import React from 'react';
 import StarRating from './StarRating';
+import { Movie } from '@/types';
 
-const MovieCard = ({ movie, showUserRating = false }) => {
+interface MovieCardProps {
+  movie: Movie;
+  showUserRating?: boolean;
+}
+
+const MovieCard: React.FC<MovieCardProps> = ({ movie, showUserRating = false }) => {
   const posterUrl = movie.poster_path 
     ? `https://image.tmdb.org/t/p/w300${movie.poster_path}`
     : 'https://via.placeholder.com/300x450?text=No+Poster';

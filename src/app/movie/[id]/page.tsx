@@ -1,33 +1,34 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import StarRating from '@/components/StarRating';
+import { Movie as MovieType } from '@/types';
 
-export default function Movie() {
+export default function MoviePage() {
   const params = useParams();
-  const id = params?.id;
+  const id = params?.id as string | undefined;
   const { user } = useAuth();
-  const [movie, setMovie] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [watchlistLoading, setWatchlistLoading] = useState(false);
+  const [movie, setMovie] = useState<MovieType | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [watchlistLoading, setWatchlistLoading] = useState<boolean>(false);
 
   // Review form state
-  const [rating, setRating] = useState(0);
-  const [reviewText, setReviewText] = useState('');
-  const [watchedDate, setWatchedDate] = useState('');
-  const [isWatched, setIsWatched] = useState(false);
+  const [rating, setRating] = useState<number>(0);
+  const [reviewText, setReviewText] = useState<string>('');
+  const [watchedDate, setWatchedDate] = useState<string>('');
+  const [isWatched, setIsWatched] = useState<boolean>(false);
 
   const fetchMovieData = useCallback(async () => {
     if (!id) return;
     try {
       setLoading(true);
-      const { data } = await api.get(`/api/movies?id=${id}`);
+      const { data } = await api.get<MovieType>(`/api/movies?id=${id}`);
       setMovie(data);
       
       if (data.currentUserReview) {
@@ -48,7 +49,7 @@ export default function Movie() {
     fetchMovieData();
   }, [fetchMovieData]);
 
-  const handleSubmitReview = async (e) => {
+  const handleSubmitReview = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) {
       setError('Please log in to submit a review.');
@@ -78,15 +79,15 @@ export default function Movie() {
     
     setWatchlistLoading(true);
     try {
-      const { data } = await api.post('/api/movies', {
+      const { data } = await api.post<{ isInWatchlist: boolean }>('/api/movies', {
         movieId: id,
         action: 'watchlist'
       });
       
-      setMovie(prev => ({
+      setMovie(prev => prev ? {
         ...prev,
         isInWatchlist: data.isInWatchlist
-      }));
+      } : null);
     } catch (err) {
       console.error('Error toggling watchlist:', err);
       setError('Failed to update watchlist.');

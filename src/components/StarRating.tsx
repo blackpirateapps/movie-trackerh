@@ -1,10 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 
-const StarRating = ({ rating = 0, onRatingChange, readOnly = false, size = 'medium' }) => {
-  const [hover, setHover] = useState(0);
-  const [currentRating, setCurrentRating] = useState(rating);
+interface StarRatingProps {
+  rating?: number;
+  onRatingChange?: (rating: number) => void;
+  readOnly?: boolean;
+  size?: 'small' | 'medium' | 'large';
+}
+
+const StarRating: React.FC<StarRatingProps> = ({ 
+  rating = 0, 
+  onRatingChange, 
+  readOnly = false, 
+  size = 'medium' 
+}) => {
+  const [hover, setHover] = useState<number>(0);
+  const [currentRating, setCurrentRating] = useState<number>(rating);
 
   const sizeClasses = {
     small: 'text-sm gap-0.5',
@@ -12,7 +24,7 @@ const StarRating = ({ rating = 0, onRatingChange, readOnly = false, size = 'medi
     large: 'text-xl gap-1'
   };
 
-  const handleClick = (ratingValue) => {
+  const handleClick = (ratingValue: number) => {
     if (readOnly) return;
     setCurrentRating(ratingValue);
     if (onRatingChange) {
@@ -20,7 +32,7 @@ const StarRating = ({ rating = 0, onRatingChange, readOnly = false, size = 'medi
     }
   };
 
-  const handleMouseEnter = (ratingValue) => {
+  const handleMouseEnter = (ratingValue: number) => {
     if (!readOnly) {
       setHover(ratingValue);
     }
@@ -32,6 +44,8 @@ const StarRating = ({ rating = 0, onRatingChange, readOnly = false, size = 'medi
     }
   };
 
+  const displayRating = hover || currentRating || rating;
+
   return (
     <div className={`flex items-center ${sizeClasses[size]} ${readOnly ? '' : 'cursor-pointer'}`}>
       {[...Array(5)].map((_, index) => {
@@ -41,7 +55,7 @@ const StarRating = ({ rating = 0, onRatingChange, readOnly = false, size = 'medi
             key={index}
             type="button"
             className={`transition-colors ${
-              ratingValue <= (hover || (currentRating || rating)) 
+              ratingValue <= displayRating 
                 ? 'text-yellow-400' 
                 : 'text-gray-600'
             } ${readOnly ? 'cursor-default' : 'hover:text-yellow-300'}`}
@@ -57,7 +71,7 @@ const StarRating = ({ rating = 0, onRatingChange, readOnly = false, size = 'medi
       })}
       {!readOnly && (
         <span className="ml-2 text-sm text-gray-400">
-          {(hover || currentRating || rating) > 0 ? `${hover || currentRating || rating}/5` : 'Rate this movie'}
+          {displayRating > 0 ? `${displayRating}/5` : 'Rate this movie'}
         </span>
       )}
     </div>
