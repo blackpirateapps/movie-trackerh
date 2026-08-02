@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/api';
 import { Movie } from '@/types';
+import { FileUp, Eye, Bookmark, CheckCircle2, SkipForward, RefreshCw, AlertCircle, ArrowLeft } from 'lucide-react';
 
 interface ImportedMovieItem {
   id: number;
@@ -149,46 +150,57 @@ export default function Import() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Please log in to import data</h2>
-          <Link href="/login" className="btn btn-primary">Login</Link>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="card-postit text-center max-w-md w-full">
+          <h2 className="text-3xl font-heading font-bold mb-4">Please log in to import data</h2>
+          <Link href="/login" className="btn btn-primary text-lg">Login Now</Link>
         </div>
       </div>
     );
   }
 
   const isCompleted = movies.length > 0 && !currentMovie;
-  const progress = movies.length > 0 ? ((currentIndex / movies.length) * 100) : 0;
+  const progress = movies.length > 0 ? Math.round((currentIndex / movies.length) * 100) : 0;
 
   return (
-    <div className="min-h-screen py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-4 flex items-center gap-3">
-            📥 Interactive Letterboxd Import
+    <div className="min-h-screen py-10 px-4">
+      <div className="max-w-4xl mx-auto">
+        
+        {/* Page Header */}
+        <div className="card mb-8">
+          <div className="tape-strip" />
+          <h1 className="text-3xl md:text-4xl font-heading font-bold flex items-center gap-3">
+            <FileUp className="w-8 h-8 stroke-[3] text-[#2d5da1]" />
+            Letterboxd CSV Importer
           </h1>
-          <p className="text-slate-400">
-            Import your movies one by one with manual selection for accuracy
+          <p className="text-lg text-[#2d2d2d]/80 mt-1">
+            Import your watched movies or watchlists from Letterboxd with interactive TMDB search matching.
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-            <p className="text-red-400">{error}</p>
-            <button onClick={() => setError('')} className="text-red-300 hover:text-red-200 text-sm mt-2">
+          <div className="card-postit bg-[#ff4d4d]/10 mb-6 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-[#ff4d4d] font-bold">
+              <AlertCircle className="w-6 h-6 stroke-[3]" />
+              <span>{error}</span>
+            </div>
+            <button onClick={() => setError('')} className="btn btn-ghost text-xs">
               Dismiss
             </button>
           </div>
         )}
 
+        {/* Step 1: Choose CSV File */}
         {!movies.length && (
           <div className="card mb-8">
-            <h2 className="text-xl font-semibold mb-6">Step 1: Choose CSV File</h2>
+            <div className="thumbtack" />
+            <h2 className="text-2xl font-heading font-bold mb-6 text-center">
+              Step 1: Select Your Letterboxd Export CSV
+            </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Watched Movies */}
-              <div className="border-2 border-dashed border-slate-700 rounded-lg p-6 text-center">
+              {/* Watched Movies Option */}
+              <div className="bg-[#fff9c4] border-3 border-dashed border-[#2d2d2d] rounded-[255px_15px_225px_15px/15px_225px_15px_255px] p-6 text-center shadow-[4px_4px_0px_#2d2d2d] hover:-translate-y-1 transition-all">
                 <input
                   type="file"
                   accept=".csv"
@@ -196,16 +208,18 @@ export default function Import() {
                   className="hidden"
                   id="watched-upload"
                 />
-                <label htmlFor="watched-upload" className="cursor-pointer">
-                  <div className="text-3xl mb-3">👁️</div>
-                  <h3 className="font-semibold mb-2">Watched Movies</h3>
-                  <p className="text-sm text-slate-400 mb-3">Import watched.csv</p>
-                  <div className="btn btn-primary">Choose File</div>
+                <label htmlFor="watched-upload" className="cursor-pointer block">
+                  <div className="w-14 h-14 bg-[#2d5da1] text-white border-2 border-[#2d2d2d] rounded-full flex items-center justify-center mx-auto mb-3 shadow-[2px_2px_0px_#2d2d2d]">
+                    <Eye className="w-7 h-7 stroke-[2.5]" />
+                  </div>
+                  <h3 className="text-2xl font-heading font-bold mb-1">Watched Movies</h3>
+                  <p className="text-base text-[#2d2d2d]/80 mb-4">Upload watched.csv</p>
+                  <span className="btn btn-secondary text-sm">Choose File</span>
                 </label>
               </div>
 
-              {/* Watchlist */}
-              <div className="border-2 border-dashed border-slate-700 rounded-lg p-6 text-center">
+              {/* Watchlist Option */}
+              <div className="bg-[#fdfbf7] border-3 border-dashed border-[#2d2d2d] rounded-[15px_225px_15px_255px/255px_15px_225px_15px] p-6 text-center shadow-[4px_4px_0px_#2d2d2d] hover:-translate-y-1 transition-all">
                 <input
                   type="file"
                   accept=".csv"
@@ -213,74 +227,91 @@ export default function Import() {
                   className="hidden"
                   id="watchlist-upload"
                 />
-                <label htmlFor="watchlist-upload" className="cursor-pointer">
-                  <div className="text-3xl mb-3">🔖</div>
-                  <h3 className="font-semibold mb-2">Watchlist</h3>
-                  <p className="text-sm text-slate-400 mb-3">Import watchlist.csv</p>
-                  <div className="btn btn-primary">Choose File</div>
+                <label htmlFor="watchlist-upload" className="cursor-pointer block">
+                  <div className="w-14 h-14 bg-[#ff4d4d] text-white border-2 border-[#2d2d2d] rounded-full flex items-center justify-center mx-auto mb-3 shadow-[2px_2px_0px_#2d2d2d]">
+                    <Bookmark className="w-7 h-7 stroke-[2.5]" />
+                  </div>
+                  <h3 className="text-2xl font-heading font-bold mb-1">Watchlist</h3>
+                  <p className="text-base text-[#2d2d2d]/80 mb-4">Upload watchlist.csv</p>
+                  <span className="btn btn-primary text-sm">Choose File</span>
                 </label>
               </div>
             </div>
 
             {csvData && (
-              <div className="mt-6">
+              <div className="mt-8 text-center">
                 <button
                   onClick={startImport}
                   disabled={loading}
-                  className="btn btn-primary w-full"
+                  className="btn btn-primary w-full py-4 text-xl flex items-center justify-center gap-2"
                 >
-                  {loading ? 'Parsing CSV...' : `Start Interactive ${importType} Import`}
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-3 border-white" />
+                      Parsing CSV Data...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-6 h-6 stroke-[3]" />
+                      Start Interactive {importType} Import
+                    </>
+                  )}
                 </button>
               </div>
             )}
           </div>
         )}
 
-        {/* Progress Bar */}
+        {/* Progress Tracker */}
         {movies.length > 0 && (
-          <div className="card mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">Import Progress</h3>
-              <span className="text-sm text-slate-400">
-                {currentIndex} of {movies.length} movies
+          <div className="card mb-8">
+            <div className="flex items-center justify-between mb-3 font-bold text-lg">
+              <span>Import Progress</span>
+              <span className="bg-[#fff9c4] border border-[#2d2d2d] px-3 py-0.5 rounded-full text-sm">
+                {currentIndex} of {movies.length} ({progress}%)
               </span>
             </div>
-            <div className="w-full bg-slate-800 rounded-full h-2">
+
+            {/* Hand-drawn style progress bar */}
+            <div className="w-full bg-[#e5e0d8] border-2 border-[#2d2d2d] rounded-full h-4 overflow-hidden p-0.5 shadow-[inset_2px_2px_4px_rgba(0,0,0,0.1)]">
               <div 
-                className="bg-primary-500 h-2 rounded-full transition-all duration-300"
+                className="bg-[#ff4d4d] h-full rounded-full transition-all duration-300 border-r-2 border-[#2d2d2d]"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <div className="flex justify-between text-xs text-slate-500 mt-2">
-              <span>✅ {importedMovies.length} imported</span>
-              <span>⏭️ {skippedMovies.length} skipped</span>
+
+            <div className="flex justify-between text-base font-bold mt-3 text-[#2d2d2d]/80">
+              <span className="text-[#2d5da1]">✅ {importedMovies.length} Imported</span>
+              <span className="text-[#ff4d4d]">⏭️ {skippedMovies.length} Skipped</span>
             </div>
           </div>
         )}
 
-        {/* Current Movie Selection */}
+        {/* Current Movie Matching */}
         {currentMovie && searchResults.length > 0 && (
-          <div className="card mb-6">
+          <div className="card mb-8">
+            <div className="tape-strip" />
             <div className="mb-6">
-              <h3 className="text-xl font-semibold mb-2">
-                Looking for: &quot;{currentMovie.originalName}&quot;
+              <span className="text-sm font-bold text-[#ff4d4d] uppercase tracking-wider block mb-1">
+                Now Matching:
+              </span>
+              <h3 className="text-3xl font-heading font-bold text-[#2d2d2d]">
+                &ldquo;{currentMovie.originalName}&rdquo;
               </h3>
               {currentMovie.year && (
-                <p className="text-slate-400">Year: {currentMovie.year}</p>
-              )}
-              {currentMovie.date && (
-                <p className="text-slate-400">
-                  {importType === 'watched' ? 'Watched on:' : 'Added on:'} {new Date(currentMovie.date).toLocaleDateString()}
-                </p>
+                <p className="text-lg text-[#2d2d2d]/70 font-semibold">Year: {currentMovie.year}</p>
               )}
             </div>
 
-            <h4 className="font-semibold mb-4">Choose the correct movie:</h4>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
+            <h4 className="font-heading font-bold text-xl mb-4 text-[#2d5da1]">
+              Select the matching movie below:
+            </h4>
+
+            <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
               {searchResults.map((movie) => (
                 <div 
                   key={movie.id} 
-                  className="flex items-center gap-4 p-4 bg-slate-800/30 rounded-lg hover:bg-slate-800/50 transition-colors cursor-pointer"
+                  className="flex items-center gap-4 p-3 bg-[#fdfbf7] border-2 border-[#2d2d2d] rounded-[255px_15px_225px_15px/15px_225px_15px_255px] shadow-[3px_3px_0px_#2d2d2d] hover:bg-[#fff9c4] transition-all cursor-pointer group"
                   onClick={() => selectMovie(movie)}
                 >
                   <img
@@ -289,19 +320,16 @@ export default function Import() {
                       : 'https://via.placeholder.com/92x138?text=No+Cover'
                     }
                     alt={movie.title}
-                    className="w-12 h-18 object-cover rounded"
+                    className="w-14 h-20 object-cover border border-[#2d2d2d] rounded"
                   />
                   <div className="flex-1">
-                    <h5 className="font-medium">{movie.title}</h5>
-                    <p className="text-sm text-slate-400">
+                    <h5 className="font-heading font-bold text-xl group-hover:text-[#ff4d4d] transition-colors">
+                      {movie.title}
+                    </h5>
+                    <p className="text-sm font-semibold text-[#2d2d2d]/70">
                       {movie.release_date ? new Date(movie.release_date).getFullYear() : 'Unknown'} 
                       {movie.vote_average ? ` • ⭐ ${movie.vote_average.toFixed(1)}` : ''}
                     </p>
-                    {movie.overview && (
-                      <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                        {movie.overview}
-                      </p>
-                    )}
                   </div>
                   <button className="btn btn-primary text-sm">
                     Select
@@ -310,35 +338,36 @@ export default function Import() {
               ))}
             </div>
 
-            <div className="flex gap-4 mt-6">
+            <div className="flex gap-4 mt-6 pt-4 border-t-2 border-dashed border-[#2d2d2d]/30">
               <button
                 onClick={skipMovie}
-                className="btn btn-secondary flex-1"
+                className="btn btn-secondary flex-1 flex items-center justify-center gap-2"
               >
-                Skip This Movie
+                <SkipForward className="w-4 h-4 stroke-[2.5]" />
+                Skip Movie
               </button>
               <button
                 onClick={() => searchForMovie(currentMovie)}
-                className="btn btn-ghost"
+                className="btn btn-ghost flex items-center gap-2"
                 disabled={loading}
               >
-                {loading ? 'Searching...' : 'Search Again'}
+                <RefreshCw className="w-4 h-4 stroke-[2.5]" />
+                Re-Search
               </button>
             </div>
           </div>
         )}
 
-        {/* No Results */}
+        {/* No Results Found */}
         {currentMovie && searchResults.length === 0 && !loading && (
-          <div className="card mb-6 text-center">
-            <div className="text-4xl mb-4">😔</div>
-            <h3 className="text-xl font-semibold mb-2">No movies found</h3>
-            <p className="text-slate-400 mb-6">
-              Couldn&apos;t find any matches for &quot;{currentMovie.originalName}&quot;
+          <div className="card-postit text-center mb-8">
+            <h3 className="text-2xl font-heading font-bold mb-2">No Matches Found</h3>
+            <p className="text-lg text-[#2d2d2d]/80 mb-6">
+              Could not find &ldquo;{currentMovie.originalName}&rdquo; on TMDB.
             </p>
             <div className="flex gap-4 justify-center">
               <button onClick={skipMovie} className="btn btn-secondary">
-                Skip This Movie
+                Skip Movie
               </button>
               <button onClick={() => searchForMovie(currentMovie)} className="btn btn-primary">
                 Try Again
@@ -349,59 +378,32 @@ export default function Import() {
 
         {/* Import Complete */}
         {isCompleted && (
-          <div className="card text-center">
-            <div className="text-4xl mb-4">🎉</div>
-            <h3 className="text-xl font-semibold mb-2">Import Complete!</h3>
-            <div className="grid grid-cols-2 gap-4 my-6">
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
-                <div className="text-2xl font-bold text-green-400">{importedMovies.length}</div>
-                <div className="text-sm text-green-300">Movies Imported</div>
+          <div className="card-postit text-center py-10 px-6">
+            <div className="w-20 h-20 bg-[#ff4d4d] text-white border-3 border-[#2d2d2d] rounded-full flex items-center justify-center mx-auto mb-6 shadow-[4px_4px_0px_#2d2d2d] rotate-3">
+              <CheckCircle2 className="w-10 h-10 stroke-[2.5]" />
+            </div>
+
+            <h3 className="text-4xl font-heading font-bold mb-4">Import Complete!</h3>
+
+            <div className="grid grid-cols-2 gap-4 max-w-md mx-auto my-6">
+              <div className="bg-white border-2 border-[#2d2d2d] rounded-xl p-4 shadow-[3px_3px_0px_#2d2d2d]">
+                <div className="text-3xl font-heading font-bold text-[#2d5da1]">{importedMovies.length}</div>
+                <div className="text-base font-bold">Imported</div>
               </div>
-              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
-                <div className="text-2xl font-bold text-yellow-400">{skippedMovies.length}</div>
-                <div className="text-sm text-yellow-300">Movies Skipped</div>
+              <div className="bg-white border-2 border-[#2d2d2d] rounded-xl p-4 shadow-[3px_3px_0px_#2d2d2d]">
+                <div className="text-3xl font-heading font-bold text-[#ff4d4d]">{skippedMovies.length}</div>
+                <div className="text-base font-bold">Skipped</div>
               </div>
             </div>
             
-            <div className="flex gap-4 justify-center">
-              <Link href={`/profile/${user.username}`} className="btn btn-primary">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href={`/profile/${user.username}`} className="btn btn-primary text-lg">
                 View My Profile
               </Link>
-              <button onClick={resetImport} className="btn btn-secondary">
-                Import Another File
+              <button onClick={resetImport} className="btn btn-secondary text-lg">
+                Import Another CSV
               </button>
             </div>
-
-            {/* Recently Imported */}
-            {importedMovies.length > 0 && (
-              <div className="mt-8">
-                <h4 className="font-semibold mb-4 text-left">Recently Imported:</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {importedMovies.slice(-8).map((movie, index) => (
-                    <div key={index} className="text-center">
-                      <img
-                        src={movie.poster_path 
-                          ? `https://image.tmdb.org/t/p/w154${movie.poster_path}` 
-                          : 'https://via.placeholder.com/154x231?text=No+Cover'
-                        }
-                        alt={movie.title}
-                        className="w-full aspect-[2/3] object-cover rounded-lg mb-2"
-                      />
-                      <p className="text-xs font-medium line-clamp-2">{movie.title}</p>
-                      <p className="text-xs text-slate-400">{movie.year}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading && currentMovie && (
-          <div className="card text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto mb-4" />
-            <p className="text-slate-400">Searching for &quot;{currentMovie.originalName}&quot;...</p>
           </div>
         )}
       </div>

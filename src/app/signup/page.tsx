@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { UserPlus, AlertTriangle, ArrowRight } from 'lucide-react';
 
 export default function Signup() {
   const [email, setEmail] = useState<string>('');
@@ -44,16 +45,32 @@ export default function Signup() {
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
-        <div className="card">
+        <div className="card-postit relative">
+          <div className="tape-strip" />
+
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2">Join CineTracker</h1>
-            <p className="text-gray-400">Create your movie tracking account</p>
+            <div className="w-14 h-14 bg-[#ff4d4d] text-white border-3 border-[#2d2d2d] rounded-full flex items-center justify-center mx-auto mb-3 shadow-[3px_3px_0px_#2d2d2d] rotate-3">
+              <UserPlus className="w-7 h-7 stroke-[2.5]" />
+            </div>
+            <h1 className="text-4xl font-heading font-bold text-[#2d2d2d] mb-1">
+              Join CineTracker!
+            </h1>
+            <p className="text-lg text-[#2d2d2d]/80 font-semibold">
+              Create your movie tracking notebook
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="mb-6 p-4 bg-[#ff4d4d]/10 border-2 border-[#ff4d4d] rounded-xl flex items-center gap-3 text-[#ff4d4d] font-bold">
+              <AlertTriangle className="w-6 h-6 stroke-[3] shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-2">
-                Email
+              <label htmlFor="email" className="block text-lg font-bold mb-1 text-[#2d2d2d]">
+                Email Address
               </label>
               <input
                 id="email"
@@ -61,13 +78,13 @@ export default function Signup() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="form-input"
-                placeholder="Enter your email"
+                placeholder="name@example.com"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="username" className="block text-sm font-medium mb-2">
+              <label htmlFor="username" className="block text-lg font-bold mb-1 text-[#2d2d2d]">
                 Username
               </label>
               <input
@@ -76,13 +93,13 @@ export default function Signup() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="form-input"
-                placeholder="Choose a username"
+                placeholder="movie_buff99"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-2">
+              <label htmlFor="password" className="block text-lg font-bold mb-1 text-[#2d2d2d]">
                 Password
               </label>
               <input
@@ -91,13 +108,13 @@ export default function Signup() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="form-input"
-                placeholder="Create a password (min. 6 characters)"
+                placeholder="Min. 6 characters"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
+              <label htmlFor="confirmPassword" className="block text-lg font-bold mb-1 text-[#2d2d2d]">
                 Confirm Password
               </label>
               <input
@@ -106,39 +123,35 @@ export default function Signup() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="form-input"
-                placeholder="Confirm your password"
+                placeholder="Repeat your password"
                 required
               />
             </div>
 
-            {error && (
-              <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 flex items-center gap-2 text-red-300">
-                <span>⚠️</span>
-                {error}
-              </div>
-            )}
-
             <button 
               type="submit" 
               disabled={loading}
-              className="btn btn-primary w-full py-3"
+              className="btn btn-primary w-full py-3 text-xl flex items-center justify-center gap-2 mt-6"
             >
               {loading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                  Creating account...
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-3 border-white" />
+                  Creating Account...
                 </>
               ) : (
-                'Create Account'
+                <>
+                  <span>Create Account</span>
+                  <ArrowRight className="w-5 h-5 stroke-[3]" />
+                </>
               )}
             </button>
           </form>
 
-          <div className="mt-8 text-center">
-            <p className="text-gray-400">
+          <div className="mt-8 text-center pt-4 border-t-2 border-dashed border-[#2d2d2d]/30">
+            <p className="text-base font-semibold text-[#2d2d2d]/80">
               Already have an account?{' '}
-              <Link href="/login" className="text-primary-400 hover:text-primary-300 font-medium">
-                Sign in
+              <Link href="/login" className="text-[#2d5da1] hover:underline font-bold">
+                Sign in here
               </Link>
             </p>
           </div>

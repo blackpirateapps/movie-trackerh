@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import MovieCard from '@/components/MovieCard';
 import StarRating from '@/components/StarRating';
 import { User, Movie } from '@/types';
+import { User as UserIcon, Film, Eye, Star, MessageSquare, Users, UserPlus, UserCheck, Filter, Clock, AlertTriangle } from 'lucide-react';
 
 interface ProfileData {
   user: User;
@@ -97,10 +98,10 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4" />
-          <p className="text-slate-400">Loading profile...</p>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="card text-center max-w-sm w-full">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-3 border-[#ff4d4d] mx-auto mb-4" />
+          <p className="font-bold text-xl text-[#2d2d2d]">Loading profile sketchbook...</p>
         </div>
       </div>
     );
@@ -108,13 +109,15 @@ export default function Profile() {
 
   if (error || !profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <span className="text-6xl mb-4 block">😔</span>
-          <h2 className="text-2xl font-bold mb-2">Profile Not Found</h2>
-          <p className="text-slate-400 mb-6">{error || 'User not found.'}</p>
-          <Link href="/users" className="btn btn-primary">
-            Browse Users
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="card-postit text-center max-w-md w-full">
+          <div className="w-16 h-16 bg-[#ff4d4d] text-white border-3 border-[#2d2d2d] rounded-full flex items-center justify-center mx-auto mb-4 shadow-[3px_3px_0px_#2d2d2d]">
+            <AlertTriangle className="w-8 h-8 stroke-[3]" />
+          </div>
+          <h2 className="text-3xl font-heading font-bold mb-2">Profile Not Found</h2>
+          <p className="text-lg text-[#2d2d2d]/80 mb-6">{error || 'User not found.'}</p>
+          <Link href="/users" className="btn btn-primary mx-auto">
+            Browse Community
           </Link>
         </div>
       </div>
@@ -141,115 +144,118 @@ export default function Profile() {
   });
 
   return (
-    <div className="min-h-screen py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-10 px-4">
+      <div className="max-w-7xl mx-auto space-y-8">
+        
         {/* Profile Header */}
-        <div className="card mb-8">
+        <div className="card relative">
+          <div className="tape-strip" />
+
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex items-center gap-6">
-              <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white text-2xl md:text-3xl font-bold shadow-xl ring-4 ring-primary-500/20">
+              {/* Hand-drawn avatar circle */}
+              <div className="w-20 h-20 md:w-24 md:h-24 bg-[#ff4d4d] text-white border-3 border-[#2d2d2d] rounded-full flex items-center justify-center font-heading text-4xl font-bold shadow-[4px_4px_0px_#2d2d2d] shrink-0 -rotate-3">
                 {profile.user.username.charAt(0).toUpperCase()}
               </div>
 
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold mb-2">
+                <h1 className="text-3xl md:text-5xl font-heading font-bold text-[#2d2d2d] mb-2 flex items-center gap-3">
                   {profile.user.username}
-                  {isOwnProfile && <span className="text-primary-400 ml-2 text-lg">(You)</span>}
+                  {isOwnProfile && (
+                    <span className="bg-[#fff9c4] border border-[#2d2d2d] px-2.5 py-0.5 rounded-full text-xs font-bold text-[#2d5da1] shadow-[1px_1px_0px_#2d2d2d]">
+                      (Your Profile)
+                    </span>
+                  )}
                 </h1>
 
-                <div className="flex flex-wrap items-center gap-6 text-sm text-slate-400">
-                  <div className="flex items-center gap-1">
-                    <span className="text-primary-400">🎬</span>
-                    <span className="font-semibold text-white">{profile.movies.length}</span>
-                    <span>Movies</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-green-400">👁️</span>
-                    <span className="font-semibold text-white">{watchedMovies.length}</span>
-                    <span>Watched</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-400">⭐</span>
-                    <span className="font-semibold text-white">{ratedMovies.length}</span>
-                    <span>Rated</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-blue-400">📝</span>
-                    <span className="font-semibold text-white">{reviewedMovies.length}</span>
-                    <span>Reviews</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-pink-400">👥</span>
-                    <span className="font-semibold text-white">{profile.stats?.followers || 0}</span>
-                    <span>Followers</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-purple-400">➕</span>
-                    <span className="font-semibold text-white">{profile.stats?.following || 0}</span>
-                    <span>Following</span>
-                  </div>
+                {/* Stats Tags */}
+                <div className="flex flex-wrap items-center gap-3 text-sm font-bold">
+                  <span className="bg-[#fff9c4] border border-[#2d2d2d] px-3 py-1 rounded-full shadow-[2px_2px_0px_#2d2d2d] flex items-center gap-1.5">
+                    <Film className="w-4 h-4 text-[#2d5da1]" />
+                    {profile.movies.length} Tracked
+                  </span>
+                  <span className="bg-[#e5e0d8] border border-[#2d2d2d] px-3 py-1 rounded-full shadow-[2px_2px_0px_#2d2d2d] flex items-center gap-1.5">
+                    <Eye className="w-4 h-4 text-[#ff4d4d]" />
+                    {watchedMovies.length} Watched
+                  </span>
+                  <span className="bg-[#fff9c4] border border-[#2d2d2d] px-3 py-1 rounded-full shadow-[2px_2px_0px_#2d2d2d] flex items-center gap-1.5">
+                    <Star className="w-4 h-4 fill-[#ff4d4d] text-[#2d2d2d] stroke-[2]" />
+                    {ratedMovies.length} Rated
+                  </span>
+                  <span className="bg-[#e5e0d8] border border-[#2d2d2d] px-3 py-1 rounded-full shadow-[2px_2px_0px_#2d2d2d] flex items-center gap-1.5">
+                    <MessageSquare className="w-4 h-4 text-[#2d5da1]" />
+                    {reviewedMovies.length} Reviews
+                  </span>
+                  <span className="bg-[#fff9c4] border border-[#2d2d2d] px-3 py-1 rounded-full shadow-[2px_2px_0px_#2d2d2d] flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-[#ff4d4d]" />
+                    {profile.stats?.followers || 0} Followers
+                  </span>
                 </div>
               </div>
             </div>
 
+            {/* Follow / Unfollow Button */}
             {!isOwnProfile && currentUser && (
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={profile.isFollowing ? handleUnfollow : handleFollow}
-                  disabled={actionLoading}
-                  className={`btn ${
-                    profile.isFollowing 
-                      ? 'btn-secondary border-slate-600 hover:border-red-500 hover:text-red-400' 
-                      : 'btn-primary'
-                  } px-6`}
-                >
-                  {actionLoading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
-                  ) : (
-                    <>
-                      <span className="text-lg">
-                        {profile.isFollowing ? '👤' : '➕'}
-                      </span>
-                      {profile.isFollowing ? 'Unfollow' : 'Follow'}
-                    </>
-                  )}
-                </button>
-              </div>
+              <button 
+                onClick={profile.isFollowing ? handleUnfollow : handleFollow}
+                disabled={actionLoading}
+                className={`btn ${
+                  profile.isFollowing ? 'btn-secondary' : 'btn-primary'
+                } text-lg px-6 py-3 flex items-center gap-2`}
+              >
+                {actionLoading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current" />
+                ) : (
+                  <>
+                    {profile.isFollowing ? (
+                      <>
+                        <UserCheck className="w-5 h-5 stroke-[2.5]" />
+                        <span>Following</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-5 h-5 stroke-[2.5]" />
+                        <span>Follow</span>
+                      </>
+                    )}
+                  </>
+                )}
+              </button>
             )}
           </div>
         </div>
 
         {/* Filter Bar */}
         {profile.movies.length > 0 && (
-          <div className="card mb-6">
-            <div className="flex flex-wrap items-center gap-4">
-              <span className="text-sm font-medium text-slate-300">Filter Movies:</span>
+          <div className="card">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-2 font-bold text-lg">
+                <Filter className="w-5 h-5 text-[#2d5da1] stroke-[2.5]" />
+                <span>Filter Collection:</span>
+              </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setFilter('all')}
-                  className={`btn text-sm ${filter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
+                  className={`btn text-sm py-1.5 px-4 ${filter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
                 >
                   All ({profile.movies.length})
                 </button>
                 <button
                   onClick={() => setFilter('watched')}
-                  className={`btn text-sm ${filter === 'watched' ? 'btn-primary' : 'btn-ghost'}`}
+                  className={`btn text-sm py-1.5 px-4 ${filter === 'watched' ? 'btn-primary' : 'btn-ghost'}`}
                 >
-                  <span className="text-green-400 mr-1">👁️</span>
                   Watched ({watchedMovies.length})
                 </button>
                 <button
                   onClick={() => setFilter('rated')}
-                  className={`btn text-sm ${filter === 'rated' ? 'btn-primary' : 'btn-ghost'}`}
+                  className={`btn text-sm py-1.5 px-4 ${filter === 'rated' ? 'btn-primary' : 'btn-ghost'}`}
                 >
-                  <span className="text-yellow-400 mr-1">⭐</span>
                   Rated ({ratedMovies.length})
                 </button>
                 <button
                   onClick={() => setFilter('reviewed')}
-                  className={`btn text-sm ${filter === 'reviewed' ? 'btn-primary' : 'btn-ghost'}`}
+                  className={`btn text-sm py-1.5 px-4 ${filter === 'reviewed' ? 'btn-primary' : 'btn-ghost'}`}
                 >
-                  <span className="text-blue-400 mr-1">📝</span>
                   Reviewed ({reviewedMovies.length})
                 </button>
               </div>
@@ -257,139 +263,101 @@ export default function Profile() {
           </div>
         )}
 
-        {/* Movies Section */}
-        <div className="mb-8">
+        {/* Movies Grid */}
+        <div>
           {filteredMovies.length > 0 ? (
             <>
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                🎭 {isOwnProfile ? 'Your Movies' : `${profile.user.username}'s Movies`}
-                <span className="text-primary-400 text-lg">
-                  ({filteredMovies.length}{filter !== 'all' && ` ${filter}`})
+              <h2 className="text-3xl font-heading font-bold mb-6 text-[#2d2d2d]">
+                🎭 {isOwnProfile ? 'Your Collection' : `${profile.user.username}'s Collection`}
+                <span className="text-[#ff4d4d] text-xl ml-2">
+                  ({filteredMovies.length})
                 </span>
               </h2>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
                 {filteredMovies.map(movie => (
-                  <div key={movie.id} className="group animate-fade-in">
-                    <Link href={`/movie/${movie.id}`} className="block">
+                  <div key={movie.id} className="space-y-2">
+                    <Link href={`/movie/${movie.id}`}>
                       <MovieCard movie={movie} showUserRating />
                     </Link>
 
-                    <div className="mt-3 p-4 bg-slate-900/30 rounded-lg border border-slate-800 hover:border-slate-700 transition-colors">
-                      <div className="flex items-center justify-between mb-2">
-                        {movie.rating && movie.rating > 0 && (
-                          <StarRating rating={movie.rating} readOnly size="small" />
+                    {/* Review Snippet Card */}
+                    {(movie.review || movie.watched_date) && (
+                      <div className="bg-white border-2 border-[#2d2d2d] p-3 rounded-[15px_225px_15px_255px/255px_15px_225px_15px] shadow-[3px_3px_0px_#2d2d2d] text-xs font-semibold">
+                        {movie.watched_date && (
+                          <div className="text-[#2d5da1] font-bold mb-1 flex items-center gap-1">
+                            <Eye className="w-3 h-3 stroke-[2.5]" />
+                            <span>{new Date(movie.watched_date).toLocaleDateString()}</span>
+                          </div>
                         )}
-                        <span className="text-xs text-slate-500">
-                          {movie.created_at && new Date(movie.created_at).toLocaleDateString()}
-                        </span>
+                        {movie.review && (
+                          <p className="text-[#2d2d2d]/80 font-body text-sm line-clamp-2 italic">
+                            &ldquo;{movie.review}&rdquo;
+                          </p>
+                        )}
                       </div>
-
-                      {movie.watched_date && (
-                        <div className="flex items-center gap-2 mb-2 text-sm text-green-400">
-                          <span>👁️</span>
-                          <span>Watched {new Date(movie.watched_date).toLocaleDateString()}</span>
-                        </div>
-                      )}
-
-                      {movie.review && (
-                        <blockquote className="text-sm text-slate-300 italic line-clamp-3">
-                          &quot;{movie.review}&quot;
-                        </blockquote>
-                      )}
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            <div className="text-center py-16">
-              <div className="mb-6">
-                <span className="text-6xl block mb-4">
-                  {filter === 'watched' ? '👁️' : 
-                   filter === 'rated' ? '⭐' : 
-                   filter === 'reviewed' ? '📝' : '🎭'}
-                </span>
-                <h3 className="text-xl font-semibold mb-2 text-slate-300">
-                  {filter === 'all' 
-                    ? (isOwnProfile ? 'No movies in your collection yet' : 'No movies tracked')
-                    : `No ${filter} movies found`
-                  }
-                </h3>
-                <p className="text-slate-500 max-w-md mx-auto">
-                  {filter === 'all' 
-                    ? (isOwnProfile 
-                        ? 'Start exploring and rating movies to build your collection!' 
-                        : `${profile.user.username} hasn't added any movies yet.`
-                      )
-                    : `${isOwnProfile ? 'You haven\'t' : `${profile.user.username} hasn't`} ${filter} any movies yet.`
-                  }
-                </p>
-              </div>
+            <div className="card-postit text-center py-12 px-6">
+              <h3 className="text-3xl font-heading font-bold mb-2">No Movies in Collection</h3>
+              <p className="text-lg text-[#2d2d2d]/80 mb-6">
+                {isOwnProfile ? 'Start searching and rating movies to add them to your collection!' : `${profile.user.username} hasn't added any movies yet.`}
+              </p>
               {isOwnProfile && (
-                <div className="flex gap-4 justify-center">
-                  <Link href="/" className="btn btn-primary">
-                    <span className="text-lg">🔍</span>
-                    Discover Movies
-                  </Link>
-                  {filter !== 'all' && (
-                    <button 
-                      onClick={() => setFilter('all')}
-                      className="btn btn-secondary"
-                    >
-                      View All Movies
-                    </button>
-                  )}
-                </div>
+                <Link href="/" className="btn btn-primary text-lg mx-auto">
+                  Discover Movies
+                </Link>
               )}
             </div>
           )}
         </div>
 
         {/* Recent Activity */}
-        {profile.movies.length > 0 && filteredMovies.length > 0 && (
-          <div className="card">
-            <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-              📈 Recent Activity
+        {profile.movies.length > 0 && (
+          <div className="card relative">
+            <div className="thumbtack" />
+            <h3 className="text-2xl font-heading font-bold mb-4 flex items-center gap-2">
+              <Clock className="w-6 h-6 stroke-[2.5] text-[#2d5da1]" />
+              Recent Activity
             </h3>
-            <div className="space-y-4">
+            
+            <div className="space-y-3">
               {profile.movies
                 .sort((a, b) => new Date(b.updated_at || b.created_at || '').getTime() - new Date(a.updated_at || a.created_at || '').getTime())
                 .slice(0, 5)
                 .map(movie => (
-                <div key={movie.id} className="flex items-center gap-4 p-3 bg-slate-900/20 rounded-lg hover:bg-slate-900/30 transition-colors">
-                  <Link href={`/movie/${movie.id}`} className="flex items-center gap-4 flex-1">
+                  <Link 
+                    key={movie.id} 
+                    href={`/movie/${movie.id}`}
+                    className="flex items-center gap-4 p-3 bg-[#fdfbf7] border-2 border-[#2d2d2d] rounded-[255px_15px_225px_15px/15px_225px_15px_255px] shadow-[2px_2px_0px_#2d2d2d] hover:bg-[#fff9c4] transition-all group"
+                  >
                     <img 
                       src={movie.poster_path 
                         ? `https://image.tmdb.org/t/p/w92${movie.poster_path}` 
                         : 'https://via.placeholder.com/92x138?text=No+Cover'
                       }
                       alt={movie.title}
-                      className="w-12 h-18 object-cover rounded shadow-md"
+                      className="w-10 h-14 object-cover border border-[#2d2d2d] rounded"
                     />
                     <div className="flex-1">
-                      <h4 className="font-medium hover:text-primary-400 transition-colors">{movie.title}</h4>
-                      <div className="flex items-center gap-3 mt-1">
+                      <h4 className="font-heading font-bold text-lg group-hover:text-[#ff4d4d] transition-colors">
+                        {movie.title}
+                      </h4>
+                      <div className="flex items-center gap-3 text-xs font-bold text-[#2d2d2d]/70 mt-0.5">
                         {movie.rating && movie.rating > 0 && (
                           <StarRating rating={movie.rating} readOnly size="small" />
                         )}
-                        {movie.watched_date && (
-                          <span className="text-xs text-green-400 flex items-center gap-1">
-                            <span>👁️</span>
-                            {new Date(movie.watched_date).toLocaleDateString()}
-                          </span>
-                        )}
-                        <span className="text-xs text-slate-500">
-                          {movie.updated_at ? 
-                            `Updated ${new Date(movie.updated_at).toLocaleDateString()}` :
-                            `Added ${new Date(movie.created_at || '').toLocaleDateString()}`
-                          }
+                        <span>
+                          {movie.updated_at ? `Updated ${new Date(movie.updated_at).toLocaleDateString()}` : `Added ${new Date(movie.created_at || '').toLocaleDateString()}`}
                         </span>
                       </div>
                     </div>
                   </Link>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         )}

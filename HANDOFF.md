@@ -1,12 +1,12 @@
 # CineTracker (movie-trackerh) - AI Handoff & Architecture Document
 
-This document provides a comprehensive technical overview of the **CineTracker** codebase (`movie-trackerh`). It is structured to allow future AI agents and developers to quickly understand the system architecture, code organization, database schemas, API endpoints, authentication mechanisms, Next.js App Router migration, and full-stack TypeScript architecture without needing to re-analyze the codebase.
+This document provides a comprehensive technical overview of the **CineTracker** codebase (`movie-trackerh`). It is structured to allow future AI agents and developers to quickly understand the system architecture, code organization, database schemas, API endpoints, authentication mechanisms, Hand-Drawn design system, and full-stack TypeScript architecture without needing to re-analyze the codebase.
 
 ---
 
 ## 1. Executive Summary & Application Purpose
 
-**CineTracker** is a full-stack movie tracking and social networking web application built with **Next.js 16+ App Router (Turbopack)** and **TypeScript**. Key user capabilities include:
+**CineTracker** is a full-stack movie tracking and social networking web application built with **Next.js 16+ App Router (Turbopack)**, **TypeScript**, and a custom **Hand-Drawn Design System**. Key user capabilities include:
 - **Movie Discovery & Search**: Query movies using TMDB (The Movie Database) API with local caching in a LibSQL (Turso) database.
 - **Personal Movie Tracking**: Rate movies (1–5 stars), write text reviews, record watched dates, and toggle watchlist status.
 - **Letterboxd CSV Import**: Interactively import watched history (`watched.csv`) or watchlists (`watchlist.csv`) exported from Letterboxd with TMDB title matching and manual selection.
@@ -16,13 +16,20 @@ This document provides a comprehensive technical overview of the **CineTracker**
 
 ---
 
-## 2. Technology Stack & Framework Conversion
+## 2. Technology Stack & Design System Architecture
 
 The application is built on a modern full-stack **TypeScript + Next.js App Router** architecture:
 
 - **Framework**: Next.js 16+ (App Router with `src/app` and Turbopack compiler)
 - **Language**: TypeScript (`tsconfig.json` with strict type-checking and path alias `@/*`)
-- **Styling**: Tailwind CSS v4 (`@tailwindcss/postcss`) with custom theme configuration (`oklch` color palette, custom components `.btn`, `.card`, `.form-input`, `.glass`)
+- **Icons**: Lucide React (`lucide-react`) with thick stroke width (`2.5` to `3`)
+- **Styling & Design System**: Custom Hand-Drawn UI built on Tailwind CSS v4 (`@tailwindcss/postcss`)
+  - **Typography**: Google Fonts (`Kalam` for felt-tip marker titles, `Patrick Hand` for legible handwritten body text)
+  - **Color Palette**: Warm Paper (`#fdfbf7`), Soft Pencil Black (`#2d2d2d`), Erased Paper Muted (`#e5e0d8`), Red Correction Marker (`#ff4d4d`), Blue Pen (`#2d5da1`), Post-it Yellow (`#fff9c4`)
+  - **Wobbly Borders**: Irregular organic `border-radius` ellipses (`border-3 border-[#2d2d2d]`, `borderRadius: 255px 15px 225px 15px / 15px 225px 15px 255px`)
+  - **Hard Offset Shadows**: Blurless solid box-shadows (`4px 4px 0px #2d2d2d` and `8px 8px 0px #2d2d2d`). Buttons press flat (`0px 0px` shadow with translation) on click.
+  - **Paper Grain Texture**: Background radial dot grid pattern (`radial-gradient(#e5e0d8 1.5px, transparent 1.5px)`)
+  - **Paper Accents**: Semi-transparent tape strips (`.tape-strip`) and red pin thumbtacks (`.thumbtack`)
 - **Routing & Rendering**: Next.js Client and Server Components (`.tsx`) with `next/navigation` (`useRouter`, `useParams`) and `next/link`
 - **HTTP Client**: Axios (`src/lib/api.ts`) configured with relative paths (`baseURL: ''`) for API routes
 - **Backend API Routes**: Next.js Route Handlers in `src/app/api/...` (`route.ts`) (`GET`, `POST` functions returning `NextResponse`)
@@ -55,28 +62,28 @@ movie-trackerh/
 │   │   │   └── user/
 │   │   │       └── route.ts # GET list users, single profile, action=feed; POST follow/unfollow user
 │   │   ├── feed/
-│   │   │   └── page.tsx     # Activity feed page
+│   │   │   └── page.tsx     # Hand-Drawn activity feed pinboard
 │   │   ├── import/
-│   │   │   └── page.tsx     # Interactive Letterboxd CSV importer page
+│   │   │   └── page.tsx     # Interactive Letterboxd CSV importer notebook page
 │   │   ├── login/
-│   │   │   └── page.tsx     # User login form & temporary Forgot Password modal
+│   │   │   └── page.tsx     # Hand-Drawn post-it login form & emergency reset modal
 │   │   ├── movie/
 │   │   │   └── [id]/
-│   │   │       └── page.tsx # Dynamic Movie details page
+│   │   │       └── page.tsx # Dynamic Movie detail scrapbook page
 │   │   ├── profile/
 │   │   │   └── [username]/
-│   │   │       └── page.tsx # Dynamic User profile page
+│   │   │       └── page.tsx # Dynamic User personal profile page
 │   │   ├── signup/
-│   │   │   └── page.tsx     # User signup form
+│   │   │   └── page.tsx     # Hand-Drawn post-it signup form
 │   │   ├── users/
-│   │   │   └── page.tsx     # Community directory page
-│   │   ├── globals.css      # Tailwind CSS directives & custom component styles
+│   │   │   └── page.tsx     # Hand-Drawn community directory board
+│   │   ├── globals.css      # Hand-Drawn design system tokens, wobbly borders, paper texture, custom styles
 │   │   ├── layout.tsx       # Root layout wrapping app in AuthProvider and Navbar
 │   │   └── page.tsx         # Home page with hero banner & movie search
 │   ├── components/
-│   │   ├── MovieCard.tsx    # Card component displaying poster, title, rating overlay
-│   │   ├── Navbar.tsx       # Global header navigation with brand logo, links, auth state
-│   │   └── StarRating.tsx   # Interactive and read-only star rating component (1-5 stars)
+│   │   ├── MovieCard.tsx    # Photo print / sketch frame card with tape top accent, hard shadow & wobbly border
+│   │   ├── Navbar.tsx       # Hand-drawn navigation header with brand logo & mobile dropdown
+│   │   └── StarRating.tsx   # Interactive and read-only hand-drawn star rating component (1-5 stars)
 │   ├── contexts/
 │   │   └── AuthContext.tsx  # React Client Context providing user session & auth actions
 │   ├── hooks/
@@ -85,6 +92,7 @@ movie-trackerh/
 │   │   └── api.ts           # Pre-configured Axios instance using relative API paths
 │   └── types/
 │       └── index.ts         # Shared TypeScript interfaces (User, Movie, FeedItem, etc.)
+├── design.md                # Comprehensive Hand-Drawn Design System Specification
 ├── tsconfig.json            # TypeScript configuration (`compilerOptions`, `@/*` path mapping)
 ├── next.config.js           # Next.js configuration (remote image domains)
 ├── vercel.json              # Vercel deployment configuration (`framework: nextjs`)
@@ -204,4 +212,4 @@ The application requires the following environment variables (defined in Vercel 
 
 ---
 
-*Document updated post Next.js App Router & TypeScript transformation on 2026-08-02.*
+*Document updated post Hand-Drawn Design System transformation on 2026-08-02.*
