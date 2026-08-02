@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/../backend/lib/turso';
+import { db, ensureSchema } from '@/../backend/lib/turso';
 import { authenticate } from '@/../backend/lib/auth';
 import axios from 'axios';
 
@@ -93,6 +93,7 @@ async function checkWatchlistStatus(userId: string | number, movieId: string | n
 }
 
 export async function GET(request: NextRequest) {
+  await ensureSchema();
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('query');
   const id = searchParams.get('id');
@@ -149,6 +150,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  await ensureSchema();
   const authUser = authenticate(request, null, true);
   if (!authUser) {
     return NextResponse.json({ message: 'Authentication required.' }, { status: 401 });

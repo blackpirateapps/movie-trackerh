@@ -10,6 +10,7 @@ This document provides a comprehensive technical overview of the **CineTracker**
 - **Movie & TV Show Discovery & Search**: Query movies and TV series using TMDB (The Movie Database) API with local caching in a LibSQL (Turso) database.
 - **Personal Media Tracking**: Rate movies, TV shows, and individual episodes on a **1–10 star rating scale**, write text reviews, record start/end dates, mark favorites, and select/create "Watched Where" platform tags (e.g., Netflix, Hotstar, Pirated, Prime Video).
 - **Season & Episode Breakdown**: Browse full season and episode breakdowns with titles, descriptions, air dates, still images, watched toggles, and episode ratings (1-10).
+- **Automatic Database Initialization**: Database migrations and table creations (`CREATE TABLE IF NOT EXISTS`) run automatically during `npm run build` and on cold-start API route invocations (`ensureSchema()`).
 - **Letterboxd CSV Import**: Interactively import watched history (`watched.csv`) or watchlists (`watchlist.csv`) exported from Letterboxd with TMDB title matching and manual selection.
 - **Social Graph & Feed**: Follow/unfollow other users, view community profiles, and see recent movie & TV show activity from followed users.
 - **User Authentication**: Secure signup/login using bcrypt-hashed passwords and JWT tokens set in HTTP-only cookies.
@@ -25,6 +26,7 @@ The application is built on a modern full-stack **TypeScript + Next.js App Route
 - **Language**: TypeScript (`tsconfig.json` with strict type-checking and path alias `@/*`)
 - **Icons**: Lucide React (`lucide-react`) with thick stroke width (`2.5` to `3`)
 - **Rating System**: 1 to 10 scale supported across all media types (movies, TV series, individual episodes)
+- **Database Initialization**: Auto-executing migrations (`npm run build` calls `backend/db/migrate.ts`) plus runtime guard (`ensureSchema()` in `backend/lib/turso.ts`)
 - **Styling & Design System**: Custom Hand-Drawn UI built on Tailwind CSS v4 (`@tailwindcss/postcss`)
   - **Typography**: Google Fonts (`Kalam` for felt-tip marker titles, `Patrick Hand` for legible handwritten body text)
   - **Color Palette**: Warm Paper (`#fdfbf7`), Soft Pencil Black (`#2d2d2d`), Erased Paper Muted (`#e5e0d8`), Red Correction Marker (`#ff4d4d`), Blue Pen (`#2d5da1`), Post-it Yellow (`#fff9c4`)
@@ -51,7 +53,7 @@ movie-trackerh/
 │   └── lib/
 │       ├── auth.ts          # Authentication helper function (verifies token from cookie)
 │       ├── jwt.ts           # JWT signing (`signToken`) & verification (`verifyToken`) helpers
-│       └── turso.ts         # Turso db client instance initialization (@libsql/client)
+│       └── turso.ts         # Turso db client instance initialization (@libsql/client) & ensureSchema runtime guard
 ├── src/
 │   ├── app/                 # Next.js App Router Routes & API Handlers
 │   │   ├── api/
@@ -104,7 +106,7 @@ movie-trackerh/
 ├── tsconfig.json            # TypeScript configuration (`compilerOptions`, `@/*` path mapping)
 ├── next.config.js           # Next.js configuration (remote image domains)
 ├── vercel.json              # Vercel deployment configuration (`framework: nextjs`)
-├── package.json             # NPM dependencies & Next.js scripts (`dev`, `build`, `start`, `lint`)
+├── package.json             # NPM dependencies & Next.js scripts (`dev`, `build` runs migration, `start`, `lint`)
 └── HANDOFF.md               # AI Handoff documentation
 ```
 
@@ -283,11 +285,11 @@ The application requires the following environment variables (defined in Vercel 
 ## 7. Development & Build Commands
 
 - **Start Next.js Dev Server**: `npm run dev` (Runs Next.js Turbopack on `http://localhost:3000`)
-- **Build Next.js App**: `npm run build` (Compiles TypeScript server handlers and static pages)
+- **Build Next.js App**: `npm run build` (Executes DB schema migration script `npx -y tsx backend/db/migrate.ts` then builds Next.js app)
 - **Start Next.js Production Server**: `npm run start`
 - **TypeScript Typecheck**: `npx tsc --noEmit`
 - **Lint Check**: `npm run lint`
 
 ---
 
-*Document updated post TV Show Extension & 1-10 Rating Scale transformation on 2026-08-02.*
+*Document updated post automatic DB initialization & TV show features on 2026-08-02.*

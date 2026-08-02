@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/../backend/lib/turso';
+import { db, ensureSchema } from '@/../backend/lib/turso';
 import { authenticate } from '@/../backend/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  await ensureSchema();
   const { searchParams } = new URL(request.url);
   const username = searchParams.get('username');
   const action = searchParams.get('action');
@@ -257,6 +258,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  await ensureSchema();
   const authUser = authenticate(request, null, true);
   if (!authUser) {
     return NextResponse.json({ message: 'Authentication required.' }, { status: 401 });
