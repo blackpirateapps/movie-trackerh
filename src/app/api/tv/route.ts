@@ -423,6 +423,90 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Mark entire season as watched
+  if (action === 'mark_season_watched') {
+    if (seasonNumber === undefined) {
+      return NextResponse.json({ message: 'Season number is required.' }, { status: 400 });
+    }
+    try {
+      const seasonData = await getAndCacheSeason(tvShowId, seasonNumber);
+      const today = new Date().toISOString().split('T')[0];
+      
+      if (Array.isArray(seasonData.episodes)) {
+        for (const ep of seasonData.episodes) {
+          await db.execute({
+            sql: `
+              INSERT INTO user_episodes (user_id, tv_show_id, season_number, episode_number, watched, watched_date)
+              VALUES (?, ?, ?, ?, 1, ?)
+              ON CONFLICT(user_id, tv_show_id, season_number, episode_number) DO UPDATE SET
+              watched = 1,
+              watched_date = COALESCE(user_episodes.watched_date, excluded.watched_date),
+              updated_at = CURRENT_TIMESTAMP
+            `,
+            args: [authUser.sub, tvShowId, seasonNumber, ep.episode_number, today],
+          });
+        }
+      }
+
+      return NextResponse.json({ message: `Season ${seasonNumber} marked as watched.` });
+    } catch (error) {
+      console.error('Error marking season watched:', error);
+      return NextResponse.json({ message: 'Failed to mark season as watched.' }, { status: 500 });
+    }
+  }
+
+  // Mark entire show (all seasons and episodes) as watched
+  if (action === 'mark_show_watched') {
+    try {
+      const show = await getAndCacheTVShow(tvShowId);
+      const today = new Date().toISOString().split('T')[0];
+
+      if (Array.isArray(show.seasons)) {
+        for (const season of show.seasons) {
+          if (season.season_number > 0) {
+            try {
+              const seasonData = await getAndCacheSeason(tvShowId, season.season_number);
+              if (Array.isArray(seasonData.episodes)) {
+                for (const ep of seasonData.episodes) {
+                  await db.execute({
+                    sql: `
+                      INSERT INTO user_episodes (user_id, tv_show_id, season_number, episode_number, watched, watched_date)
+                      VALUES (?, ?, ?, ?, 1, ?)
+                      ON CONFLICT(user_id, tv_show_id, season_number, episode_number) DO UPDATE SET
+                      watched = 1,
+                      watched_date = COALESCE(user_episodes.watched_date, excluded.watched_date),
+                      updated_at = CURRENT_TIMESTAMP
+                    `,
+                    args: [authUser.sub, tvShowId, season.season_number, ep.episode_number, today],
+                  });
+                }
+              }
+            } catch (sErr) {
+              console.log(`Failed to mark season ${season.season_number} watched:`, sErr);
+            }
+          }
+        }
+      }
+
+      // Ensure show entry exists in user_tv_shows
+      await db.execute({
+        sql: `
+          INSERT INTO user_tv_shows (user_id, tv_show_id, end_date)
+          VALUES (?, ?, ?)
+          ON CONFLICT(user_id, tv_show_id) DO UPDATE SET
+          end_date = COALESCE(user_tv_shows.end_date, excluded.end_date),
+          updated_at = CURRENT_TIMESTAMP
+        `,
+        args: [authUser.sub, tvShowId, today],
+      });
+
+      return NextResponse.json({ message: 'All seasons and episodes marked as watched!' });
+    } catch (error) {
+      console.error('Error marking show watched:', error);
+      return NextResponse.json({ message: 'Failed to mark show as watched.' }, { status: 500 });
+    }
+  }
+
   // Mark/rate individual episode
   if (action === 'episode_watched') {
     if (seasonNumber === undefined || episodeNumber === undefined) {

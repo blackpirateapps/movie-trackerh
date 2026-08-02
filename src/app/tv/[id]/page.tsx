@@ -27,6 +27,8 @@ export default function TVShowPage() {
   const [seasonLoading, setSeasonLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [markShowLoading, setMarkShowLoading] = useState<boolean>(false);
+  const [markSeasonLoading, setMarkSeasonLoading] = useState<boolean>(false);
 
   // Form State
   const [rating, setRating] = useState<number>(0);
@@ -149,6 +151,43 @@ export default function TVShowPage() {
       await fetchTVShowData();
     } catch (err) {
       console.error('Error deleting TV show track:', err);
+    }
+  };
+
+  const handleMarkShowAsWatched = async () => {
+    if (!user || !id) return;
+    setMarkShowLoading(true);
+    try {
+      await api.post('/api/tv', {
+        tvShowId: id,
+        action: 'mark_show_watched'
+      });
+      await fetchTVShowData();
+      if (selectedSeasonNumber) {
+        await fetchSeasonData(selectedSeasonNumber);
+      }
+    } catch (err) {
+      console.error('Error marking show watched:', err);
+    } finally {
+      setMarkShowLoading(false);
+    }
+  };
+
+  const handleMarkSeasonAsWatched = async (seasonNum: number) => {
+    if (!user || !id) return;
+    setMarkSeasonLoading(true);
+    try {
+      await api.post('/api/tv', {
+        tvShowId: id,
+        action: 'mark_season_watched',
+        seasonNumber: seasonNum
+      });
+      await fetchTVShowData();
+      await fetchSeasonData(seasonNum);
+    } catch (err) {
+      console.error('Error marking season watched:', err);
+    } finally {
+      setMarkSeasonLoading(false);
     }
   };
 
@@ -363,18 +402,23 @@ export default function TVShowPage() {
                 </div>
               )}
 
-              {/* Current Watched Where Tags Display */}
-              {show.currentUserTrack?.watched_where && show.currentUserTrack.watched_where.length > 0 && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-bold text-sm text-[#2d2d2d]">Watched On:</span>
-                  {show.currentUserTrack.watched_where.map((platform, i) => (
-                    <span 
-                      key={i} 
-                      className="bg-[#fff9c4] border border-[#2d2d2d] px-2.5 py-1 rounded-full text-xs font-bold shadow-[1px_1px_0px_#2d2d2d]"
-                    >
-                      {platform}
-                    </span>
-                  ))}
+              {/* Quick Actions */}
+              {user && (
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <button
+                    onClick={handleMarkShowAsWatched}
+                    disabled={markShowLoading}
+                    className="btn btn-secondary text-base flex items-center gap-2"
+                  >
+                    {markShowLoading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-5 h-5 text-[#2d5da1] stroke-[2.5]" />
+                        <span>Mark Entire Show as Watched</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               )}
             </div>
@@ -563,10 +607,30 @@ export default function TVShowPage() {
           <div className="card relative">
             <div className="tape-strip" />
 
-            <h3 className="text-3xl font-heading font-bold mb-6 flex items-center gap-3">
-              <Layers className="w-7 h-7 text-[#2d5da1] stroke-[2.5]" />
-              Season & Episode Breakdown
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <h3 className="text-3xl font-heading font-bold flex items-center gap-3">
+                <Layers className="w-7 h-7 text-[#2d5da1] stroke-[2.5]" />
+                Season & Episode Breakdown
+              </h3>
+
+              {user && (
+                <button
+                  type="button"
+                  onClick={() => handleMarkSeasonAsWatched(selectedSeasonNumber)}
+                  disabled={markSeasonLoading}
+                  className="btn btn-secondary text-sm flex items-center gap-2 self-start sm:self-auto"
+                >
+                  {markSeasonLoading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-[#2d5da1] stroke-[2.5]" />
+                      <span>Mark Season {selectedSeasonNumber} as Watched</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
 
             {/* Season Selector Tabs */}
             <div className="flex items-center gap-3 overflow-x-auto pb-3 border-b-2 border-dashed border-[#2d2d2d]/30 mb-6">

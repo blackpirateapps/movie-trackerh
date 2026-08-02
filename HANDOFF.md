@@ -10,7 +10,7 @@ This document provides a comprehensive technical overview of the **CineTracker**
 - **Movie & TV Show Discovery & Search**: Query movies and TV series using TMDB (The Movie Database) API with local caching in a LibSQL (Turso) database.
 - **Trending & Popular Releases**: Home page displays top releases of the current year (via TMDB `discover` endpoint sorted by popularity, with fallback to `trending/week`).
 - **Personal Media Tracking**: Rate movies, TV shows, and individual episodes on a **1–10 star rating scale**, write text reviews, record start/end dates, mark favorites, and select/create "Watched Where" platform tags (e.g., Netflix, Hotstar, Pirated, Prime Video).
-- **Season & Episode Breakdown**: Browse full season and episode breakdowns with titles, descriptions, air dates, still images, watched toggles, and episode ratings (1-10).
+- **Season & Episode Breakdown & Bulk Marking**: Browse full season and episode breakdowns with titles, descriptions, air dates, still images, watched toggles, and episode ratings (1-10). Includes one-click **"Mark Entire Show as Watched"** and **"Mark Season X as Watched"** buttons that automatically update the database.
 - **Automatic Database Initialization**: Database migrations and table creations (`CREATE TABLE IF NOT EXISTS`) run automatically during `npm run build` and on cold-start API route invocations (`ensureSchema()`).
 - **Letterboxd CSV Import**: Interactively import watched history (`watched.csv`) or watchlists (`watchlist.csv`) exported from Letterboxd with TMDB title matching and manual selection.
 - **Social Graph & Feed**: Follow/unfollow other users, view community profiles, and see recent movie & TV show activity from followed users.
@@ -65,7 +65,7 @@ movie-trackerh/
 │   │   │   ├── movies/
 │   │   │   │   └── route.ts # GET search TMDB / get movie details / popular current year; POST rate/review & watchlist toggle
 │   │   │   ├── tv/
-│   │   │   │   └── route.ts # GET search TMDB TV / show details & seasons / popular current year; POST track TV, favorite, delete, episode watched/rated
+│   │   │   │   └── route.ts # GET search TMDB TV / show details & seasons; POST track TV, favorite, delete, mark_season_watched, mark_show_watched, episode watched/rated
 │   │   │   └── user/
 │   │   │       └── route.ts # GET list users, single profile (movies & TV), action=feed; POST follow/unfollow user
 │   │   ├── feed/
@@ -79,7 +79,7 @@ movie-trackerh/
 │   │   │       └── page.tsx # Dynamic Movie detail scrapbook page
 │   │   ├── tv/
 │   │   │   └── [id]/
-│   │   │       └── page.tsx # Dynamic TV Show detail & season/episode breakdown page
+│   │   │       └── page.tsx # Dynamic TV Show detail & season/episode breakdown page with bulk watch controls
 │   │   ├── profile/
 │   │   │   └── [username]/
 │   │   │       └── page.tsx # Dynamic User personal profile page (Movies & TV tabs)
@@ -239,6 +239,8 @@ The database relies on Turso (SQLite/LibSQL).
   - Default (Track TV Show): Body: `{ tvShowId, rating, review, isFavorite, startDate, endDate, watchedWhere }`. Upserts into `user_tv_shows`.
   - `action: 'favorite'`: Body: `{ tvShowId, isFavorite }`. Toggles favorite in `user_tv_shows`.
   - `action: 'delete'`: Body: `{ tvShowId }`. Removes show from user's collection and clears episode tracking records.
+  - `action: 'mark_show_watched'`: Body: `{ tvShowId }`. Bulk marks all seasons and episodes for this show as watched in `user_episodes`.
+  - `action: 'mark_season_watched'`: Body: `{ tvShowId, seasonNumber }`. Bulk marks all episodes in the target season as watched in `user_episodes`.
   - `action: 'episode_watched'`: Body: `{ tvShowId, seasonNumber, episodeNumber, watched, rating }`. Upserts into `user_episodes`.
 
 ### `/api/auth`
@@ -293,4 +295,4 @@ The application requires the following environment variables (defined in Vercel 
 
 ---
 
-*Document updated post current year trending discover query implementation on 2026-08-02.*
+*Document updated post bulk TV show & season watched controls on 2026-08-02.*
