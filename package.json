@@ -10,21 +10,21 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "^14.2.15",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "axios": "^1.7.7",
-    "bcryptjs": "^2.4.3",
-    "cookie": "^0.6.0",
-    "jsonwebtoken": "^9.0.2",
-    "@libsql/client": "^0.10.0",
-    "csv-parser": "^3.0.0"
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "axios": "latest",
+    "bcryptjs": "latest",
+    "cookie": "latest",
+    "jsonwebtoken": "latest",
+    "@libsql/client": "latest",
+    "csv-parser": "latest"
   },
   "devDependencies": {
-    "tailwindcss": "4.0.0-alpha.26",
-    "@tailwindcss/postcss": "4.0.0-alpha.26",
-    "postcss": "^8.4.47",
-    "eslint": "^8.57.1",
-    "eslint-config-next": "^14.2.15"
+    "tailwindcss": "latest",
+    "@tailwindcss/postcss": "latest",
+    "postcss": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "latest"
   }
 }

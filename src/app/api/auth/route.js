@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server';
 import { signToken, verifyToken } from '@/../backend/lib/jwt.js';
 import { db } from '@/../backend/lib/turso.js';
 import bcrypt from 'bcryptjs';
-import cookie from 'cookie';
+import { parseCookie, stringifyCookie } from 'cookie';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {
     const cookieHeader = request.headers.get('cookie') || '';
-    const cookies = cookie.parse(cookieHeader);
+    const cookies = parseCookie(cookieHeader);
     const token = cookies.token;
 
     if (!token) {
@@ -61,7 +61,7 @@ export async function POST(request) {
       const user = { id: userId, username, email };
       const token = signToken({ sub: userId, username, email });
 
-      const setCookieHeader = cookie.serialize('token', token, {
+      const setCookieHeader = stringifyCookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 60 * 60 * 24 * 30,
@@ -104,7 +104,7 @@ export async function POST(request) {
         email: user.email 
       });
 
-      const setCookieHeader = cookie.serialize('token', token, {
+      const setCookieHeader = stringifyCookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 60 * 60 * 24 * 30,
@@ -122,7 +122,7 @@ export async function POST(request) {
     }
 
     if (action === 'logout') {
-      const setCookieHeader = cookie.serialize('token', '', {
+      const setCookieHeader = stringifyCookie('token', '', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         expires: new Date(0),

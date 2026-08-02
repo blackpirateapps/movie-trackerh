@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import cookie from 'cookie';
+import { parseCookie } from 'cookie';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -13,7 +13,7 @@ export function authenticate(req, res = null, required = true) {
     }
   }
 
-  const cookies = cookie.parse(cookieHeader);
+  const cookies = parseCookie ? parseCookie(cookieHeader) : {};
   const token = cookies.token;
 
   if (!token) {
