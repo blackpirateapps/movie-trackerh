@@ -6,6 +6,22 @@ import { parseCookie, stringifySetCookie } from 'cookie';
 
 export const dynamic = 'force-dynamic';
 
+async function getPasswordColumnName(): Promise<string> {
+  try {
+    const { rows } = await db.execute("PRAGMA table_info(users)");
+    const columnNames = rows.map((r: any) => r.name);
+    if (columnNames.includes('password_hash')) {
+      return 'password_hash';
+    }
+    if (columnNames.includes('password')) {
+      return 'password';
+    }
+  } catch (err) {
+    console.error('PRAGMA table_info error:', err);
+  }
+  return 'password_hash';
+}
+
 export async function GET(request: NextRequest) {
   try {
     const cookieHeader = request.headers.get('cookie') || '';
@@ -52,9 +68,11 @@ export async function POST(request: NextRequest) {
       }
 
       const hashedPassword = await bcrypt.hash(password, 12);
+      const passwordCol = await getPasswordColumnName();
+
       const result = await db.execute({
-        sql: 'INSERT INTO users (username, email, password, password_hash) VALUES (?, ?, ?, ?)',
-        args: [username, email, hashedPassword, hashedPassword],
+        sql: `INSERT INTO users (username, email, ${passwordCol}) VALUES (?, ?, ?)`,
+        args: [username, email, hashedPassword],
       });
 
       const userId = result.lastInsertRowid!.toString();
@@ -84,8 +102,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: 'Email and password are required.' }, { status: 400 });
       }
 
+      const passwordCol = await getPasswordColumnName();
       const { rows } = await db.execute({
-        sql: 'SELECT id, username, email, COALESCE(password, password_hash) as password FROM users WHERE email = ?',
+        sql: `SELECT id, username, email, ${passwordCol} as password FROM users WHERE email = ?`,
         args: [email],
       });
 
