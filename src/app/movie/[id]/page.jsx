@@ -1,11 +1,15 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import api from '../lib/api';
-import { useAuth } from '../hooks/useAuth';
-import StarRating from '../components/StarRating';
+'use client';
 
-const Movie = () => {
-  const { id } = useParams();
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import api from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
+import StarRating from '@/components/StarRating';
+
+export default function Movie() {
+  const params = useParams();
+  const id = params?.id;
   const { user } = useAuth();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,6 +24,7 @@ const Movie = () => {
   const [isWatched, setIsWatched] = useState(false);
 
   const fetchMovieData = async () => {
+    if (!id) return;
     try {
       setLoading(true);
       const { data } = await api.get(`/api/movies?id=${id}`);
@@ -146,7 +151,7 @@ const Movie = () => {
 
   const posterUrl = movie.poster_path 
     ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
-    : '/api/placeholder/500/750';
+    : 'https://via.placeholder.com/500x750?text=No+Poster';
 
   const backdropUrl = movie.backdrop_path
     ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`
@@ -190,9 +195,9 @@ const Movie = () => {
                     ⏱️ {movie.runtime} min
                   </span>
                 )}
-                {movie.vote_average && (
+                {movie.vote_average != null && (
                   <span className="flex items-center gap-2">
-                    ⭐ {movie.vote_average.toFixed(1)}/10
+                    ⭐ {Number(movie.vote_average).toFixed(1)}/10
                   </span>
                 )}
               </div>
@@ -265,7 +270,7 @@ const Movie = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-4 mb-2">
                           <Link 
-                            to={`/profile/${review.username}`}
+                            href={`/profile/${review.username}`}
                             className="font-semibold hover:text-primary-400 transition-colors"
                           >
                             {review.username}
@@ -377,8 +382,8 @@ const Movie = () => {
               <h3 className="text-xl font-bold mb-4">Want to track this movie?</h3>
               <p className="text-slate-400 mb-6">Sign up or log in to rate, review, and add movies to your watchlist!</p>
               <div className="flex gap-4 justify-center">
-                <Link to="/login" className="btn btn-primary">Login</Link>
-                <Link to="/signup" className="btn btn-secondary">Sign Up</Link>
+                <Link href="/login" className="btn btn-primary">Login</Link>
+                <Link href="/signup" className="btn btn-secondary">Sign Up</Link>
               </div>
             </div>
           )}
@@ -386,6 +391,4 @@ const Movie = () => {
       </div>
     </div>
   );
-};
-
-export default Movie;
+}

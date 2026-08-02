@@ -1,19 +1,21 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import api from '../lib/api';
-import StarRating from '../components/StarRating';
+'use client';
 
-const Feed = () => {
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import api from '@/lib/api';
+import StarRating from '@/components/StarRating';
+
+export default function Feed() {
   const [feedItems, setFeedItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all'); // all, reviews, ratings
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     const fetchFeed = async () => {
       try {
         const { data } = await api.get('/api/user?action=feed');
-        setFeedItems(data);
+        setFeedItems(Array.isArray(data) ? data : []);
       } catch (err) {
         setError('Failed to load your feed.');
         console.error(err);
@@ -116,11 +118,11 @@ const Feed = () => {
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <Link 
-                        to={`/profile/${item.username}`} 
+                        href={`/profile/${item.username}`} 
                         className="flex items-center gap-3 group"
                       >
                         <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white font-bold group-hover:scale-110 transition-transform">
-                          {item.username.charAt(0).toUpperCase()}
+                          {item.username ? item.username.charAt(0).toUpperCase() : '?'}
                         </div>
                         <div>
                           <span className="font-semibold text-white group-hover:text-primary-300 transition-colors">
@@ -131,7 +133,7 @@ const Feed = () => {
                       </Link>
                     </div>
                     <time className="text-sm text-gray-500">
-                      {new Date(item.updated_at).toLocaleDateString('en-US', {
+                      {new Date(item.updated_at || item.created_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         hour: '2-digit',
@@ -142,7 +144,7 @@ const Feed = () => {
 
                   {/* Movie Info */}
                   <Link 
-                    to={`/movie/${item.movieId || item.movie_id}`} 
+                    href={`/movie/${item.movieId || item.movie_id}`} 
                     className="block mb-4 group"
                   >
                     <h3 className="text-xl font-semibold text-primary-400 group-hover:text-primary-300 transition-colors mb-2">
@@ -151,12 +153,14 @@ const Feed = () => {
                   </Link>
 
                   {/* Rating */}
-                  <div className="flex items-center gap-4 mb-4">
-                    <StarRating rating={item.rating} readOnly size="medium" />
-                    <span className="text-sm text-gray-400">
-                      Rated {item.rating}/5 stars
-                    </span>
-                  </div>
+                  {item.rating > 0 && (
+                    <div className="flex items-center gap-4 mb-4">
+                      <StarRating rating={item.rating} readOnly size="medium" />
+                      <span className="text-sm text-gray-400">
+                        Rated {item.rating}/5 stars
+                      </span>
+                    </div>
+                  )}
 
                   {/* Review */}
                   {item.review && item.review.trim().length > 0 && (
@@ -170,14 +174,14 @@ const Feed = () => {
                   {/* Actions */}
                   <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-800">
                     <Link 
-                      to={`/movie/${item.movieId || item.movie_id}`}
+                      href={`/movie/${item.movieId || item.movie_id}`}
                       className="btn btn-ghost text-sm"
                     >
                       <span className="text-base">👁️</span>
                       View Movie
                     </Link>
                     <Link 
-                      to={`/profile/${item.username}`}
+                      href={`/profile/${item.username}`}
                       className="btn btn-ghost text-sm"
                     >
                       <span className="text-base">👤</span>
@@ -187,15 +191,6 @@ const Feed = () => {
                 </div>
               ))}
             </div>
-
-            {/* Load More */}
-            {filteredItems.length >= 10 && (
-              <div className="text-center mt-8">
-                <button className="btn btn-secondary">
-                  Load More Reviews
-                </button>
-              </div>
-            )}
           </>
         ) : (
           /* Empty State */
@@ -212,39 +207,18 @@ const Feed = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link to="/" className="btn btn-primary">
+              <Link href="/" className="btn btn-primary">
                 <span className="text-lg">🔍</span>
                 Discover Movies
               </Link>
-              <Link to="/users" className="btn btn-secondary">
+              <Link href="/users" className="btn btn-secondary">
                 <span className="text-lg">👥</span>
                 Find Users to Follow
               </Link>
-            </div>
-
-            {/* Tips */}
-            <div className="mt-12 text-left max-w-md mx-auto">
-              <h3 className="text-lg font-semibold mb-4 text-center">Getting Started:</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li className="flex items-center gap-2">
-                  <span className="text-primary-400">1.</span>
-                  Search for movies and add ratings/reviews
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary-400">2.</span>
-                  Visit other user profiles and follow them
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-primary-400">3.</span>
-                  Check back here to see their activity
-                </li>
-              </ul>
             </div>
           </div>
         )}
       </div>
     </div>
   );
-};
-
-export default Feed;
+}

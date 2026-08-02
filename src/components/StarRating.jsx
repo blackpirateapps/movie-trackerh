@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 
 const StarRating = ({ rating = 0, onRatingChange, readOnly = false, size = 'medium' }) => {
@@ -39,7 +41,7 @@ const StarRating = ({ rating = 0, onRatingChange, readOnly = false, size = 'medi
             key={index}
             type="button"
             className={`transition-colors ${
-              ratingValue <= (hover || currentRating) 
+              ratingValue <= (hover || (currentRating || rating)) 
                 ? 'text-yellow-400' 
                 : 'text-gray-600'
             } ${readOnly ? 'cursor-default' : 'hover:text-yellow-300'}`}
@@ -55,7 +57,7 @@ const StarRating = ({ rating = 0, onRatingChange, readOnly = false, size = 'medi
       })}
       {!readOnly && (
         <span className="ml-2 text-sm text-gray-400">
-          {currentRating > 0 ? `${currentRating}/5` : 'Rate this movie'}
+          {(hover || currentRating || rating) > 0 ? `${hover || currentRating || rating}/5` : 'Rate this movie'}
         </span>
       )}
     </div>

@@ -1,8 +1,11 @@
-import { useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
-import api from '../lib/api';
+'use client';
 
-const Import = () => {
+import { useState } from 'react';
+import Link from 'next/link';
+import { useAuth } from '@/hooks/useAuth';
+import api from '@/lib/api';
+
+export default function Import() {
   const { user } = useAuth();
   const [csvData, setCsvData] = useState('');
   const [importType, setImportType] = useState('');
@@ -17,7 +20,7 @@ const Import = () => {
 
   const handleFileSelect = (type, e) => {
     const file = e.target.files[0];
-    if (file && file.type === 'text/csv') {
+    if (file && (file.type === 'text/csv' || file.name.endsWith('.csv'))) {
       setImportType(type);
       file.text().then(setCsvData);
       setError('');
@@ -62,7 +65,7 @@ const Import = () => {
         movieName: movie.originalName
       });
 
-      setSearchResults(response.data.results);
+      setSearchResults(response.data.results || []);
     } catch (err) {
       setError(`Failed to search for "${movie.originalName}"`);
       setSearchResults([]);
@@ -110,7 +113,6 @@ const Import = () => {
       setCurrentIndex(nextIndex);
       await searchForMovie(movies[nextIndex]);
     } else {
-      // Import completed
       setCurrentMovie(null);
       setSearchResults([]);
     }
@@ -133,7 +135,7 @@ const Import = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Please log in to import data</h2>
-          <a href="/login" className="btn btn-primary">Login</a>
+          <Link href="/login" className="btn btn-primary">Login</Link>
         </div>
       </div>
     );
@@ -267,7 +269,7 @@ const Import = () => {
                   <img
                     src={movie.poster_path 
                       ? `https://image.tmdb.org/t/p/w92${movie.poster_path}` 
-                      : '/api/placeholder/92/138'
+                      : 'https://via.placeholder.com/92x138?text=No+Cover'
                     }
                     alt={movie.title}
                     className="w-12 h-18 object-cover rounded"
@@ -345,9 +347,9 @@ const Import = () => {
             </div>
             
             <div className="flex gap-4 justify-center">
-              <a href={`/profile/${user.username}`} className="btn btn-primary">
+              <Link href={`/profile/${user.username}`} className="btn btn-primary">
                 View My Profile
-              </a>
+              </Link>
               <button onClick={resetImport} className="btn btn-secondary">
                 Import Another File
               </button>
@@ -363,7 +365,7 @@ const Import = () => {
                       <img
                         src={movie.poster_path 
                           ? `https://image.tmdb.org/t/p/w154${movie.poster_path}` 
-                          : '/api/placeholder/154/231'
+                          : 'https://via.placeholder.com/154x231?text=No+Cover'
                         }
                         alt={movie.title}
                         className="w-full aspect-[2/3] object-cover rounded-lg mb-2"
@@ -388,6 +390,4 @@ const Import = () => {
       </div>
     </div>
   );
-};
-
-export default Import;
+}

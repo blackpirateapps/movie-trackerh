@@ -1,9 +1,11 @@
+'use client';
+
 import StarRating from './StarRating';
 
 const MovieCard = ({ movie, showUserRating = false }) => {
   const posterUrl = movie.poster_path 
     ? `https://image.tmdb.org/t/p/w300${movie.poster_path}`
-    : '/api/placeholder/300/450';
+    : 'https://via.placeholder.com/300x450?text=No+Poster';
 
   const releaseYear = movie.release_date 
     ? new Date(movie.release_date).getFullYear()
@@ -25,10 +27,10 @@ const MovieCard = ({ movie, showUserRating = false }) => {
             <h3 className="font-semibold text-sm mb-1 line-clamp-2">{movie.title}</h3>
             <div className="flex items-center justify-between text-xs text-gray-300">
               <span>{releaseYear}</span>
-              {movie.vote_average && (
+              {movie.vote_average != null && (
                 <div className="flex items-center gap-1">
                   <span className="text-yellow-400">⭐</span>
-                  <span>{movie.vote_average.toFixed(1)}</span>
+                  <span>{Number(movie.vote_average).toFixed(1)}</span>
                 </div>
               )}
             </div>

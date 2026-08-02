@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import api from '../lib/api';
-import MovieCard from '../components/MovieCard';
+'use client';
 
-const Home = () => {
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import api from '@/lib/api';
+import MovieCard from '@/components/MovieCard';
+
+export default function Home() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -13,7 +15,9 @@ const Home = () => {
     const loadTrending = async () => {
       try {
         const { data } = await api.get('/api/movies?query=popular');
-        setTrending(data.slice(0, 8));
+        if (Array.isArray(data)) {
+          setTrending(data.slice(0, 8));
+        }
       } catch (error) {
         console.error('Failed to load trending movies', error);
       }
@@ -28,7 +32,7 @@ const Home = () => {
     setLoading(true);
     try {
       const { data } = await api.get(`/api/movies?query=${encodeURIComponent(query)}`);
-      setResults(data);
+      setResults(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Search failed", error);
     } finally {
@@ -82,7 +86,7 @@ const Home = () => {
             <h2 className="text-3xl font-bold mb-8">Search Results</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {results.map(movie => (
-                <Link key={movie.id} to={`/movie/${movie.id}`} className="group">
+                <Link key={movie.id} href={`/movie/${movie.id}`} className="group">
                   <MovieCard movie={movie} />
                 </Link>
               ))}
@@ -100,7 +104,7 @@ const Home = () => {
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {trending.map(movie => (
-                <Link key={movie.id} to={`/movie/${movie.id}`} className="group">
+                <Link key={movie.id} href={`/movie/${movie.id}`} className="group">
                   <MovieCard movie={movie} />
                 </Link>
               ))}
@@ -110,6 +114,4 @@ const Home = () => {
       )}
     </div>
   );
-};
-
-export default Home;
+}

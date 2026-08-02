@@ -1,12 +1,16 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import api from '../lib/api';
-import { useAuth } from '../hooks/useAuth';
-import MovieCard from '../components/MovieCard';
-import StarRating from '../components/StarRating';
+'use client';
 
-const Profile = () => {
-  const { username } = useParams();
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import api from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
+import MovieCard from '@/components/MovieCard';
+import StarRating from '@/components/StarRating';
+
+export default function Profile() {
+  const params = useParams();
+  const username = params?.username;
   const { user: currentUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -15,6 +19,7 @@ const Profile = () => {
   const [filter, setFilter] = useState('all');
 
   const fetchProfile = async () => {
+    if (!username) return;
     try {
       setLoading(true);
       const { data } = await api.get(`/api/user?username=${username}`);
@@ -44,7 +49,7 @@ const Profile = () => {
         isFollowing: true,
         stats: {
           ...prev.stats,
-          followers: data.followers // Use actual count from server
+          followers: data.followers
         }
       }));
     } catch (err) {
@@ -67,7 +72,7 @@ const Profile = () => {
         isFollowing: false,
         stats: {
           ...prev.stats,
-          followers: data.followers // Use actual count from server
+          followers: data.followers
         }
       }));
     } catch (err) {
@@ -88,14 +93,14 @@ const Profile = () => {
     );
   }
 
-  if (error) {
+  if (error || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <span className="text-6xl mb-4 block">😔</span>
           <h2 className="text-2xl font-bold mb-2">Profile Not Found</h2>
-          <p className="text-slate-400 mb-6">{error}</p>
-          <Link to="/users" className="btn btn-primary">
+          <p className="text-slate-400 mb-6">{error || 'User not found.'}</p>
+          <Link href="/users" className="btn btn-primary">
             Browse Users
           </Link>
         </div>
@@ -139,7 +144,7 @@ const Profile = () => {
                   {isOwnProfile && <span className="text-primary-400 ml-2 text-lg">(You)</span>}
                 </h1>
 
-                <div className="flex items-center gap-6 text-sm text-slate-400">
+                <div className="flex flex-wrap items-center gap-6 text-sm text-slate-400">
                   <div className="flex items-center gap-1">
                     <span className="text-primary-400">🎬</span>
                     <span className="font-semibold text-white">{profile.movies.length}</span>
@@ -253,7 +258,7 @@ const Profile = () => {
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 {filteredMovies.map(movie => (
                   <div key={movie.id} className="group animate-fade-in">
-                    <Link to={`/movie/${movie.id}`} className="block">
+                    <Link href={`/movie/${movie.id}`} className="block">
                       <MovieCard movie={movie} showUserRating />
                     </Link>
 
@@ -310,7 +315,7 @@ const Profile = () => {
               </div>
               {isOwnProfile && (
                 <div className="flex gap-4 justify-center">
-                  <Link to="/" className="btn btn-primary">
+                  <Link href="/" className="btn btn-primary">
                     <span className="text-lg">🔍</span>
                     Discover Movies
                   </Link>
@@ -340,11 +345,11 @@ const Profile = () => {
                 .slice(0, 5)
                 .map(movie => (
                 <div key={movie.id} className="flex items-center gap-4 p-3 bg-slate-900/20 rounded-lg hover:bg-slate-900/30 transition-colors">
-                  <Link to={`/movie/${movie.id}`} className="flex items-center gap-4 flex-1">
+                  <Link href={`/movie/${movie.id}`} className="flex items-center gap-4 flex-1">
                     <img 
                       src={movie.poster_path 
                         ? `https://image.tmdb.org/t/p/w92${movie.poster_path}` 
-                        : '/api/placeholder/92/138'
+                        : 'https://via.placeholder.com/92x138?text=No+Cover'
                       }
                       alt={movie.title}
                       className="w-12 h-18 object-cover rounded shadow-md"
@@ -378,6 +383,4 @@ const Profile = () => {
       </div>
     </div>
   );
-};
-
-export default Profile;
+}

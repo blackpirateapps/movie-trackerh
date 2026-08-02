@@ -1,13 +1,13 @@
 # CineTracker (movie-trackerh) - AI Handoff & Architecture Document
 
-This document provides a comprehensive technical overview of the **CineTracker** codebase (`movie-trackerh`). It is structured to allow future AI agents and developers to quickly understand the system architecture, code organization, database schemas, API endpoints, authentication mechanisms, and known issues without needing to re-analyze the codebase.
+This document provides a comprehensive technical overview of the **CineTracker** codebase (`movie-trackerh`). It is structured to allow future AI agents and developers to quickly understand the system architecture, code organization, database schemas, API endpoints, authentication mechanisms, and recent Next.js App Router migration without needing to re-analyze the codebase.
 
 ---
 
 ## 1. Executive Summary & Application Purpose
 
-**CineTracker** is a full-stack movie tracking and social networking web application. Key user capabilities include:
-- **Movie Discovery & Search**: Query movies using the TMDB (The Movie Database) API with local caching in a LibSQL (Turso) database.
+**CineTracker** is a full-stack movie tracking and social networking web application built with **Next.js App Router**. Key user capabilities include:
+- **Movie Discovery & Search**: Query movies using TMDB (The Movie Database) API with local caching in a LibSQL (Turso) database.
 - **Personal Movie Tracking**: Rate movies (1–5 stars), write text reviews, record watched dates, and toggle watchlist status.
 - **Letterboxd CSV Import**: Interactively import watched history (`watched.csv`) or watchlists (`watchlist.csv`) exported from Letterboxd with TMDB title matching and manual selection.
 - **Social Graph & Feed**: Follow/unfollow other users, view community profiles, and see recent movie activity from followed users.
@@ -15,22 +15,17 @@ This document provides a comprehensive technical overview of the **CineTracker**
 
 ---
 
-## 2. Technology Stack & Environment
+## 2. Technology Stack & Framework Conversion
 
-- **Frontend**:
-  - **Framework**: React 18 (Vite build tool)
-  - **Routing**: `react-router-dom` v6
-  - **Styling**: Tailwind CSS v4 (`@tailwindcss/postcss` alpha release) with custom theme configuration (`oklch` color palette, custom components `.btn`, `.card`, `.form-input`, `.glass`)
-  - **HTTP Client**: Axios (`src/lib/api.js`) configured with `withCredentials: true`
-  - **Font**: Google Fonts - Inter / Inter Variable
-- **Backend / Serverless API**:
-  - **Host**: Vercel Serverless Functions (`api/` directory)
-  - **URL Routing**: Rewrites configured in `vercel.json` routing all `/api/*` requests to serverless handlers and non-API routes to `index.html`
-  - **JWT / Auth**: `jsonwebtoken`, `bcryptjs`, `cookie`
-  - **CSV Parser**: `csv-parser` with Node `stream.Readable`
-- **Database**:
-  - **Engine**: Turso (Hosted LibSQL / SQLite) via `@libsql/client`
-  - **ORM / Client**: Raw SQL execution via `db.execute()` in `backend/lib/turso.js`
+The application has been transformed from a Vite SPA into a modern **Next.js App Router** full-stack application:
+
+- **Framework**: Next.js 14+ (App Router with `src/app`)
+- **Styling**: Tailwind CSS v4 (`@tailwindcss/postcss`) with custom theme configuration (`oklch` color palette, custom components `.btn`, `.card`, `.form-input`, `.glass`)
+- **Routing & Rendering**: Next.js Client and Server Components with `next/navigation` (`useRouter`, `useParams`) and `next/link`
+- **HTTP Client**: Axios (`src/lib/api.js`) configured with relative paths (`baseURL: ''`) for API routes
+- **Backend API Routes**: Next.js Route Handlers in `src/app/api/...` (`GET`, `POST` functions returning `NextResponse`)
+- **Authentication**: JWT signed token stored in HTTP-only `token` cookie, authenticated via `backend/lib/auth.js`
+- **Database Engine**: Turso (Hosted LibSQL / SQLite) via `@libsql/client`
 
 ---
 
@@ -38,49 +33,58 @@ This document provides a comprehensive technical overview of the **CineTracker**
 
 ```
 movie-trackerh/
-├── api/                     # Vercel Serverless Function Handlers
-│   ├── auth.js              # GET session check; POST login, signup, logout
-│   ├── import.js            # POST parse CSV, search TMDB, import movie to DB
-│   ├── movies.js            # GET search TMDB / get movie details; POST rate/review & watchlist toggle
-│   └── user.js              # GET user list, single profile; POST follow/unfollow user
 ├── backend/
 │   ├── db/
 │   │   ├── migrate.js       # Database migration script (reads schema.sql & updates table structure)
-│   │   └── schema.sql       # Initial SQLite database schema DDL
+│   │   └── schema.sql       # Initial SQLite database schema DDL (includes users, movies, user_movies, follows, watchlist)
 │   └── lib/
-│       ├── auth.js          # Authentication helper function (verifies token from req cookie)
+│       ├── auth.js          # Authentication helper function (verifies token from cookie)
 │       ├── jwt.js           # JWT signing (`signToken`) & verification (`verifyToken`) helpers
 │       └── turso.js         # Turso db client instance initialization (@libsql/client)
 ├── src/
+│   ├── app/                 # Next.js App Router Routes & API Handlers
+│   │   ├── api/
+│   │   │   ├── auth/
+│   │   │   │   └── route.js # GET session check; POST login, signup, logout
+│   │   │   ├── import/
+│   │   │   │   └── route.js # POST parse CSV, search TMDB, import movie to DB
+│   │   │   ├── movies/
+│   │   │   │   └── route.js # GET search TMDB / get movie details; POST rate/review & watchlist toggle
+│   │   │   └── user/
+│   │   │       └── route.js # GET list users, single profile, action=feed; POST follow/unfollow user
+│   │   ├── feed/
+│   │   │   └── page.jsx     # Activity feed page
+│   │   ├── import/
+│   │   │   └── page.jsx     # Interactive Letterboxd CSV importer page
+│   │   ├── login/
+│   │   │   └── page.jsx     # User login form
+│   │   ├── movie/
+│   │   │   └── [id]/
+│   │   │       └── page.jsx # Dynamic Movie details page
+│   │   ├── profile/
+│   │   │   └── [username]/
+│   │   │       └── page.jsx # Dynamic User profile page
+│   │   ├── signup/
+│   │   │   └── page.jsx     # User signup form
+│   │   ├── users/
+│   │   │   └── page.jsx     # Community directory page
+│   │   ├── globals.css      # Tailwind CSS directives & custom component styles
+│   │   ├── layout.jsx       # Root layout wrapping app in AuthProvider and Navbar
+│   │   └── page.jsx         # Home page with hero banner & movie search
 │   ├── components/
-│   │   ├── Layout.jsx       # Root page layout wrapper (includes Navbar)
-│   │   ├── MovieCard.jsx    # Card component displaying movie poster, title, rating overlay
+│   │   ├── MovieCard.jsx    # Card component displaying poster, title, rating overlay
 │   │   ├── Navbar.jsx       # Global header navigation with brand logo, links, auth state
 │   │   └── StarRating.jsx   # Interactive and read-only star rating component (1-5 stars)
 │   ├── contexts/
-│   │   └── AuthContext.jsx  # React Context providing `user`, `login`, `signup`, `logout`, `loading` state
+│   │   └── AuthContext.jsx  # React Client Context providing user session & auth actions
 │   ├── hooks/
 │   │   └── useAuth.js       # Convenience hook consuming AuthContext
-│   ├── lib/
-│   │   └── api.js           # Pre-configured Axios instance (baseURL handling dev/prod)
-│   ├── pages/
-│   │   ├── Feed.jsx         # Social activity feed page
-│   │   ├── Home.jsx         # Landing page with hero banner & TMDB movie search
-│   │   ├── Import.jsx       # Interactive Letterboxd CSV importer UI
-│   │   ├── Login.jsx        # Login page form
-│   │   ├── Movie.jsx        # Movie details page (TMDB info, user rating, watchlist toggle, reviews)
-│   │   ├── Profile.jsx      # User profile page (stats, tracked movies grid, recent activity)
-│   │   ├── Signup.jsx       # User registration page form
-│   │   └── Users.jsx        # Community members directory with search, pagination & follow buttons
-│   ├── App.jsx              # Main React route definitions
-│   ├── index.css            # Tailwind CSS directives, theme variables & custom utilities
-│   └── main.jsx             # React DOM entry point wrapping App in AuthProvider and BrowserRouter
-├── index.html               # Vite HTML entry template
-├── package.json             # NPM dependencies and scripts
-├── postcss.config.js        # PostCSS configuration for Tailwind v4
-├── tailwind.config.js       # Tailwind configuration file
-├── vercel.json              # Vercel deployment rewrites
-└── vite.config.js           # Vite build and dev server config
+│   └── lib/
+│       └── api.js           # Pre-configured Axios instance using relative API paths
+├── jsconfig.json            # Path aliases mapping `@/*` to `./src/*`
+├── next.config.js           # Next.js configuration (remote image domains)
+├── package.json             # NPM dependencies & Next.js scripts (`dev`, `build`, `start`)
+└── HANDOFF.md               # AI Handoff documentation
 ```
 
 ---
@@ -126,7 +130,7 @@ The database relies on Turso (SQLite/LibSQL).
    - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
    - `PRIMARY KEY (follower_id, following_id)`
 
-5. `watchlist` *(Required table referenced by `api/movies.js` & `api/import.js`)*
+5. `watchlist`
    - `id`: INTEGER PRIMARY KEY AUTOINCREMENT
    - `user_id`: INTEGER NOT NULL (FK -> users.id)
    - `movie_id`: INTEGER NOT NULL (FK -> movies.id)
@@ -135,19 +139,7 @@ The database relies on Turso (SQLite/LibSQL).
 
 ---
 
-## 5. Authentication & Authorization Flow
-
-1. **State Management**: `AuthContext.jsx` manages `user` state globally.
-2. **Session Verification**: On initial load, `AuthContext` issues `GET /api/auth`. If a valid `token` cookie exists, the user object `{ id, username, email }` is returned.
-3. **Login / Signup**:
-   - `POST /api/auth` with `action: 'signup'` or `action: 'login'`.
-   - Passwords are validated/hashed using `bcryptjs` with salt round `12`.
-   - On success, a JWT signed with `JWT_SECRET` (containing `{ sub: userId, username, email }`) is issued in a `token` HTTP-only cookie (`SameSite: lax/none`, `Max-Age: 30 days`).
-4. **Protected Endpoints**: Serverless handlers call `authenticate(req, res)` from `backend/lib/auth.js`. It parses `req.headers.cookie` and verifies the JWT.
-
----
-
-## 6. API Endpoint Reference
+## 5. API Endpoint Reference (Next.js App Router Route Handlers)
 
 ### `/api/auth`
 - `GET`: Validates session cookie. Returns `{ user: { id, username, email } }`.
@@ -166,6 +158,7 @@ The database relies on Turso (SQLite/LibSQL).
 
 ### `/api/user`
 - `GET`:
+  - `?action=feed`: Returns recent movie ratings and reviews from users that the current user follows.
   - `?action=list&page=1&limit=20&search=`: Returns paginated list of users with stats (`movies`, `followers`, `following`).
   - `?username=<username>`: Returns user profile, tracked movies list, follower/following counts, and `isFollowing` status for the authenticated user.
 - `POST`:
@@ -180,9 +173,9 @@ The database relies on Turso (SQLite/LibSQL).
 
 ---
 
-## 7. Environment Variables
+## 6. Environment Variables
 
-The application requires the following environment variables (defined in Vercel or local `.env`):
+The application requires the following environment variables (defined in Vercel or `.env.local`):
 
 | Variable | Description |
 |---|---|
@@ -194,42 +187,13 @@ The application requires the following environment variables (defined in Vercel 
 
 ---
 
-## 8. Development & Build Commands
+## 7. Development & Build Commands
 
-- **Start Development Server**: `npm run dev` (Vite on `http://localhost:3000`)
-- **Build Production Bundle**: `npm run build` (Outputs to `dist/`)
-- **Preview Production Build**: `npm run preview`
+- **Start Next.js Dev Server**: `npm run dev` (Runs Next.js on `http://localhost:3000`)
+- **Build Next.js App**: `npm run build` (Compiles server handlers and static pages)
+- **Start Next.js Production Server**: `npm run start`
 - **Database Migration**: `node backend/db/migrate.js`
 
 ---
 
-## 9. Key Technical Findings & Audit Recommendations
-
-Future agents working on this repository should keep in mind the following findings:
-
-1. **`watchlist` Table Schema**:
-   - `schema.sql` does not explicitly contain `CREATE TABLE IF NOT EXISTS watchlist ...`.
-   - Ensure `watchlist` table is included in database migrations if setting up a fresh database instance:
-     ```sql
-     CREATE TABLE IF NOT EXISTS watchlist (
-         id INTEGER PRIMARY KEY AUTOINCREMENT,
-         user_id INTEGER NOT NULL,
-         movie_id INTEGER NOT NULL,
-         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-         FOREIGN KEY (movie_id) REFERENCES movies (id) ON DELETE CASCADE,
-         UNIQUE (user_id, movie_id)
-     );
-     ```
-
-2. **Feed Endpoint Alignment**:
-   - `Feed.jsx` makes a `GET` request to `/api/user?action=feed`.
-   - If feed functionality needs extension, ensure `/api/user.js` handles `action === 'feed'` by querying `user_movies` for users that the current user follows.
-
-3. **Tailwind CSS v4 Configuration**:
-   - Uses `@import "tailwindcss";` and `@theme` block in `src/index.css`.
-   - Configured with `@tailwindcss/postcss` plugin in `postcss.config.js`.
-
----
-
-*Handoff document generated on 2026-08-02.*
+*Document updated post Next.js App Router migration on 2026-08-02.*

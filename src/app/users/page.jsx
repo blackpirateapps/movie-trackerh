@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import api from '../lib/api';
-import { useAuth } from '../hooks/useAuth';
+'use client';
 
-const Users = () => {
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import api from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
+
+export default function Users() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +70,6 @@ const Users = () => {
         followingId: userId 
       });
 
-      // Update local state
       setFollowingUsers(prev => {
         const newSet = new Set(prev);
         if (isCurrentlyFollowing) {
@@ -79,7 +80,6 @@ const Users = () => {
         return newSet;
       });
 
-      // Update user stats in the list
       setUsers(prev => prev.map(user => 
         user.id === userId 
           ? { ...user, stats: { ...user.stats, followers: data.followers } }
@@ -159,7 +159,7 @@ const Users = () => {
                     
                     {/* User Info */}
                     <Link 
-                      to={`/profile/${user.username}`}
+                      href={`/profile/${user.username}`}
                       className="block hover:text-primary-400 transition-colors"
                     >
                       <h3 className="text-lg font-semibold mb-2">{user.username}</h3>
@@ -187,7 +187,7 @@ const Users = () => {
                     {/* Actions */}
                     <div className="flex gap-2">
                       <Link 
-                        to={`/profile/${user.username}`}
+                        href={`/profile/${user.username}`}
                         className="btn btn-ghost flex-1 text-sm"
                       >
                         View Profile
@@ -284,6 +284,4 @@ const Users = () => {
       </div>
     </div>
   );
-};
-
-export default Users;
+}

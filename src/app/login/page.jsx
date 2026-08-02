@@ -1,38 +1,28 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+'use client';
 
-const Signup = () => {
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAuth } from '@/hooks/useAuth';
+
+export default function Login() {
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signup } = useAuth();
-  const navigate = useNavigate();
+  const { login } = useAuth();
+  const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
     setLoading(true);
 
     try {
-      await signup(email, username, password);
-      navigate('/');
+      await login(email, password);
+      router.push('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create account');
+      setError(err.message || 'Failed to log in');
     } finally {
       setLoading(false);
     }
@@ -43,8 +33,8 @@ const Signup = () => {
       <div className="max-w-md w-full">
         <div className="card">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2">Join CineTracker</h1>
-            <p className="text-gray-400">Create your movie tracking account</p>
+            <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
+            <p className="text-gray-400">Sign in to your account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -64,21 +54,6 @@ const Signup = () => {
             </div>
 
             <div>
-              <label htmlFor="username" className="block text-sm font-medium mb-2">
-                Username
-              </label>
-              <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="form-input"
-                placeholder="Choose a username"
-                required
-              />
-            </div>
-
-            <div>
               <label htmlFor="password" className="block text-sm font-medium mb-2">
                 Password
               </label>
@@ -88,22 +63,7 @@ const Signup = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="form-input"
-                placeholder="Create a password (min. 6 characters)"
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="form-input"
-                placeholder="Confirm your password"
+                placeholder="Enter your password"
                 required
               />
             </div>
@@ -123,19 +83,19 @@ const Signup = () => {
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                  Creating account...
+                  Signing in...
                 </>
               ) : (
-                'Create Account'
+                'Sign In'
               )}
             </button>
           </form>
 
           <div className="mt-8 text-center">
             <p className="text-gray-400">
-              Already have an account? 
-              <Link to="/login" className="text-primary-400 hover:text-primary-300 ml-1">
-                Sign in
+              Don't have an account?{' '}
+              <Link href="/signup" className="text-primary-400 hover:text-primary-300 font-medium">
+                Sign up
               </Link>
             </p>
           </div>
@@ -143,6 +103,4 @@ const Signup = () => {
       </div>
     </div>
   );
-};
-
-export default Signup;
+}

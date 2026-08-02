@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom';
+'use client';
+
+import Link from 'next/link';
 import { useAuth } from '../hooks/useAuth';
 
 const Navbar = () => {
@@ -17,7 +19,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 font-bold text-xl text-white">
+          <Link href="/" className="flex items-center gap-3 font-bold text-xl text-white">
             <span className="text-2xl">🎬</span>
             <span className="bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
               CineTracker
@@ -27,29 +29,30 @@ const Navbar = () => {
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-8">
             <Link 
-              to="/" 
+              href="/" 
               className="text-slate-300 hover:text-white transition-colors"
             >
               Home
             </Link>
             <Link 
-              to="/users" 
+              href="/users" 
               className="text-slate-300 hover:text-white transition-colors"
             >
               Users
             </Link>
             {user && (
               <Link 
-                to="/feed" 
+                href="/feed" 
                 className="text-slate-300 hover:text-white transition-colors"
               >
                 Feed
               </Link>
             )}
-            {user && (<Link to="/import" className="text-slate-300 hover:text-white transition-colors">
-  Import
-</Link>
-)} 
+            {user && (
+              <Link href="/import" className="text-slate-300 hover:text-white transition-colors">
+                Import
+              </Link>
+            )} 
           </div>
 
           {/* User Menu */}
@@ -57,7 +60,7 @@ const Navbar = () => {
             {user ? (
               <div className="flex items-center gap-4">
                 <Link 
-                  to={`/profile/${user.username}`}
+                  href={`/profile/${user.username}`}
                   className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors"
                 >
                   <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white text-sm font-bold">
@@ -74,10 +77,10 @@ const Navbar = () => {
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <Link to="/login" className="btn btn-ghost">
+                <Link href="/login" className="btn btn-ghost">
                   Login
                 </Link>
-                <Link to="/signup" className="btn btn-primary">
+                <Link href="/signup" className="btn btn-primary">
                   Sign Up
                 </Link>
               </div>
