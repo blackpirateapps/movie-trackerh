@@ -42,10 +42,10 @@ export default function TVShowPage() {
   // Episode tracking loading map
   const [epLoadingMap, setEpLoadingMap] = useState<Record<string, boolean>>({});
 
-  const fetchTVShowData = useCallback(async () => {
+  const fetchTVShowData = useCallback(async (showSpinner = false) => {
     if (!id) return;
     try {
-      setLoading(true);
+      if (showSpinner) setLoading(true);
       const { data } = await api.get<TVShow>(`/api/tv?id=${id}`);
       setShow(data);
       
@@ -60,36 +60,38 @@ export default function TVShowPage() {
 
       if (data.seasons && data.seasons.length > 0) {
         const firstValidSeason = data.seasons.find(s => s.season_number > 0) || data.seasons[0];
-        setSelectedSeasonNumber(firstValidSeason.season_number);
+        setSelectedSeasonNumber(prev => prev || firstValidSeason.season_number);
       }
     } catch (err) {
       console.error('Error fetching TV show:', err);
-      setError('Failed to fetch TV show details. Please try again.');
+      if (showSpinner) {
+        setError('Failed to fetch TV show details. Please try again.');
+      }
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, [id]);
 
-  const fetchSeasonData = useCallback(async (seasonNum: number) => {
+  const fetchSeasonData = useCallback(async (seasonNum: number, showSpinner = true) => {
     if (!id) return;
     try {
-      setSeasonLoading(true);
+      if (showSpinner) setSeasonLoading(true);
       const { data } = await api.get<Season>(`/api/tv?id=${id}&season=${seasonNum}`);
       setSeasonData(data);
     } catch (err) {
       console.error(`Error fetching season ${seasonNum}:`, err);
     } finally {
-      setSeasonLoading(false);
+      if (showSpinner) setSeasonLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
-    fetchTVShowData();
+    fetchTVShowData(true);
   }, [fetchTVShowData]);
 
   useEffect(() => {
     if (selectedSeasonNumber !== undefined && id) {
-      fetchSeasonData(selectedSeasonNumber);
+      fetchSeasonData(selectedSeasonNumber, true);
     }
   }, [selectedSeasonNumber, fetchSeasonData, id]);
 
@@ -124,7 +126,7 @@ export default function TVShowPage() {
         endDate: endDate || null,
         watchedWhere
       });
-      await fetchTVShowData();
+      await fetchTVShowData(false);
     } catch (err) {
       console.error('Error saving TV show track:', err);
       setError('Failed to save TV show entry.');
@@ -148,7 +150,7 @@ export default function TVShowPage() {
       setStartDate('');
       setEndDate('');
       setWatchedWhere([]);
-      await fetchTVShowData();
+      await fetchTVShowData(false);
     } catch (err) {
       console.error('Error deleting TV show track:', err);
     }
@@ -162,9 +164,9 @@ export default function TVShowPage() {
         tvShowId: id,
         action: 'mark_show_watched'
       });
-      await fetchTVShowData();
+      await fetchTVShowData(false);
       if (selectedSeasonNumber) {
-        await fetchSeasonData(selectedSeasonNumber);
+        await fetchSeasonData(selectedSeasonNumber, false);
       }
     } catch (err) {
       console.error('Error marking show watched:', err);
@@ -182,8 +184,8 @@ export default function TVShowPage() {
         action: 'mark_season_watched',
         seasonNumber: seasonNum
       });
-      await fetchTVShowData();
-      await fetchSeasonData(seasonNum);
+      await fetchTVShowData(false);
+      await fetchSeasonData(seasonNum, false);
     } catch (err) {
       console.error('Error marking season watched:', err);
     } finally {
@@ -293,7 +295,7 @@ export default function TVShowPage() {
           <button 
             onClick={() => {
               setError('');
-              fetchTVShowData();
+              fetchTVShowData(true);
             }}
             className="btn btn-primary mx-auto"
           >

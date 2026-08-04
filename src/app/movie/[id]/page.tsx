@@ -25,10 +25,10 @@ export default function MoviePage() {
   const [watchedDate, setWatchedDate] = useState<string>('');
   const [isWatched, setIsWatched] = useState<boolean>(false);
 
-  const fetchMovieData = useCallback(async () => {
+  const fetchMovieData = useCallback(async (showSpinner = false) => {
     if (!id) return;
     try {
-      setLoading(true);
+      if (showSpinner) setLoading(true);
       const { data } = await api.get<MovieType>(`/api/movies?id=${id}`);
       setMovie(data);
       
@@ -40,14 +40,16 @@ export default function MoviePage() {
       }
     } catch (err) {
       console.error('Error fetching movie:', err);
-      setError('Failed to fetch movie details. Please try again.');
+      if (showSpinner) {
+        setError('Failed to fetch movie details. Please try again.');
+      }
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
-    fetchMovieData();
+    fetchMovieData(true);
   }, [fetchMovieData]);
 
   const handleSubmitReview = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -66,7 +68,7 @@ export default function MoviePage() {
         watchedDate: isWatched ? watchedDate : null
       });
       
-      await fetchMovieData();
+      await fetchMovieData(false);
     } catch (err) {
       console.error('Error submitting review:', err);
       setError('Failed to save review. Please try again.');
@@ -111,7 +113,7 @@ export default function MoviePage() {
         review: reviewText.trim(),
         watchedDate: today
       });
-      await fetchMovieData();
+      await fetchMovieData(false);
     } catch (err) {
       console.error('Error marking as watched:', err);
       setError('Failed to mark as watched.');
@@ -140,7 +142,7 @@ export default function MoviePage() {
           <button 
             onClick={() => {
               setError('');
-              fetchMovieData();
+              fetchMovieData(true);
             }}
             className="btn btn-primary mx-auto"
           >

@@ -8,7 +8,21 @@ export const dynamic = 'force-dynamic';
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-async function getAndCacheMovie(movieId: string | number) {
+async function getAndCacheMovie(movieId: string | number, forceFetch = false) {
+  if (!forceFetch) {
+    try {
+      const { rows } = await db.execute({
+        sql: 'SELECT id, title, overview, release_date, poster_path, backdrop_path, runtime, vote_average FROM movies WHERE id = ?',
+        args: [movieId],
+      });
+      if (rows.length > 0) {
+        return rows[0];
+      }
+    } catch (dbErr) {
+      console.log('DB lookup before TMDB failed (non-critical):', dbErr);
+    }
+  }
+
   try {
     if (!TMDB_API_KEY) {
       return {

@@ -94,4 +94,4 @@ const TVShowCard: React.FC<TVShowCardProps> = ({ show, showUserRating = false })
   );
 };
 
-export default TVShowCard;
+export default React.memo(TVShowCard);

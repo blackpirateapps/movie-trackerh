@@ -65,4 +65,4 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, showUserRating = false }) 
   );
 };
 
-export default MovieCard;
+export default React.memo(MovieCard);

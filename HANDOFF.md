@@ -11,7 +11,7 @@ This document provides a comprehensive technical overview of the **CineTracker**
 - **Trending & Popular Releases**: Home page displays top releases of the current year (via TMDB `discover` endpoint sorted by popularity, with fallback to `trending/week`).
 - **Personal Media Tracking**: Rate movies, TV shows, and individual episodes on a **1–10 star rating scale**, write text reviews, record start/end dates, mark favorites, and select/create "Watched Where" platform tags (e.g., Netflix, Hotstar, Pirated, Prime Video).
 - **Season & Episode Breakdown & Bulk Marking**: Browse full season and episode breakdowns with titles, descriptions, air dates, still images, watched toggles, and episode ratings (1-10). Includes one-click **"Mark Entire Show as Watched"** and **"Mark Season X as Watched"** buttons that automatically update the database.
-- **Automatic Database Initialization**: Database migrations and table creations (`CREATE TABLE IF NOT EXISTS`) run automatically during `npm run build` and on cold-start API route invocations (`ensureSchema()`).
+- **Automatic Database Migration & Rating Scale Constraint Upgrade**: Database migrations and table creations (`CREATE TABLE IF NOT EXISTS`) run automatically during `npm run build` and on cold-start API route invocations (`ensureSchema()`). Automatically migrates legacy `user_movies` tables with `CHECK (rating >= 1 AND rating <= 5)` constraints to support the 1–10 rating scale seamlessly.
 - **Letterboxd CSV Import**: Interactively import watched history (`watched.csv`) or watchlists (`watchlist.csv`) exported from Letterboxd with TMDB title matching and manual selection.
 - **Social Graph & Feed**: Follow/unfollow other users, view community profiles, and see recent movie & TV show activity from followed users.
 - **User Authentication**: Secure signup/login using bcrypt-hashed passwords and JWT tokens set in HTTP-only cookies.
@@ -27,7 +27,7 @@ The application is built on a modern full-stack **TypeScript + Next.js App Route
 - **Language**: TypeScript (`tsconfig.json` with strict type-checking and path alias `@/*`)
 - **Icons**: Lucide React (`lucide-react`) with thick stroke width (`2.5` to `3`)
 - **Rating System**: 1 to 10 scale supported across all media types (movies, TV series, individual episodes)
-- **Database Initialization**: Auto-executing migrations (`npm run build` calls `backend/db/migrate.ts`) plus runtime guard (`ensureSchema()` in `backend/lib/turso.ts`)
+- **Database Initialization & Auto-Migration**: Auto-executing migrations (`npm run build` calls `backend/db/migrate.ts`) plus runtime guard (`ensureSchema()` in `backend/lib/turso.ts`) that removes legacy 1–5 rating check constraints.
 - **Styling & Design System**: Custom Hand-Drawn UI built on Tailwind CSS v4 (`@tailwindcss/postcss`)
   - **Typography**: Google Fonts (`Kalam` for felt-tip marker titles, `Patrick Hand` for legible handwritten body text)
   - **Color Palette**: Warm Paper (`#fdfbf7`), Soft Pencil Black (`#2d2d2d`), Erased Paper Muted (`#e5e0d8`), Red Correction Marker (`#ff4d4d`), Blue Pen (`#2d5da1`), Post-it Yellow (`#fff9c4`)
@@ -49,7 +49,7 @@ The application is built on a modern full-stack **TypeScript + Next.js App Route
 movie-trackerh/
 ├── backend/
 │   ├── db/
-│   │   ├── migrate.ts       # Database migration script (reads schema.sql & updates table structure)
+│   │   ├── migrate.ts       # Database migration script (reads schema.sql & updates table structure + migrates legacy constraints)
 │   │   └── schema.sql       # Initial SQLite database schema DDL (includes users, movies, user_movies, tv_shows, seasons, episodes, user_tv_shows, user_episodes, follows, watchlist)
 │   └── lib/
 │       ├── auth.ts          # Authentication helper function (verifies token from cookie)
@@ -257,7 +257,7 @@ The database relies on Turso (SQLite/LibSQL).
   - `?id=<tmdb_movie_id>`: Fetches TMDB movie details, caches movie in local `movies` DB table, and returns movie data along with `currentUserReview`, `isInWatchlist`, and `reviews` (top 10 public reviews).
 - `POST`:
   - `action: 'watchlist'`: Toggles movie in `watchlist` table for authenticated user. Body: `{ movieId, action: 'watchlist' }`.
-  - Default (Rate/Review): Upserts into `user_movies` table. Body: `{ movieId, rating, review, watchedDate }`.
+  - Default (Rate/Review): Upserts into `user_movies` table (ratings on 1-10 scale). Body: `{ movieId, rating, review, watchedDate }`.
 
 ### `/api/user`
 - `GET`:
@@ -291,8 +291,24 @@ The application requires the following environment variables (defined in Vercel 
 - **Build Next.js App**: `npm run build` (Executes DB schema migration script `npx -y tsx backend/db/migrate.ts` then builds Next.js app)
 - **Start Next.js Production Server**: `npm run start`
 - **TypeScript Typecheck**: `npx tsc --noEmit`
-- **Lint Check**: `npm run lint`
+---
+
+## 8. Performance & UI Optimization Architecture
+
+The codebase incorporates high-performance full-stack optimizations to eliminate UI flakiness, reduce latency, and minimize database & external network calls:
+
+- **Non-Blocking UI & Background Data Sync**:
+  - `MoviePage` ([`src/app/movie/[id]/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/movie/%5Bid%5D/page.tsx)) and `TVShowPage` ([`src/app/tv/[id]/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/tv/%5Bid%5D/page.tsx)) use an optional `showSpinner` flag in `fetchMovieData(showSpinner)` and `fetchTVShowData(showSpinner)`.
+  - Initial page loads display full-screen skeleton loaders, while edits, ratings, reviews, watched toggles, and episode updates update local state instantly and sync silently in the background without unmounting the DOM or flickering.
+- **Cache-First Database Strategy**:
+  - API routes [`/api/movies`](file:///home/dog/git/movie-trackerh/src/app/api/movies/route.ts) and [`/api/tv`](file:///home/dog/git/movie-trackerh/src/app/api/tv/route.ts) check local SQLite/Turso tables (`movies`, `tv_shows`, `seasons`, `episodes`) before making outbound HTTP calls to TMDB.
+  - `POST` handlers skip redundant external API fetches when records already exist in local storage.
+- **LibSQL / Turso Query Batching**:
+  - Database schema guard `ensureSchema()` ([`backend/lib/turso.ts`](file:///home/dog/git/movie-trackerh/backend/lib/turso.ts)) uses `db.batch()` to execute all `CREATE TABLE IF NOT EXISTS` DDL statements in a single network roundtrip.
+  - Bulk actions (`mark_season_watched`, `mark_show_watched`) issue batched SQL `UPSERT` statements in single HTTP payloads.
+- **Component Memoization**:
+  - Pure UI components ([`StarRating`](file:///home/dog/git/movie-trackerh/src/components/StarRating.tsx), [`MovieCard`](file:///home/dog/git/movie-trackerh/src/components/MovieCard.tsx), [`TVShowCard`](file:///home/dog/git/movie-trackerh/src/components/TVShowCard.tsx)) are wrapped in `React.memo` to avoid unnecessary parent re-renders.
 
 ---
 
-*Document updated post bulk TV show & season watched controls on 2026-08-02.*
+*Document updated post performance & UI optimization overhaul on 2026-08-04.*

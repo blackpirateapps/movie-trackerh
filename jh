@@ -1,0 +1,28 @@
+Here is some of the design changes that you have to make to the blog page and other places. Almost all the posts has a cover image that is specified to the cover frontmatter of the markdown file of that blog post. You have to display it.
+### 1. Reorganize the Header and Metadata
+
+Currently, the flow is interrupted before the reader even starts the article.
+
+* **Move "Read Next >>":** Remove this from the top of the page entirely. Place it at the absolute bottom of the article. A reader shouldn't be prompted to read the next post before starting the current one.
+* **Group the Metadata:** Move "May 8, 2026" down to sit next to "3 min read" directly below the `<h1>` title ("Introducing Website Tools").
+* **Style the Metadata:** Make this grouped metadata a softer, muted gray (e.g., `#a0a0a0`) and slightly smaller than the body text. This creates a clear visual hierarchy.
+
+### 2. Soften the Colors
+
+Pure white text on a very dark background creates high contrast that can cause eye strain, which detracts from "prettiness."
+
+* **Body Text:** Change the main paragraph text from pure white to a soft off-white or light gray (like `#e2e8f0` or `#d1d5db`).
+* **Link Colors:** The default bright blue used for your URLs (`https://...`) clashes with a refined aesthetic. Swap it for a softer, pastel accent color that feels intentional in dark mode—perhaps a soft indigo, a muted teal, or a pale gold.
+
+### 3. Refine the Sidebar
+
+* **The "Toggle Theme" Button:** The bordered box around "Toggle Theme" looks a bit like a default form element. To make it prettier, remove the border completely and give it a soft, semi-transparent background color (e.g., `rgba(255, 255, 255, 0.05)`) with a gentle `8px` border radius.
+
+### 4. Stylize the Cover Image
+
+To make cover images look like they belong in a beautifully typeset editorial rather than a standard blog template, apply these specific CSS rules:
+
+* **Placement:** Insert the image directly between the newly grouped metadata (Date/Read Time) and the first paragraph ("Today I am launching...").
+* **Aspect Ratio:** Crop or force the images into a wide, cinematic aspect ratio like `16:9` or `21:9`. This prevents tall images from taking up the entire screen.
+* **Soft Corners:** Add a subtle `border-radius: 12px;` to the image. This immediately softens the UI and aligns with a "pretty" aesthetic.
+* **Spacing:** Add generous top and bottom margins (e.g., `margin: 2rem 0;`) so the image has plenty of breathing room.
