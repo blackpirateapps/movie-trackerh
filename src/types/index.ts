@@ -2,10 +2,18 @@ export interface User {
   id: string | number;
   username: string;
   email: string;
+  display_name?: string | null;
+  bio?: string | null;
+  website?: string | null;
+  avatar_url?: string | null;
+  pref_default_layout?: 'grid' | 'list';
+  pref_hide_nsfw?: boolean | number;
+  pref_is_private?: boolean | number;
   created_at?: string;
   stats?: {
     movies: number;
     tv_shows?: number;
+    hours_watched?: number;
     followers: number;
     following: number;
   };
@@ -132,6 +140,7 @@ export interface FeedItem {
   username: string;
   movieTitle?: string;
   tvShowName?: string;
+  poster_path?: string | null;
 }
 
 export interface Pagination {

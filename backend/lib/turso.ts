@@ -172,6 +172,25 @@ export async function ensureSchema() {
       console.error('Error auto-migrating user_movies table:', migErr);
     }
 
+    // Safely add missing profile & settings columns to users table
+    const columnsToAdd = [
+      "ALTER TABLE users ADD COLUMN display_name TEXT;",
+      "ALTER TABLE users ADD COLUMN bio TEXT;",
+      "ALTER TABLE users ADD COLUMN website TEXT;",
+      "ALTER TABLE users ADD COLUMN avatar_url TEXT;",
+      "ALTER TABLE users ADD COLUMN pref_default_layout TEXT DEFAULT 'grid';",
+      "ALTER TABLE users ADD COLUMN pref_hide_nsfw INTEGER DEFAULT 0;",
+      "ALTER TABLE users ADD COLUMN pref_is_private INTEGER DEFAULT 0;"
+    ];
+
+    for (const colStmt of columnsToAdd) {
+      try {
+        await db.execute(colStmt);
+      } catch (colErr) {
+        // Column already exists, ignore
+      }
+    }
+
     isInitialized = true;
   } catch (error) {
     console.error('Failed to auto-ensure DB schema:', error);

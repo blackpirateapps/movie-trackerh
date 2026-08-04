@@ -10,14 +10,20 @@ import TVShowCard from '@/components/TVShowCard';
 import { User, Movie, TVShow } from '@/types';
 import { 
   Film, Tv, Users, UserPlus, UserCheck, 
-  AlertTriangle, Calendar
+  AlertTriangle, Calendar, Edit3, Globe, Clock, Star, Heart, Bookmark, History
 } from 'lucide-react';
 
 interface ProfileData {
   user: User;
   movies: Movie[];
   tvShows?: TVShow[];
+  top4?: Array<{ id: number; title: string; poster_path?: string | null; type: 'movie' | 'tv' }>;
+  recentActivity?: Array<{ id: number; title: string; poster_path?: string | null; rating?: number; review?: string; updated_at: string; type: 'movie' | 'tv' }>;
+  watchlist?: Array<{ id: number; title: string; poster_path?: string | null; release_date?: string }>;
   stats: {
+    movies: number;
+    tv_shows?: number;
+    hours_watched?: number;
     followers: number;
     following: number;
   };
@@ -33,7 +39,7 @@ export default function Profile() {
   const [error, setError] = useState<string>('');
   const [actionLoading, setActionLoading] = useState<boolean>(false);
 
-  const [activeTab, setActiveTab] = useState<'movies' | 'tv'>('movies');
+  const [activeTab, setActiveTab] = useState<'overview' | 'movies' | 'tv' | 'watchlist' | 'diary'>('overview');
   const [filter, setFilter] = useState<'all' | 'watched' | 'rated' | 'reviewed' | 'favorites'>('all');
 
   const fetchProfile = useCallback(async () => {
@@ -132,6 +138,9 @@ export default function Profile() {
 
   const isOwnProfile = currentUser?.username === profile.user.username;
   const tvShows = profile.tvShows || [];
+  const top4 = profile.top4 || [];
+  const recentActivity = profile.recentActivity || [];
+  const watchlist = profile.watchlist || [];
 
   const filteredMovies = profile.movies.filter(movie => {
     switch (filter) {
@@ -154,132 +163,347 @@ export default function Profile() {
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-6 bg-[#121212] text-[#EDEDED]">
       
-      {/* Profile Header */}
-      <div className="card bg-[#1E1E1E] border border-[#333333] p-6">
+      {/* 1. User Header (The Showcase) */}
+      <div className="card bg-[#1E1E1E] border border-[#333333] p-6 space-y-4">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-[#00FF66] text-[#121212] rounded-full flex items-center justify-center font-bold text-2xl shrink-0">
-              {profile.user.username.charAt(0).toUpperCase()}
-            </div>
+            {/* Avatar */}
+            {profile.user.avatar_url ? (
+              <img 
+                src={profile.user.avatar_url} 
+                alt={profile.user.username}
+                className="w-20 h-20 rounded-full object-cover border-2 border-[#00FF66] shrink-0"
+              />
+            ) : (
+              <div className="w-20 h-20 bg-[#00FF66] text-[#121212] rounded-full flex items-center justify-center font-bold text-3xl shrink-0">
+                {profile.user.username.charAt(0).toUpperCase()}
+              </div>
+            )}
 
-            <div>
-              <h1 className="text-xl sm:text-3xl font-bold text-[#EDEDED] flex items-center gap-2">
-                {profile.user.username}
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-3xl font-bold text-[#EDEDED]">
+                  {profile.user.display_name || profile.user.username}
+                </h1>
+                {profile.user.display_name && (
+                  <span className="text-xs font-semibold text-[#A0A0A0]">
+                    @{profile.user.username}
+                  </span>
+                )}
                 {isOwnProfile && (
                   <span className="bg-[#121212] border border-[#333333] px-2 py-0.5 rounded text-[10px] font-bold text-[#00FF66]">
                     YOU
                   </span>
                 )}
-              </h1>
+              </div>
 
-              {/* Stats Tags */}
-              <div className="flex flex-wrap items-center gap-2 mt-2 text-xs font-semibold text-[#A0A0A0]">
-                <span className="bg-[#121212] border border-[#333333] px-2.5 py-1 rounded flex items-center gap-1">
-                  <Film className="w-3.5 h-3.5 text-[#00FF66]" />
-                  {profile.movies.length} Movies
+              {/* Bio */}
+              {profile.user.bio && (
+                <p className="text-xs text-[#EDEDED]/90 leading-relaxed max-w-lg font-normal">
+                  {profile.user.bio}
+                </p>
+              )}
+
+              {/* Metadata row: Join Date & Website */}
+              <div className="flex flex-wrap items-center gap-3 text-[11px] text-[#A0A0A0] pt-1">
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-[#00FF66]" />
+                  Member since {profile.user.created_at ? new Date(profile.user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '2026'}
                 </span>
-                <span className="bg-[#121212] border border-[#333333] px-2.5 py-1 rounded flex items-center gap-1">
-                  <Tv className="w-3.5 h-3.5 text-[#00FF66]" />
-                  {tvShows.length} TV Shows
-                </span>
-                <span className="bg-[#121212] border border-[#333333] px-2.5 py-1 rounded flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5 text-[#00FF66]" />
-                  {profile.stats?.followers || 0} Followers
-                </span>
+                {profile.user.website && (
+                  <a 
+                    href={profile.user.website.startsWith('http') ? profile.user.website : `https://${profile.user.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[#00FF66] hover:underline"
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>{profile.user.website.replace(/^https?:\/\//, '')}</span>
+                  </a>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Follow / Unfollow Button */}
-          {!isOwnProfile && currentUser && (
-            <button 
-              onClick={profile.isFollowing ? handleUnfollow : handleFollow}
-              disabled={actionLoading}
-              className={`btn text-xs py-2 px-5 ${
-                profile.isFollowing ? 'btn-secondary' : 'btn-primary'
-              }`}
-            >
-              {actionLoading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
-              ) : (
-                <>
-                  {profile.isFollowing ? (
-                    <>
-                      <UserCheck className="w-4 h-4" />
-                      <span>Following</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-4 h-4" />
-                      <span>Follow User</span>
-                    </>
-                  )}
-                </>
-              )}
-            </button>
-          )}
+          {/* Action Buttons: Edit Profile or Follow */}
+          <div className="shrink-0">
+            {isOwnProfile ? (
+              <Link 
+                href="/profile/edit" 
+                className="btn btn-secondary text-xs py-2 px-4 flex items-center gap-1.5"
+              >
+                <Edit3 className="w-4 h-4 text-[#00FF66]" />
+                <span>Edit Profile</span>
+              </Link>
+            ) : currentUser ? (
+              <button 
+                onClick={profile.isFollowing ? handleUnfollow : handleFollow}
+                disabled={actionLoading}
+                className={`btn text-xs py-2 px-5 ${
+                  profile.isFollowing ? 'btn-secondary' : 'btn-primary'
+                }`}
+              >
+                {actionLoading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
+                ) : (
+                  <>
+                    {profile.isFollowing ? (
+                      <>
+                        <UserCheck className="w-4 h-4" />
+                        <span>Following</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-4 h-4" />
+                        <span>Follow User</span>
+                      </>
+                    )}
+                  </>
+                )}
+              </button>
+            ) : null}
+          </div>
+
+        </div>
+
+        {/* Lifetime Stats Counters */}
+        <div className="grid grid-cols-3 gap-3 pt-4 border-t border-[#333333]">
+          <div className="bg-[#121212] border border-[#333333] p-3 rounded text-center">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#A0A0A0] block">Films</span>
+            <span className="text-xl sm:text-2xl font-bold text-[#00FF66]">{profile.stats.movies}</span>
+          </div>
+
+          <div className="bg-[#121212] border border-[#333333] p-3 rounded text-center">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#A0A0A0] block">TV Series</span>
+            <span className="text-xl sm:text-2xl font-bold text-[#00FF66]">{profile.stats.tv_shows || 0}</span>
+          </div>
+
+          <div className="bg-[#121212] border border-[#333333] p-3 rounded text-center">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#A0A0A0] block">Hours Watched</span>
+            <span className="text-xl sm:text-2xl font-bold text-[#EDEDED]">{profile.stats.hours_watched || 0}h</span>
+          </div>
         </div>
       </div>
 
-      {/* Navigation Tabs & Filters */}
+      {/* Navigation Tabs */}
       <div className="card bg-[#1E1E1E] border border-[#333333] p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`btn text-xs py-1.5 px-3.5 ${
+                activeTab === 'overview' ? 'btn-primary' : 'btn-ghost text-[#A0A0A0]'
+              }`}
+            >
+              <span>Showcase</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('diary')}
+              className={`btn text-xs py-1.5 px-3.5 ${
+                activeTab === 'diary' ? 'btn-primary' : 'btn-ghost text-[#A0A0A0]'
+              }`}
+            >
+              <History className="w-3.5 h-3.5" />
+              <span>Diary</span>
+            </button>
+
             <button
               onClick={() => setActiveTab('movies')}
-              className={`btn text-xs py-1.5 px-4 ${
-                activeTab === 'movies' ? 'btn-primary' : 'btn-ghost'
+              className={`btn text-xs py-1.5 px-3.5 ${
+                activeTab === 'movies' ? 'btn-primary' : 'btn-ghost text-[#A0A0A0]'
               }`}
             >
               <Film className="w-3.5 h-3.5" />
-              <span>Movies ({profile.movies.length})</span>
+              <span>Films ({profile.movies.length})</span>
             </button>
 
             <button
               onClick={() => setActiveTab('tv')}
-              className={`btn text-xs py-1.5 px-4 ${
-                activeTab === 'tv' ? 'btn-primary' : 'btn-ghost'
+              className={`btn text-xs py-1.5 px-3.5 ${
+                activeTab === 'tv' ? 'btn-primary' : 'btn-ghost text-[#A0A0A0]'
               }`}
             >
               <Tv className="w-3.5 h-3.5" />
-              <span>TV Shows ({tvShows.length})</span>
+              <span>TV ({tvShows.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('watchlist')}
+              className={`btn text-xs py-1.5 px-3.5 ${
+                activeTab === 'watchlist' ? 'btn-primary' : 'btn-ghost text-[#A0A0A0]'
+              }`}
+            >
+              <Bookmark className="w-3.5 h-3.5" />
+              <span>Watchlist ({watchlist.length})</span>
             </button>
           </div>
 
-          {/* Filter Buttons */}
-          <div className="flex flex-wrap gap-1.5 overflow-x-auto">
-            <button
-              onClick={() => setFilter('all')}
-              className={`btn text-[11px] py-1 px-2.5 ${filter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
-            >
-              All
-            </button>
-            {activeTab === 'tv' && (
+          {/* Sub filters when viewing movies/tv */}
+          {(activeTab === 'movies' || activeTab === 'tv') && (
+            <div className="flex items-center gap-1.5">
               <button
-                onClick={() => setFilter('favorites')}
-                className={`btn text-[11px] py-1 px-2.5 ${filter === 'favorites' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setFilter('all')}
+                className={`btn text-[11px] py-1 px-2.5 ${filter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
               >
-                Favorites
+                All
               </button>
-            )}
-            <button
-              onClick={() => setFilter('rated')}
-              className={`btn text-[11px] py-1 px-2.5 ${filter === 'rated' ? 'btn-primary' : 'btn-ghost'}`}
-            >
-              Rated
-            </button>
-            <button
-              onClick={() => setFilter('reviewed')}
-              className={`btn text-[11px] py-1 px-2.5 ${filter === 'reviewed' ? 'btn-primary' : 'btn-ghost'}`}
-            >
-              Reviewed
-            </button>
-          </div>
+              {activeTab === 'tv' && (
+                <button
+                  onClick={() => setFilter('favorites')}
+                  className={`btn text-[11px] py-1 px-2.5 ${filter === 'favorites' ? 'btn-primary' : 'btn-ghost'}`}
+                >
+                  Favorites
+                </button>
+              )}
+              <button
+                onClick={() => setFilter('rated')}
+                className={`btn text-[11px] py-1 px-2.5 ${filter === 'rated' ? 'btn-primary' : 'btn-ghost'}`}
+              >
+                Rated
+              </button>
+              <button
+                onClick={() => setFilter('reviewed')}
+                className={`btn text-[11px] py-1 px-2.5 ${filter === 'reviewed' ? 'btn-primary' : 'btn-ghost'}`}
+              >
+                Reviewed
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Grid Content */}
-      {activeTab === 'movies' ? (
+      {/* Tab 1: Overview Showcase (Top 4 & Recent Activity) */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          {/* The "Top 4" (Favorites) */}
+          <div className="card bg-[#1E1E1E] border border-[#333333] p-6 space-y-4">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-[#00FF66] flex items-center gap-2">
+              <Heart className="w-4 h-4 text-[#00FF66] fill-[#00FF66]" />
+              THE TOP 4 (FAVORITE RELEASES)
+            </h2>
+
+            {top4.length > 0 ? (
+              <div className="grid grid-cols-4 gap-3 sm:gap-4">
+                {top4.map((item) => (
+                  <Link key={`${item.type}-${item.id}`} href={`/${item.type}/${item.id}`}>
+                    <div className="relative aspect-[2/3] overflow-hidden rounded border border-[#333333] bg-[#2A2A2A] group cursor-pointer">
+                      {item.poster_path ? (
+                        <img 
+                          src={`https://image.tmdb.org/t/p/w300${item.poster_path}`} 
+                          alt={item.title}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center p-2 text-center text-[#A0A0A0] text-[10px]">
+                          {item.title}
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-[#121212]/80 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity p-2 flex items-end">
+                        <span className="text-[11px] font-bold text-[#00FF66] line-clamp-2">{item.title}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-[#A0A0A0] italic">
+                {isOwnProfile ? 'Mark films or TV shows as favorites to highlight your Top 4 here!' : 'No favorites selected yet.'}
+              </p>
+            )}
+          </div>
+
+          {/* Recent Activity */}
+          <div className="card bg-[#1E1E1E] border border-[#333333] p-6 space-y-4">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-[#EDEDED] flex items-center gap-2">
+              <Clock className="w-4 h-4 text-[#00FF66]" />
+              RECENT LOGS & REVIEWS
+            </h2>
+
+            {recentActivity.length > 0 ? (
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4">
+                {recentActivity.map((item) => (
+                  <Link key={`${item.type}-${item.id}`} href={`/${item.type}/${item.id}`}>
+                    <div className="group cursor-pointer space-y-1">
+                      <div className="relative aspect-[2/3] overflow-hidden rounded border border-[#333333] bg-[#2A2A2A]">
+                        {item.poster_path ? (
+                          <img 
+                            src={`https://image.tmdb.org/t/p/w300${item.poster_path}`} 
+                            alt={item.title}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[#A0A0A0] text-[10px] p-2 text-center">
+                            {item.title}
+                          </div>
+                        )}
+                        {item.rating && (
+                          <div className="absolute top-1 right-1 z-10 bg-[#121212]/90 text-[#00FF66] border border-[#333333] px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
+                            <Star className="w-2.5 h-2.5 fill-[#00FF66]" />
+                            <span>{item.rating}</span>
+                          </div>
+                        )}
+                      </div>
+                      <h4 className="text-[11px] font-bold text-[#EDEDED] line-clamp-1 group-hover:text-[#00FF66] transition-colors">
+                        {item.title}
+                      </h4>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-[#A0A0A0] italic">No recent logging activity.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab 2: Diary */}
+      {activeTab === 'diary' && (
+        <div className="card bg-[#1E1E1E] border border-[#333333] p-6 space-y-4">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-[#00FF66] flex items-center gap-2">
+            <History className="w-4 h-4 text-[#00FF66]" />
+            CHRONOLOGICAL WATCH DIARY
+          </h3>
+
+          {recentActivity.length > 0 ? (
+            <div className="space-y-3">
+              {recentActivity.map((item, index) => (
+                <div key={index} className="bg-[#121212] border border-[#333333] p-3 rounded flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-14 aspect-[2/3] overflow-hidden rounded border border-[#333333] bg-[#2A2A2A] shrink-0">
+                      {item.poster_path && (
+                        <img src={`https://image.tmdb.org/t/p/w92${item.poster_path}`} alt={item.title} className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                    <div>
+                      <Link href={`/${item.type}/${item.id}`} className="font-bold text-sm text-[#EDEDED] hover:text-[#00FF66] transition-colors">
+                        {item.title}
+                      </Link>
+                      <span className="text-[10px] text-[#A0A0A0] block uppercase font-semibold">
+                        Logged on {new Date(item.updated_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {item.rating && (
+                    <div className="bg-[#1E1E1E] border border-[#333333] px-2 py-1 rounded text-xs font-bold text-[#00FF66] flex items-center gap-1">
+                      <Star className="w-3 h-3 fill-[#00FF66]" />
+                      <span>{item.rating}/10</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-[#A0A0A0] italic">Diary is currently empty.</p>
+          )}
+        </div>
+      )}
+
+      {/* Tab 3: Films Grid */}
+      {activeTab === 'movies' && (
         <div>
           {filteredMovies.length > 0 ? (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-4">
@@ -288,25 +512,19 @@ export default function Profile() {
                   <Link href={`/movie/${movie.id}`}>
                     <MovieCard movie={movie} showUserRating />
                   </Link>
-
-                  {movie.review && (
-                    <div className="bg-[#1E1E1E] border border-[#333333] p-2 rounded text-[10px] text-[#A0A0A0] line-clamp-2 italic">
-                      &ldquo;{movie.review}&rdquo;
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
           ) : (
             <div className="card bg-[#1E1E1E] border border-[#333333] text-center py-8 px-4">
-              <h3 className="text-sm font-bold text-[#EDEDED] mb-1">No Movies Found</h3>
-              <p className="text-xs text-[#A0A0A0]">
-                {isOwnProfile ? 'Search and rate movies to populate your list.' : `${profile.user.username} has no movie entries under this filter.`}
-              </p>
+              <p className="text-xs text-[#A0A0A0]">No movie entries found under this filter.</p>
             </div>
           )}
         </div>
-      ) : (
+      )}
+
+      {/* Tab 4: TV Shows Grid */}
+      {activeTab === 'tv' && (
         <div>
           {filteredTvShows.length > 0 ? (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-4">
@@ -315,29 +533,31 @@ export default function Profile() {
                   <Link href={`/tv/${show.id}`}>
                     <TVShowCard show={show} showUserRating />
                   </Link>
-
-                  {(show.review || show.watched_where) && (
-                    <div className="bg-[#1E1E1E] border border-[#333333] p-2 rounded text-[10px] text-[#A0A0A0] space-y-1">
-                      {show.start_date && (
-                        <div className="text-[#00FF66] font-semibold flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          <span>{show.start_date}</span>
-                        </div>
-                      )}
-                      {show.review && (
-                        <p className="line-clamp-2 italic">&ldquo;{show.review}&rdquo;</p>
-                      )}
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
           ) : (
             <div className="card bg-[#1E1E1E] border border-[#333333] text-center py-8 px-4">
-              <h3 className="text-sm font-bold text-[#EDEDED] mb-1">No TV Shows Found</h3>
-              <p className="text-xs text-[#A0A0A0]">
-                {isOwnProfile ? 'Search and track TV shows to populate your list.' : `${profile.user.username} has no TV show entries under this filter.`}
-              </p>
+              <p className="text-xs text-[#A0A0A0]">No TV show entries found under this filter.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab 5: Watchlist */}
+      {activeTab === 'watchlist' && (
+        <div>
+          {watchlist.length > 0 ? (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-4">
+              {watchlist.map(movie => (
+                <Link key={movie.id} href={`/movie/${movie.id}`}>
+                  <MovieCard movie={movie as Movie} />
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="card bg-[#1E1E1E] border border-[#333333] text-center py-8 px-4">
+              <p className="text-xs text-[#A0A0A0]">Watchlist is currently empty.</p>
             </div>
           )}
         </div>

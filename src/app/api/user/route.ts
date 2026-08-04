@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, ensureSchema } from '@/../backend/lib/turso';
 import { authenticate } from '@/../backend/lib/auth';
+import bcrypt from 'bcryptjs';
+import { stringifySetCookie } from 'cookie';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +39,7 @@ export async function GET(request: NextRequest) {
             um.updated_at,
             u.username,
             m.title as movieTitle,
+            m.poster_path as poster_path,
             NULL as tvShowName
           FROM user_movies um
           JOIN users u ON um.user_id = u.id
@@ -63,6 +66,7 @@ export async function GET(request: NextRequest) {
             uts.updated_at,
             u.username,
             NULL as movieTitle,
+            t.poster_path as poster_path,
             t.name as tvShowName
           FROM user_tv_shows uts
           JOIN users u ON uts.user_id = u.id
@@ -94,8 +98,8 @@ export async function GET(request: NextRequest) {
       let searchArgs: any[] = [];
       
       if (search) {
-        searchQuery = 'WHERE username LIKE ? OR email LIKE ?';
-        searchArgs = [`%${search}%`, `%${search}%`];
+        searchQuery = 'WHERE username LIKE ? OR email LIKE ? OR display_name LIKE ?';
+        searchArgs = [`%${search}%`, `%${search}%`, `%${search}%`];
       }
       
       const { rows: users } = await db.execute({
@@ -104,6 +108,9 @@ export async function GET(request: NextRequest) {
             u.id, 
             u.username, 
             u.email, 
+            u.display_name,
+            u.bio,
+            u.avatar_url,
             u.created_at,
             COUNT(DISTINCT um.id) as movies_count,
             COUNT(DISTINCT uts.id) as tv_count,
@@ -115,7 +122,7 @@ export async function GET(request: NextRequest) {
           LEFT JOIN follows f1 ON u.id = f1.following_id
           LEFT JOIN follows f2 ON u.id = f2.follower_id
           ${searchQuery}
-          GROUP BY u.id, u.username, u.email, u.created_at
+          GROUP BY u.id, u.username, u.email, u.display_name, u.bio, u.avatar_url, u.created_at
           ORDER BY u.created_at DESC
           LIMIT ? OFFSET ?
         `,
@@ -135,6 +142,9 @@ export async function GET(request: NextRequest) {
           id: user.id,
           username: user.username,
           email: user.email,
+          display_name: user.display_name,
+          bio: user.bio,
+          avatar_url: user.avatar_url,
           created_at: user.created_at,
           stats: {
             movies: user.movies_count,
@@ -161,7 +171,10 @@ export async function GET(request: NextRequest) {
   if (username) {
     try {
       const { rows } = await db.execute({
-        sql: 'SELECT id, username, email, created_at FROM users WHERE username = ?',
+        sql: `SELECT 
+                id, username, email, display_name, bio, website, avatar_url,
+                pref_default_layout, pref_hide_nsfw, pref_is_private, created_at 
+              FROM users WHERE username = ?`,
         args: [username],
       });
 
@@ -175,7 +188,7 @@ export async function GET(request: NextRequest) {
       const { rows: movies } = await db.execute({
         sql: `
           SELECT 
-            m.id, m.title, m.poster_path, m.release_date,
+            m.id, m.title, m.poster_path, m.release_date, m.runtime,
             um.rating, um.review, um.watched_date, um.created_at, um.updated_at
           FROM user_movies um
           JOIN movies m ON um.movie_id = m.id
@@ -216,6 +229,26 @@ export async function GET(request: NextRequest) {
         };
       });
 
+      // Calculate Total Hours Watched
+      let movieMinutes = 0;
+      for (const m of movies) {
+        movieMinutes += (m.runtime && Number(m.runtime) > 0) ? Number(m.runtime) : 120;
+      }
+
+      const { rows: epRows } = await db.execute({
+        sql: `
+          SELECT COALESCE(SUM(CASE WHEN e.runtime IS NOT NULL AND e.runtime > 0 THEN e.runtime ELSE 45 END), 0) as ep_minutes
+          FROM user_episodes ue
+          LEFT JOIN episodes e ON ue.tv_show_id = e.tv_show_id AND ue.season_number = e.season_number AND ue.episode_number = e.episode_number
+          WHERE ue.user_id = ? AND ue.watched = 1
+        `,
+        args: [user.id],
+      });
+
+      const epMinutes = Number(epRows[0]?.ep_minutes || 0);
+      const hoursWatched = Math.round((movieMinutes + epMinutes) / 60);
+
+      // Follower & Following Stats
       const { rows: followerStats } = await db.execute({
         sql: `
           SELECT 
@@ -225,7 +258,61 @@ export async function GET(request: NextRequest) {
         args: [user.id, user.id],
       });
 
-      const stats = followerStats[0];
+      const stats = {
+        movies: movies.length,
+        tv_shows: tvShows.length,
+        hours_watched: hoursWatched,
+        followers: Number(followerStats[0]?.followers || 0),
+        following: Number(followerStats[0]?.following || 0)
+      };
+
+      // Top 4 Favorites (Movies / TV Shows)
+      const favoriteMovies = movies
+        .filter((m: any) => m.rating && m.rating >= 8)
+        .map((m: any) => ({ ...m, type: 'movie' as const }));
+      
+      const favoriteTv = tvShows
+        .filter((t: any) => t.is_favorite || (t.rating && t.rating >= 8))
+        .map((t: any) => ({ ...t, title: t.name, type: 'tv' as const }));
+
+      const top4 = [...favoriteTv, ...favoriteMovies].slice(0, 4);
+
+      // Recent Activity (Top 5)
+      const recentMovies = movies.map((m: any) => ({
+        id: m.id,
+        title: m.title,
+        poster_path: m.poster_path,
+        rating: m.rating,
+        review: m.review,
+        updated_at: m.updated_at || m.created_at,
+        type: 'movie' as const
+      }));
+
+      const recentTv = tvShows.map((t: any) => ({
+        id: t.id,
+        title: t.name,
+        poster_path: t.poster_path,
+        rating: t.rating,
+        review: t.review,
+        updated_at: t.updated_at || t.created_at,
+        type: 'tv' as const
+      }));
+
+      const recentActivity = [...recentMovies, ...recentTv]
+        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+        .slice(0, 5);
+
+      // Watchlist movies
+      const { rows: watchlistRows } = await db.execute({
+        sql: `
+          SELECT m.id, m.title, m.poster_path, m.release_date, w.created_at
+          FROM watchlist w
+          JOIN movies m ON w.movie_id = m.id
+          WHERE w.user_id = ?
+          ORDER BY w.created_at DESC
+        `,
+        args: [user.id],
+      });
 
       let isFollowing = false;
       try {
@@ -242,9 +329,16 @@ export async function GET(request: NextRequest) {
       }
 
       return NextResponse.json({
-        user,
+        user: {
+          ...user,
+          pref_hide_nsfw: Boolean(user.pref_hide_nsfw),
+          pref_is_private: Boolean(user.pref_is_private)
+        },
         movies,
         tvShows,
+        top4,
+        recentActivity,
+        watchlist: watchlistRows,
         stats,
         isFollowing,
       });
@@ -264,18 +358,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Authentication required.' }, { status: 401 });
   }
 
+  const userId = parseInt(authUser.sub);
   const body = await request.json();
   const { action, followingId } = body;
 
+  // Follow
   if (action === 'follow') {
-    if (!followingId || followingId === parseInt(authUser.sub)) {
+    if (!followingId || followingId === userId) {
       return NextResponse.json({ message: 'Invalid user to follow.' }, { status: 400 });
     }
 
     try {
       await db.execute({
         sql: 'INSERT OR IGNORE INTO follows (follower_id, following_id) VALUES (?, ?)',
-        args: [authUser.sub, followingId],
+        args: [userId, followingId],
       });
 
       const { rows: stats } = await db.execute({
@@ -293,6 +389,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Unfollow
   if (action === 'unfollow') {
     if (!followingId) {
       return NextResponse.json({ message: 'Invalid user to unfollow.' }, { status: 400 });
@@ -301,7 +398,7 @@ export async function POST(request: NextRequest) {
     try {
       await db.execute({
         sql: 'DELETE FROM follows WHERE follower_id = ? AND following_id = ?',
-        args: [authUser.sub, followingId],
+        args: [userId, followingId],
       });
 
       const { rows: stats } = await db.execute({
@@ -316,6 +413,155 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('Error unfollowing user:', error);
       return NextResponse.json({ message: 'Failed to unfollow user.' }, { status: 500 });
+    }
+  }
+
+  // Update Profile Info & Preferences
+  if (action === 'update_profile') {
+    const { 
+      displayName, 
+      username: newUsername, 
+      bio, 
+      website, 
+      avatarUrl, 
+      prefDefaultLayout, 
+      prefHideNsfw, 
+      prefIsPrivate 
+    } = body;
+
+    try {
+      // Check username uniqueness if changed
+      if (newUsername && newUsername !== authUser.username) {
+        const { rows: existing } = await db.execute({
+          sql: 'SELECT id FROM users WHERE username = ? AND id != ?',
+          args: [newUsername, userId],
+        });
+        if (existing.length > 0) {
+          return NextResponse.json({ message: 'Username is already taken.' }, { status: 400 });
+        }
+      }
+
+      const targetUsername = newUsername || authUser.username;
+
+      await db.execute({
+        sql: `
+          UPDATE users 
+          SET username = ?, 
+              display_name = ?, 
+              bio = ?, 
+              website = ?, 
+              avatar_url = ?, 
+              pref_default_layout = ?, 
+              pref_hide_nsfw = ?, 
+              pref_is_private = ?
+          WHERE id = ?
+        `,
+        args: [
+          targetUsername,
+          displayName || null,
+          bio || null,
+          website || null,
+          avatarUrl || null,
+          prefDefaultLayout || 'grid',
+          prefHideNsfw ? 1 : 0,
+          prefIsPrivate ? 1 : 0,
+          userId
+        ],
+      });
+
+      return NextResponse.json({ 
+        message: 'Profile updated successfully.',
+        username: targetUsername
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      return NextResponse.json({ message: 'Failed to update profile.' }, { status: 500 });
+    }
+  }
+
+  // Change Password
+  if (action === 'change_password') {
+    const { currentPassword, newPassword } = body;
+
+    if (!currentPassword || !newPassword || newPassword.length < 6) {
+      return NextResponse.json({ message: 'Password must be at least 6 characters.' }, { status: 400 });
+    }
+
+    try {
+      const { rows } = await db.execute({
+        sql: 'SELECT password FROM users WHERE id = ?',
+        args: [userId],
+      });
+
+      if (rows.length === 0) {
+        return NextResponse.json({ message: 'User not found.' }, { status: 404 });
+      }
+
+      const userRow = rows[0] as any;
+      const isValid = await bcrypt.compare(currentPassword, userRow.password);
+
+      if (!isValid) {
+        return NextResponse.json({ message: 'Current password is incorrect.' }, { status: 400 });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      await db.execute({
+        sql: 'UPDATE users SET password = ? WHERE id = ?',
+        args: [hashedPassword, userId],
+      });
+
+      return NextResponse.json({ message: 'Password changed successfully.' });
+    } catch (error) {
+      console.error('Error changing password:', error);
+      return NextResponse.json({ message: 'Failed to change password.' }, { status: 500 });
+    }
+  }
+
+  // Delete Account
+  if (action === 'delete_account') {
+    const { confirmPassword } = body;
+
+    try {
+      const { rows } = await db.execute({
+        sql: 'SELECT password FROM users WHERE id = ?',
+        args: [userId],
+      });
+
+      if (rows.length === 0) {
+        return NextResponse.json({ message: 'User not found.' }, { status: 404 });
+      }
+
+      const userRow = rows[0] as any;
+      const isValid = await bcrypt.compare(confirmPassword, userRow.password);
+
+      if (!isValid) {
+        return NextResponse.json({ message: 'Incorrect password. Cannot delete account.' }, { status: 400 });
+      }
+
+      // Delete user
+      await db.execute({
+        sql: 'DELETE FROM users WHERE id = ?',
+        args: [userId],
+      });
+
+      // Clear cookie
+      const cookie = stringifySetCookie({
+        name: 'token',
+        value: '',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        expires: new Date(0),
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+      });
+
+      const response = NextResponse.json({ message: 'Account deleted successfully.' });
+      response.headers.set('Set-Cookie', cookie);
+      return response;
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      return NextResponse.json({ message: 'Failed to delete account.' }, { status: 500 });
     }
   }
 
