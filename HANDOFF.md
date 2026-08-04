@@ -130,6 +130,13 @@ The database relies on Turso (SQLite/LibSQL).
    - `username`: TEXT NOT NULL UNIQUE
    - `email`: TEXT NOT NULL UNIQUE
    - `password`: TEXT NOT NULL (hashed with bcrypt)
+   - `display_name`: TEXT
+   - `bio`: TEXT
+   - `website`: TEXT
+   - `avatar_url`: TEXT
+   - `pref_default_layout`: TEXT DEFAULT 'grid'
+   - `pref_hide_nsfw`: INTEGER DEFAULT 0
+   - `pref_is_private`: INTEGER DEFAULT 0
    - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 2. `movies` (caches data from TMDB)
@@ -269,10 +276,13 @@ The database relies on Turso (SQLite/LibSQL).
 - `GET`:
   - `?action=feed`: Returns recent movie & TV show ratings/reviews from users that the current user follows.
   - `?action=list&page=1&limit=20&search=`: Returns paginated list of users with stats (`movies`, `tv_shows`, `followers`, `following`).
-  - `?username=<username>`: Returns user profile, tracked movies, tracked TV shows (with favorite state & watched_where tags), follower/following counts, and `isFollowing` status for the authenticated user.
+  - `?username=<username>`: Returns user profile (display name, bio, website, avatar, preferences), tracked movies, tracked TV shows, top 4 favorites, recent activity, watchlist, calculated `hours_watched` stat, and `isFollowing` status.
 - `POST`:
   - `action: 'follow'`: Inserts row into `follows` table. Body: `{ action: 'follow', followingId }`.
   - `action: 'unfollow'`: Deletes row from `follows` table. Body: `{ action: 'unfollow', followingId }`.
+  - `action: 'update_profile'`: Updates user profile fields (`displayName`, `username`, `bio`, `website`, `avatarUrl`, `prefDefaultLayout`, `prefHideNsfw`, `prefIsPrivate`).
+  - `action: 'change_password'`: Verifies `currentPassword` using bcrypt and updates to `newPassword`.
+  - `action: 'delete_account'`: Deletes user record (cascading dependent records) and clears the authentication HTTP-only session cookie.
 
 ---
 
@@ -317,4 +327,21 @@ The codebase incorporates high-performance full-stack optimizations to eliminate
 
 ---
 
-*Document updated post performance & UI optimization overhaul on 2026-08-04.*
+## 9. Profile Showcase & Settings Architecture
+
+- **Profile Showcase View** ([`src/app/profile/[username]/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/profile/%5Busername%5D/page.tsx)):
+  - **User Header**: Avatar, Display Name, Username, Bio, Website, Join Date, Edit Profile / Follow button.
+  - **Lifetime Stats**: Total Films, Total TV Shows, Total Hours Watched.
+  - **Top 4 Favorites**: 4-poster mini-grid highlighting top rated/favorite releases.
+  - **Recent Activity**: 5 most recently logged releases.
+  - **Sub-Tabs**: Showcase, Diary, Films, TV, Watchlist.
+- **Profile Edit & Utility Settings** ([`src/app/profile/edit/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/profile/edit/page.tsx)):
+  - **Basic Info**: Display Name, Username, Bio (textarea), Website.
+  - **Avatar Management**: Image URL input, live preview, preset avatar pickers.
+  - **App & Profile Preferences**: Grid vs. List layout mode, Hide NSFW content toggle, Profile Privacy toggle.
+  - **Account & Security**: Current & New Password update form, linked email display.
+  - **Danger Zone**: Red high-contrast Account Deletion with password confirmation modal prompt.
+
+---
+
+*Document updated post Profile Showcase & Utility Settings implementation on 2026-08-04.*
