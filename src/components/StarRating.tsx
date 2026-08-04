@@ -23,8 +23,8 @@ const StarRating: React.FC<StarRatingProps> = ({
 
   const iconSizes = {
     small: 'w-3.5 h-3.5',
-    medium: 'w-5 h-5',
-    large: 'w-6 h-6'
+    medium: 'w-4 h-4',
+    large: 'w-5 h-5'
   };
 
   const gapSizes = {
@@ -68,7 +68,7 @@ const StarRating: React.FC<StarRatingProps> = ({
               type="button"
               className={`transition-all duration-150 transform ${
                 !readOnly && isFilled ? 'scale-110' : ''
-              } ${readOnly ? 'cursor-default' : 'hover:scale-125 hover:-rotate-6'}`}
+              } ${readOnly ? 'cursor-default' : 'hover:scale-125'}`}
               onClick={() => handleClick(ratingValue)}
               onMouseEnter={() => handleMouseEnter(ratingValue)}
               onMouseLeave={handleMouseLeave}
@@ -78,15 +78,15 @@ const StarRating: React.FC<StarRatingProps> = ({
               <Star 
                 className={`${iconSizes[size]} ${
                   isFilled 
-                    ? 'fill-[#ff4d4d] text-[#2d2d2d] stroke-[2.5]' 
-                    : 'fill-[#e5e0d8] text-[#2d2d2d] stroke-[2]'
+                    ? 'fill-[#00FF66] text-[#00FF66]' 
+                    : 'fill-[#2A2A2A] text-[#333333]'
                 }`}
               />
             </button>
           );
         })}
       </div>
-      <span className="font-bold text-sm bg-[#fff9c4] border border-[#2d2d2d] px-2 py-0.5 rounded shadow-[1px_1px_0px_#2d2d2d] text-[#2d2d2d]">
+      <span className="font-medium text-xs bg-[#1E1E1E] text-[#EDEDED] border border-[#333333] px-1.5 py-0.5 rounded">
         {displayRating > 0 ? `${displayRating}/${maxStars}` : `0/${maxStars}`}
       </span>
     </div>

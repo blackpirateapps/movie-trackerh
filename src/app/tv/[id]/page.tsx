@@ -9,7 +9,7 @@ import StarRating from '@/components/StarRating';
 import { TVShow, Season, Episode } from '@/types';
 import { 
   Tv, Calendar, Star, Heart, Trash2, CheckCircle2, Eye, 
-  Tag, Plus, X, MessageSquare, AlertTriangle, Send, ChevronRight, Layers, Clock
+  Tag, Plus, X, MessageSquare, AlertTriangle, Send, Layers, Clock
 } from 'lucide-react';
 
 const PRESET_PLATFORMS = ['Netflix', 'Hotstar', 'Pirated', 'Prime Video', 'Hulu', 'Apple TV+', 'HBO Max', 'Crunchyroll'];
@@ -241,7 +241,6 @@ export default function TVShowPage() {
         watchedDate: dateToUse
       });
 
-      // Update local show userEpisodes state
       setShow(prev => {
         if (!prev) return null;
         const updated = { ...(prev.userEpisodes || {}) };
@@ -333,10 +332,10 @@ export default function TVShowPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="card text-center max-w-sm w-full">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-3 border-[#ff4d4d] mx-auto mb-4" />
-          <p className="font-bold text-xl text-[#2d2d2d]">Loading TV Show details...</p>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#121212]">
+        <div className="card text-center max-w-sm w-full bg-[#1E1E1E] border border-[#333333] p-6 rounded">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#00FF66] border-t-transparent mx-auto mb-3" />
+          <p className="font-bold text-sm text-[#EDEDED]">Loading TV series data...</p>
         </div>
       </div>
     );
@@ -344,18 +343,18 @@ export default function TVShowPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="card-postit text-center max-w-md w-full">
-          <div className="w-16 h-16 bg-[#ff4d4d] text-white border-3 border-[#2d2d2d] rounded-full flex items-center justify-center mx-auto mb-4 shadow-[3px_3px_0px_#2d2d2d]">
-            <AlertTriangle className="w-8 h-8 stroke-[3]" />
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#121212]">
+        <div className="card text-center max-w-md w-full bg-[#1E1E1E] border border-[#333333] p-6 rounded">
+          <div className="w-12 h-12 bg-[#ff4d4d]/10 text-[#ff4d4d] border border-[#ff4d4d]/30 rounded-full flex items-center justify-center mx-auto mb-3">
+            <AlertTriangle className="w-6 h-6" />
           </div>
-          <p className="font-bold text-xl text-[#ff4d4d] mb-4">{error}</p>
+          <p className="font-bold text-sm text-[#ff4d4d] mb-4">{error}</p>
           <button 
             onClick={() => {
               setError('');
               fetchTVShowData(true);
             }}
-            className="btn btn-primary mx-auto"
+            className="btn btn-primary mx-auto text-xs py-2 px-4"
           >
             Try Again
           </button>
@@ -368,619 +367,580 @@ export default function TVShowPage() {
 
   const posterUrl = show.poster_path 
     ? `https://image.tmdb.org/t/p/w500${show.poster_path}`
-    : 'https://via.placeholder.com/500x750?text=No+Poster';
+    : null;
 
   return (
-    <div className="min-h-screen py-10 px-4">
-      <div className="max-w-6xl mx-auto space-y-10">
+    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-8 bg-[#121212] text-[#EDEDED]">
 
-        {/* TV Show Header Card */}
-        <div className="card relative">
-          <div className="tape-strip" />
-
-          <div className="flex flex-col lg:flex-row gap-8 items-start">
-            {/* Taped Poster Photo */}
-            <div className="w-full lg:w-72 shrink-0 relative pt-2">
-              <div className="tape-strip" />
-              <div 
-                className="bg-white border-3 border-[#2d2d2d] p-3 shadow-[6px_6px_0px_#2d2d2d] -rotate-1"
-                style={{ borderRadius: '255px 15px 225px 15px / 15px 225px 15px 255px' }}
-              >
-                <img 
-                  src={posterUrl} 
-                  alt={show.name}
-                  className="w-full h-auto rounded-[15px_225px_15px_255px/255px_15px_225px_15px] border-2 border-[#2d2d2d]"
-                />
+      {/* Header Card (Mobile First 4.3) */}
+      <div className="card bg-[#1E1E1E] border border-[#333333] p-6">
+        <div className="flex flex-col md:flex-row gap-6 items-start">
+          
+          {/* Aspect 2/3 Poster Container */}
+          <div className="w-32 md:w-48 shrink-0 aspect-[2/3] relative rounded overflow-hidden border border-[#333333] bg-[#2A2A2A]">
+            {posterUrl ? (
+              <img 
+                src={posterUrl} 
+                alt={show.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-[#A0A0A0]">
+                <Tv className="w-8 h-8 opacity-40 mb-1" />
+                <span className="text-[10px] font-semibold">No Poster</span>
               </div>
-            </div>
-
-            {/* Main Info */}
-            <div className="flex-1 space-y-5">
-              <div className="flex items-start justify-between gap-4">
-                <h1 className="text-4xl lg:text-6xl font-heading font-bold text-[#2d2d2d] leading-tight flex items-center gap-3">
-                  <Tv className="w-8 h-8 text-[#2d5da1] shrink-0 stroke-[3]" />
-                  <span>{show.name}</span>
-                </h1>
-
-                {/* Favorite Toggle Button */}
-                {user && (
-                  <button
-                    onClick={handleToggleFavorite}
-                    className={`btn p-3 rounded-full border-3 ${
-                      isFavorite 
-                        ? 'bg-[#ff4d4d] text-white' 
-                        : 'bg-white text-[#2d2d2d]'
-                    }`}
-                    title={isFavorite ? 'Remove from Favorites' : 'Mark as Favorite'}
-                  >
-                    <Heart className={`w-6 h-6 ${isFavorite ? 'fill-white stroke-[2]' : 'stroke-[2.5]'}`} />
-                  </button>
-                )}
-              </div>
-
-              {/* Metadata Badges */}
-              <div className="flex flex-wrap items-center gap-3 text-sm font-bold">
-                {show.first_air_date && (
-                  <span className="bg-[#fff9c4] border-2 border-[#2d2d2d] px-3 py-1 rounded-full shadow-[2px_2px_0px_#2d2d2d] flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4 text-[#ff4d4d] stroke-[2.5]" />
-                    First Aired {new Date(show.first_air_date).getFullYear()}
-                  </span>
-                )}
-                {show.number_of_seasons && (
-                  <span className="bg-[#e5e0d8] border-2 border-[#2d2d2d] px-3 py-1 rounded-full shadow-[2px_2px_0px_#2d2d2d] flex items-center gap-1.5">
-                    <Layers className="w-4 h-4 text-[#2d5da1] stroke-[2.5]" />
-                    {show.number_of_seasons} Seasons ({show.number_of_episodes} Episodes)
-                  </span>
-                )}
-                {show.vote_average != null && (
-                  <span className="bg-[#fff9c4] border-2 border-[#2d2d2d] px-3 py-1 rounded-full shadow-[2px_2px_0px_#2d2d2d] flex items-center gap-1.5">
-                    <Star className="w-4 h-4 fill-[#ff4d4d] text-[#2d2d2d] stroke-[2]" />
-                    TMDB {Number(show.vote_average).toFixed(1)} / 10
-                  </span>
-                )}
-              </div>
-
-              {/* Genres */}
-              {show.genres && show.genres.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {show.genres.map(genre => (
-                    <span 
-                      key={genre.id} 
-                      className="px-3 py-0.5 bg-white border border-[#2d2d2d] rounded-full text-xs font-bold shadow-[1px_1px_0px_#2d2d2d]"
-                    >
-                      {genre.name}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Overview */}
-              {show.overview && (
-                <div className="bg-[#fdfbf7] border-2 border-[#2d2d2d] p-4 rounded-[15px_225px_15px_255px/255px_15px_225px_15px] shadow-[3px_3px_0px_#2d2d2d]">
-                  <h3 className="font-heading font-bold text-xl mb-1 text-[#2d5da1]">Series Overview</h3>
-                  <p className="text-lg text-[#2d2d2d] font-body leading-relaxed">{show.overview}</p>
-                </div>
-              )}
-
-              {/* Quick Actions */}
-              {user && (
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <button
-                    onClick={() => {
-                      setBulkDate(new Date().toISOString().split('T')[0]);
-                      setBulkDateModal({ type: 'show' });
-                    }}
-                    disabled={markShowLoading}
-                    className="btn btn-secondary text-base flex items-center gap-2"
-                  >
-                    {markShowLoading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-5 h-5 text-[#2d5da1] stroke-[2.5]" />
-                        <span>Mark Entire Show as Watched</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
+            )}
           </div>
-        </div>
 
-        {/* User TV Show Tracking Form */}
-        {user && (
-          <div className="card-postit relative">
-            <div className="thumbtack" />
+          {/* Details */}
+          <div className="flex-1 space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#00FF66] mb-1 block">
+                  TELEVISION SERIES
+                </span>
+                <h1 className="text-2xl sm:text-4xl font-bold text-[#EDEDED] leading-tight">
+                  {show.name}
+                </h1>
+              </div>
 
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-3xl font-heading font-bold text-[#2d2d2d]">
-                {show.currentUserTrack ? 'Update TV Show Tracking' : 'Add to Your TV Collection'}
-              </h3>
-
-              {show.currentUserTrack && (
+              {/* Favorite Button */}
+              {user && (
                 <button
-                  type="button"
-                  onClick={handleDeleteShowTrack}
-                  className="btn bg-[#ff4d4d] text-white text-sm py-1.5 px-3 flex items-center gap-1.5"
+                  onClick={handleToggleFavorite}
+                  className={`p-2 rounded border transition-colors ${
+                    isFavorite 
+                      ? 'bg-[#00FF66] text-[#121212] border-[#00FF66]' 
+                      : 'bg-[#1E1E1E] text-[#A0A0A0] border-[#333333] hover:text-[#EDEDED]'
+                  }`}
+                  title={isFavorite ? 'Remove Favorite' : 'Mark Favorite'}
                 >
-                  <Trash2 className="w-4 h-4 stroke-[2.5]" />
-                  Delete Show
+                  <Heart className={`w-4 h-4 ${isFavorite ? 'fill-[#121212]' : ''}`} />
                 </button>
               )}
             </div>
 
-            <form onSubmit={handleSaveShowTrack} className="space-y-6">
-              
-              {/* Overall Rating out of 10 */}
-              <div>
-                <label className="block text-lg font-bold mb-2 text-[#2d2d2d]">
-                  Overall Series Rating (1 to 10 Scale)
-                </label>
-                <StarRating 
-                  rating={rating}
-                  maxStars={10}
-                  onRatingChange={setRating}
-                  size="large"
-                />
-              </div>
+            {/* Badges */}
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+              {show.first_air_date && (
+                <span className="bg-[#2A2A2A] border border-[#333333] px-2.5 py-1 rounded text-[#EDEDED] flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-[#00FF66]" />
+                  Aired {new Date(show.first_air_date).getFullYear()}
+                </span>
+              )}
+              {show.number_of_seasons && (
+                <span className="bg-[#2A2A2A] border border-[#333333] px-2.5 py-1 rounded text-[#EDEDED] flex items-center gap-1">
+                  <Layers className="w-3.5 h-3.5 text-[#A0A0A0]" />
+                  {show.number_of_seasons} S ({show.number_of_episodes} Ep)
+                </span>
+              )}
+              {show.vote_average != null && (
+                <span className="bg-[#2A2A2A] border border-[#333333] px-2.5 py-1 rounded text-[#00FF66] font-bold flex items-center gap-1">
+                  <Star className="w-3.5 h-3.5 fill-[#00FF66]" />
+                  TMDB {Number(show.vote_average).toFixed(1)} / 10
+                </span>
+              )}
+            </div>
 
-              {/* Start Date & End Date */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="startDate" className="block text-base font-bold mb-1 text-[#2d2d2d]">
-                    Start Date (When you started watching)
-                  </label>
-                  <input
-                    id="startDate"
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="endDate" className="block text-base font-bold mb-1 text-[#2d2d2d]">
-                    End Date (When you finished / dropped)
-                  </label>
-                  <input
-                    id="endDate"
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-              </div>
-
-              {/* Watched Where Platform Tags */}
-              <div>
-                <label className="block text-lg font-bold mb-2 text-[#2d2d2d] flex items-center gap-2">
-                  <Tag className="w-5 h-5 stroke-[2.5] text-[#2d5da1]" />
-                  Watched Where (Platform Tags)
-                </label>
-                
-                {/* Preset Platform Pills */}
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {PRESET_PLATFORMS.map((platform) => {
-                    const selected = watchedWhere.includes(platform);
-                    return (
-                      <button
-                        key={platform}
-                        type="button"
-                        onClick={() => handleToggleTag(platform)}
-                        className={`btn text-xs py-1 px-3 border-2 ${
-                          selected 
-                            ? 'bg-[#ff4d4d] text-white border-[#2d2d2d]' 
-                            : 'bg-white text-[#2d2d2d] border-[#2d2d2d]'
-                        }`}
-                      >
-                        {selected ? '✓ ' : '+ '}{platform}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Custom Tag Input */}
-                <div className="flex items-center gap-2 max-w-md">
-                  <input
-                    type="text"
-                    value={customTag}
-                    onChange={(e) => setCustomTag(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddCustomTag();
-                      }
-                    }}
-                    placeholder="Add custom tag (e.g. Stremio, DVD)"
-                    className="form-input text-sm py-2"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddCustomTag}
-                    className="btn btn-secondary text-sm py-2 px-4 shrink-0"
+            {/* Genres */}
+            {show.genres && show.genres.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {show.genres.map(genre => (
+                  <span 
+                    key={genre.id} 
+                    className="px-2 py-0.5 bg-[#121212] border border-[#333333] rounded text-[10px] font-medium text-[#A0A0A0]"
                   >
-                    <Plus className="w-4 h-4 stroke-[3]" />
-                    Add Tag
-                  </button>
-                </div>
-
-                {/* Active Tag Chips */}
-                {watchedWhere.length > 0 && (
-                  <div className="flex items-center gap-2 flex-wrap mt-3 pt-2 border-t border-dashed border-[#2d2d2d]/30">
-                    <span className="text-xs font-bold text-[#2d2d2d]">Selected Tags:</span>
-                    {watchedWhere.map((tag) => (
-                      <span
-                        key={tag}
-                        className="bg-[#fff9c4] border-2 border-[#2d2d2d] px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-[1px_1px_0px_#2d2d2d]"
-                      >
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => handleToggleTag(tag)}
-                          className="hover:text-[#ff4d4d] ml-1 font-bold"
-                        >
-                          <X className="w-3.5 h-3.5 stroke-[3]" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
+                    {genre.name}
+                  </span>
+                ))}
               </div>
+            )}
 
-              {/* Review Text */}
-              <div>
-                <label htmlFor="tvReview" className="block text-lg font-bold mb-1 text-[#2d2d2d]">
-                  Series Review & Notes
-                </label>
-                <textarea
-                  id="tvReview"
-                  value={reviewText}
-                  onChange={(e) => setReviewText(e.target.value)}
-                  className="form-input h-32 resize-none"
-                  placeholder="Share your overall thoughts on the story, characters, and writing..."
-                />
+            {/* Overview */}
+            {show.overview && (
+              <div className="pt-2">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[#A0A0A0] mb-1">Synopsis</h3>
+                <p className="text-sm text-[#EDEDED]/90 leading-relaxed font-normal">{show.overview}</p>
               </div>
+            )}
 
-              <button 
-                type="submit" 
-                disabled={submitting}
-                className="btn btn-primary text-xl py-3 px-8 flex items-center justify-center gap-2"
-              >
-                {submitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-3 border-white" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-5 h-5 stroke-[2.5]" />
-                    <span>Save TV Show Entry</span>
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* Season & Episode Breakdown Section */}
-        {show.seasons && show.seasons.length > 0 && (
-          <div className="card relative">
-            <div className="tape-strip" />
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              <h3 className="text-3xl font-heading font-bold flex items-center gap-3">
-                <Layers className="w-7 h-7 text-[#2d5da1] stroke-[2.5]" />
-                Season & Episode Breakdown
-              </h3>
-
-              {user && (
+            {/* Bulk Mark Button */}
+            {user && (
+              <div className="flex flex-wrap gap-3 pt-2">
                 <button
-                  type="button"
                   onClick={() => {
                     setBulkDate(new Date().toISOString().split('T')[0]);
-                    setBulkDateModal({ type: 'season', seasonNumber: selectedSeasonNumber });
+                    setBulkDateModal({ type: 'show' });
                   }}
-                  disabled={markSeasonLoading}
-                  className="btn btn-secondary text-sm flex items-center gap-2 self-start sm:self-auto"
+                  disabled={markShowLoading}
+                  className="btn btn-secondary text-xs py-2 px-4 flex items-center gap-1.5"
                 >
-                  {markSeasonLoading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                  {markShowLoading ? (
+                    <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-current border-t-transparent" />
                   ) : (
                     <>
-                      <CheckCircle2 className="w-4 h-4 text-[#2d5da1] stroke-[2.5]" />
-                      <span>Mark Season {selectedSeasonNumber} as Watched</span>
+                      <CheckCircle2 className="w-4 h-4 text-[#00FF66]" />
+                      <span>Mark Entire Show as Watched</span>
                     </>
                   )}
                 </button>
-              )}
-            </div>
-
-            {/* Season Selector Tabs */}
-            <div className="flex items-center gap-3 overflow-x-auto pb-3 border-b-2 border-dashed border-[#2d2d2d]/30 mb-6">
-              {show.seasons.map((season) => {
-                const isActive = selectedSeasonNumber === season.season_number;
-                return (
-                  <button
-                    key={season.season_number}
-                    onClick={() => setSelectedSeasonNumber(season.season_number)}
-                    className={`btn text-base py-2 px-5 whitespace-nowrap border-3 ${
-                      isActive 
-                        ? 'bg-[#ff4d4d] text-white border-[#2d2d2d] shadow-[3px_3px_0px_#2d2d2d]' 
-                        : 'bg-white text-[#2d2d2d] border-[#2d2d2d] shadow-[2px_2px_0px_#2d2d2d]'
-                    }`}
-                  >
-                    {season.name || `Season ${season.season_number}`}
-                    {season.episode_count ? ` (${season.episode_count} ep)` : ''}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Selected Season Detail & Episode List */}
-            {seasonLoading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-3 border-[#2d5da1] mx-auto mb-3" />
-                <p className="font-bold text-lg text-[#2d2d2d]">Loading Season {selectedSeasonNumber} episodes...</p>
               </div>
-            ) : seasonData && seasonData.episodes && seasonData.episodes.length > 0 ? (
-              <div className="space-y-6">
-                
-                {/* Season Header Info */}
-                {seasonData.overview && (
-                  <div className="bg-[#fff9c4] border-2 border-[#2d2d2d] p-4 rounded-xl shadow-[3px_3px_0px_#2d2d2d] mb-6">
-                    <h4 className="font-heading font-bold text-xl mb-1 text-[#2d2d2d]">
-                      {seasonData.name} Overview
-                    </h4>
-                    <p className="text-base text-[#2d2d2d] font-body">{seasonData.overview}</p>
-                  </div>
-                )}
-
-                {/* Episodes Grid */}
-                <div className="space-y-4">
-                  {seasonData.episodes.map((ep) => {
-                    const epKey = `${ep.season_number}_${ep.episode_number}`;
-                    const epState = show.userEpisodes?.[epKey];
-                    const isEpWatched = epState?.watched || false;
-                    const epRating = epState?.rating || 0;
-                    const isEpLoading = epLoadingMap[epKey] || false;
-
-                    const stillUrl = ep.still_path 
-                      ? `https://image.tmdb.org/t/p/w300${ep.still_path}`
-                      : 'https://via.placeholder.com/300x169?text=No+Still';
-
-                    return (
-                      <div 
-                        key={ep.episode_number}
-                        className={`bg-[#fdfbf7] border-3 border-[#2d2d2d] p-4 rounded-[20px_255px_20px_255px/255px_20px_255px_20px] shadow-[4px_4px_0px_#2d2d2d] transition-all ${
-                          isEpWatched ? 'bg-[#fff9c4]/30' : ''
-                        }`}
-                      >
-                        <div className="flex flex-col md:flex-row gap-4 items-start">
-                          
-                          {/* Episode Still Image */}
-                          <div className="w-full md:w-48 shrink-0 relative">
-                            <img 
-                              src={stillUrl} 
-                              alt={ep.name}
-                              className="w-full aspect-video object-cover border-2 border-[#2d2d2d] rounded-lg shadow-[2px_2px_0px_#2d2d2d]"
-                            />
-                            <span className="absolute top-2 left-2 bg-[#2d5da1] text-white border border-[#2d2d2d] px-2 py-0.5 rounded text-xs font-bold shadow-[1px_1px_0px_#2d2d2d]">
-                              E{ep.episode_number}
-                            </span>
-                          </div>
-
-                          {/* Episode Details */}
-                          <div className="flex-1 space-y-2">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                              <h5 className="font-heading font-bold text-2xl text-[#2d2d2d]">
-                                {ep.episode_number}. {ep.name}
-                              </h5>
-
-                              {/* Watched Toggle & Rating */}
-                              {user && (
-                                <div className="flex items-center gap-3 shrink-0">
-                                  <button
-                                    onClick={() => handleEpisodeWatchedToggle(ep, isEpWatched, epRating, epState?.watched_date)}
-                                    disabled={isEpLoading}
-                                    className={`btn text-xs py-1.5 px-3 flex items-center gap-1.5 ${
-                                      isEpWatched ? 'btn-primary' : 'btn-secondary'
-                                    }`}
-                                  >
-                                    {isEpLoading ? (
-                                      <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-current" />
-                                    ) : (
-                                      <>
-                                        <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-                                        <span>{isEpWatched ? 'Watched ✓' : 'Mark Watched'}</span>
-                                      </>
-                                    )}
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Metadata */}
-                            <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-[#2d2d2d]/80">
-                              {ep.air_date && (
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="w-3.5 h-3.5 text-[#ff4d4d]" />
-                                  {ep.air_date}
-                                </span>
-                              )}
-                              {ep.runtime && (
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3.5 h-3.5 text-[#2d5da1]" />
-                                  {ep.runtime} min
-                                </span>
-                              )}
-                              {ep.vote_average != null && (
-                                <span className="flex items-center gap-1">
-                                  <Star className="w-3.5 h-3.5 fill-[#ff4d4d] text-[#2d2d2d] stroke-[2]" />
-                                  TMDB {Number(ep.vote_average).toFixed(1)}/10
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Overview */}
-                            {ep.overview && (
-                              <p className="text-base text-[#2d2d2d] font-body leading-relaxed">
-                                {ep.overview}
-                              </p>
-                            )}
-
-                            {/* Episode Rating & Watched Date controls */}
-                            {user && isEpWatched && (
-                              <div className="pt-2 border-t border-dashed border-[#2d2d2d]/30 flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold text-[#2d2d2d]">Rating (1-10):</span>
-                                  <StarRating 
-                                    rating={epRating}
-                                    maxStars={10}
-                                    onRatingChange={(newRating) => handleEpisodeRatingChange(ep, newRating)}
-                                    size="small"
-                                  />
-                                </div>
-
-                                <div className="flex items-center gap-2 bg-white px-2 py-1 border border-[#2d2d2d] rounded-lg shadow-[1px_1px_0px_#2d2d2d]">
-                                  <Calendar className="w-3.5 h-3.5 text-[#2d5da1] stroke-[2.5]" />
-                                  <label htmlFor={`ep-date-${epKey}`} className="text-xs font-bold text-[#2d2d2d]">Watched Date:</label>
-                                  <input
-                                    id={`ep-date-${epKey}`}
-                                    type="date"
-                                    value={epState?.watched_date || ''}
-                                    max={new Date().toISOString().split('T')[0]}
-                                    onChange={(e) => handleEpisodeDateChange(ep, e.target.value)}
-                                    className="text-xs font-bold bg-[#fff9c4] border border-[#2d2d2d] rounded px-1.5 py-0.5"
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <p className="text-lg font-bold text-[#2d2d2d]/70 text-center py-8">
-                No episode information available for Season {selectedSeasonNumber}.
-              </p>
             )}
           </div>
-        )}
+        </div>
+      </div>
 
-        {/* Public Reviews */}
-        {show.reviews && show.reviews.length > 0 && (
-          <div className="card relative">
-            <div className="thumbtack" />
-            <h3 className="text-3xl font-heading font-bold mb-6 flex items-center gap-3">
-              <MessageSquare className="w-7 h-7 stroke-[2.5] text-[#2d5da1]" />
-              Community Reviews ({show.reviews.length})
+      {/* Series Tracking Form */}
+      {user && (
+        <div className="card bg-[#1E1E1E] border border-[#333333] p-6 max-w-2xl mx-auto space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-[#EDEDED] flex items-center gap-2">
+              <Tv className="w-5 h-5 text-[#00FF66]" />
+              {show.currentUserTrack ? 'Update Series Entry' : 'Log TV Show'}
             </h3>
-            
-            <div className="space-y-6">
-              {show.reviews.map((review, index) => (
-                <div key={index} className="bg-[#fdfbf7] border-2 border-[#2d2d2d] p-5 rounded-[20px_255px_20px_255px/255px_20px_255px_20px] shadow-[4px_4px_0px_#2d2d2d]">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-[#ff4d4d] text-white border-2 border-[#2d2d2d] rounded-full flex items-center justify-center font-heading text-lg font-bold shrink-0 shadow-[2px_2px_0px_#2d2d2d]">
-                      {review.username.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <Link 
-                          href={`/profile/${review.username}`}
-                          className="font-heading font-bold text-xl text-[#2d2d2d] hover:text-[#ff4d4d] transition-colors"
-                        >
-                          {review.username}
-                        </Link>
-                        {review.rating > 0 && (
-                          <StarRating rating={review.rating} maxStars={10} readOnly size="small" />
-                        )}
-                        <span className="text-xs font-semibold text-[#2d2d2d]/60">
-                          {new Date(review.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
 
-                      {/* Watched Where Tags */}
-                      {review.watched_where && review.watched_where.length > 0 && (
-                        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                          {review.watched_where.map((platform, i) => (
-                            <span 
-                              key={i} 
-                              className="bg-[#fff9c4] border border-[#2d2d2d] px-2 py-0.2 rounded text-[10px] font-bold"
-                            >
-                              {platform}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      <p className="text-lg font-body text-[#2d2d2d] leading-relaxed italic">
-                        &ldquo;{review.review}&rdquo;
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {show.currentUserTrack && (
+              <button
+                type="button"
+                onClick={handleDeleteShowTrack}
+                className="btn bg-[#ff4d4d]/10 text-[#ff4d4d] border border-[#ff4d4d]/30 text-xs py-1 px-2.5 flex items-center gap-1 hover:bg-[#ff4d4d] hover:text-white transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Remove
+              </button>
+            )}
           </div>
-        )}
-        {/* Bulk Mark Watched Date Modal */}
-        {bulkDateModal && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="card-postit max-w-md w-full relative animate-in fade-in zoom-in duration-150">
-              <div className="thumbtack" />
-              <h4 className="text-2xl font-heading font-bold text-[#2d2d2d] mb-2">
-                {bulkDateModal.type === 'show' ? 'Mark Entire Show Watched' : `Mark Season ${bulkDateModal.seasonNumber} Watched`}
-              </h4>
-              <p className="text-sm font-body text-[#2d2d2d]/80 mb-4">
-                Select the date you watched {bulkDateModal.type === 'show' ? 'this show' : `Season ${bulkDateModal.seasonNumber}`}:
-              </p>
-              
-              <div className="mb-6">
-                <label htmlFor="bulkDateInput" className="block text-sm font-bold mb-1 text-[#2d2d2d]">
-                  Watched Date:
+
+          <form onSubmit={handleSaveShowTrack} className="space-y-4">
+            
+            {/* Overall Rating */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-[#A0A0A0] mb-1.5">
+                Overall Series Rating (1-10)
+              </label>
+              <StarRating 
+                rating={rating}
+                maxStars={10}
+                onRatingChange={setRating}
+                size="large"
+              />
+            </div>
+
+            {/* Start & End Dates */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="startDate" className="block text-xs font-bold uppercase tracking-widest text-[#A0A0A0] mb-1">
+                  Start Date
                 </label>
                 <input
-                  id="bulkDateInput"
+                  id="startDate"
                   type="date"
-                  value={bulkDate}
-                  max={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setBulkDate(e.target.value)}
-                  className="form-input"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="form-input text-xs py-2"
                 />
               </div>
 
-              <div className="flex gap-3 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setBulkDateModal(null)}
-                  className="btn btn-secondary text-sm py-2 px-4"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (bulkDateModal.type === 'show') {
-                      handleMarkShowAsWatched(bulkDate);
-                    } else if (bulkDateModal.seasonNumber) {
-                      handleMarkSeasonAsWatched(bulkDateModal.seasonNumber, bulkDate);
+              <div>
+                <label htmlFor="endDate" className="block text-xs font-bold uppercase tracking-widest text-[#A0A0A0] mb-1">
+                  End Date
+                </label>
+                <input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="form-input text-xs py-2"
+                />
+              </div>
+            </div>
+
+            {/* Watched Where Platform Tags */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-[#A0A0A0] mb-2 flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-[#00FF66]" />
+                Platform Tags
+              </label>
+              
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {PRESET_PLATFORMS.map((platform) => {
+                  const selected = watchedWhere.includes(platform);
+                  return (
+                    <button
+                      key={platform}
+                      type="button"
+                      onClick={() => handleToggleTag(platform)}
+                      className={`btn text-[10px] py-0.5 px-2 ${
+                        selected 
+                          ? 'btn-primary' 
+                          : 'btn-ghost text-[#A0A0A0]'
+                      }`}
+                    >
+                      {selected ? '✓ ' : '+ '}{platform}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom Tag Input */}
+              <div className="flex items-center gap-2 max-w-md">
+                <input
+                  type="text"
+                  value={customTag}
+                  onChange={(e) => setCustomTag(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddCustomTag();
                     }
                   }}
-                  className="btn btn-primary text-sm py-2 px-5"
+                  placeholder="Custom tag (e.g. Stremio)"
+                  className="form-input text-xs py-1.5"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomTag}
+                  className="btn btn-secondary text-xs py-1.5 px-3 shrink-0"
                 >
-                  Confirm & Mark Watched
+                  <Plus className="w-3.5 h-3.5" />
+                  Add
                 </button>
               </div>
             </div>
+
+            {/* Review Text */}
+            <div>
+              <label htmlFor="tvReview" className="block text-xs font-bold uppercase tracking-widest text-[#A0A0A0] mb-1">
+                Series Review & Notes
+              </label>
+              <textarea
+                id="tvReview"
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                className="form-input h-24 resize-none text-xs"
+                placeholder="Share your overall thoughts..."
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={submitting}
+              className="btn btn-primary text-xs py-2.5 px-6 flex items-center justify-center gap-2"
+            >
+              {submitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#121212] border-t-transparent" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  <span>Save TV Entry</span>
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Season & Episode Breakdown */}
+      {show.seasons && show.seasons.length > 0 && (
+        <div className="card bg-[#1E1E1E] border border-[#333333] p-6 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h3 className="text-base font-bold flex items-center gap-2 text-[#EDEDED]">
+              <Layers className="w-4 h-4 text-[#00FF66]" />
+              Season Breakdown
+            </h3>
+
+            {user && (
+              <button
+                type="button"
+                onClick={() => {
+                  setBulkDate(new Date().toISOString().split('T')[0]);
+                  setBulkDateModal({ type: 'season', seasonNumber: selectedSeasonNumber });
+                }}
+                disabled={markSeasonLoading}
+                className="btn btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 self-start sm:self-auto"
+              >
+                {markSeasonLoading ? (
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-current border-t-transparent" />
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#00FF66]" />
+                    <span>Mark Season {selectedSeasonNumber} Watched</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
-        )}
-      </div>
+
+          {/* Season Selector Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#333333]">
+            {show.seasons.map((season) => {
+              const isActive = selectedSeasonNumber === season.season_number;
+              return (
+                <button
+                  key={season.season_number}
+                  onClick={() => setSelectedSeasonNumber(season.season_number)}
+                  className={`btn text-xs py-1.5 px-3 whitespace-nowrap ${
+                    isActive 
+                      ? 'btn-primary' 
+                      : 'btn-ghost text-[#A0A0A0]'
+                  }`}
+                >
+                  {season.name || `Season ${season.season_number}`}
+                  {season.episode_count ? ` (${season.episode_count})` : ''}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Episodes List */}
+          {seasonLoading ? (
+            <div className="text-center py-8 text-[#A0A0A0]">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#00FF66] border-t-transparent mx-auto mb-2" />
+              <p className="text-xs font-medium">Loading Season {selectedSeasonNumber} episodes...</p>
+            </div>
+          ) : seasonData && seasonData.episodes && seasonData.episodes.length > 0 ? (
+            <div className="space-y-3">
+              {seasonData.episodes.map((ep) => {
+                const epKey = `${ep.season_number}_${ep.episode_number}`;
+                const epState = show.userEpisodes?.[epKey];
+                const isEpWatched = epState?.watched || false;
+                const epRating = epState?.rating || 0;
+                const isEpLoading = epLoadingMap[epKey] || false;
+
+                const stillUrl = ep.still_path 
+                  ? `https://image.tmdb.org/t/p/w300${ep.still_path}`
+                  : null;
+
+                return (
+                  <div 
+                    key={ep.episode_number}
+                    className={`bg-[#121212] border border-[#333333] p-3.5 rounded transition-colors ${
+                      isEpWatched ? 'border-[#00FF66]/40' : ''
+                    }`}
+                  >
+                    <div className="flex flex-col md:flex-row gap-3 items-start">
+                      
+                      {/* Episode Still */}
+                      <div className="w-full md:w-36 aspect-video shrink-0 relative rounded overflow-hidden bg-[#2A2A2A] border border-[#333333]">
+                        {stillUrl ? (
+                          <img 
+                            src={stillUrl} 
+                            alt={ep.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[#A0A0A0] text-[10px]">
+                            No Still
+                          </div>
+                        )}
+                        <span className="absolute top-1 left-1 bg-[#121212]/90 text-[#00FF66] border border-[#333333] px-1.5 py-0.5 rounded text-[9px] font-bold">
+                          E{ep.episode_number}
+                        </span>
+                      </div>
+
+                      {/* Episode Details */}
+                      <div className="flex-1 space-y-1.5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <h5 className="font-bold text-sm text-[#EDEDED]">
+                            {ep.episode_number}. {ep.name}
+                          </h5>
+
+                          {user && (
+                            <button
+                              onClick={() => handleEpisodeWatchedToggle(ep, isEpWatched, epRating, epState?.watched_date)}
+                              disabled={isEpLoading}
+                              className={`btn text-[10px] py-1 px-2.5 flex items-center gap-1 ${
+                                isEpWatched ? 'btn-primary' : 'btn-secondary'
+                              }`}
+                            >
+                              {isEpLoading ? (
+                                <div className="animate-spin rounded-full h-3 w-3 border border-current border-t-transparent" />
+                              ) : (
+                                <>
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  <span>{isEpWatched ? 'Watched ✓' : 'Mark Watched'}</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Metadata */}
+                        <div className="flex flex-wrap items-center gap-3 text-[10px] text-[#A0A0A0] font-medium">
+                          {ep.air_date && (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-[#00FF66]" />
+                              {ep.air_date}
+                            </span>
+                          )}
+                          {ep.runtime && (
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {ep.runtime} min
+                            </span>
+                          )}
+                          {ep.vote_average != null && (
+                            <span className="flex items-center gap-1 text-[#00FF66]">
+                              <Star className="w-3 h-3 fill-[#00FF66]" />
+                              TMDB {Number(ep.vote_average).toFixed(1)}/10
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Overview */}
+                        {ep.overview && (
+                          <p className="text-xs text-[#A0A0A0] leading-relaxed line-clamp-2">
+                            {ep.overview}
+                          </p>
+                        )}
+
+                        {/* Controls */}
+                        {user && isEpWatched && (
+                          <div className="pt-2 border-t border-[#333333] flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold uppercase text-[#A0A0A0]">Rating:</span>
+                              <StarRating 
+                                rating={epRating}
+                                maxStars={10}
+                                onRatingChange={(newRating) => handleEpisodeRatingChange(ep, newRating)}
+                                size="small"
+                              />
+                            </div>
+
+                            <div className="flex items-center gap-1.5 bg-[#1E1E1E] px-2 py-0.5 border border-[#333333] rounded">
+                              <Calendar className="w-3 h-3 text-[#00FF66]" />
+                              <label htmlFor={`ep-date-${epKey}`} className="text-[10px] text-[#A0A0A0]">Watched:</label>
+                              <input
+                                id={`ep-date-${epKey}`}
+                                type="date"
+                                value={epState?.watched_date || ''}
+                                max={new Date().toISOString().split('T')[0]}
+                                onChange={(e) => handleEpisodeDateChange(ep, e.target.value)}
+                                className="text-[10px] font-medium bg-[#121212] text-[#EDEDED] border border-[#333333] rounded px-1 py-0.5"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-[#A0A0A0] text-center py-4">
+              No episode info available for Season {selectedSeasonNumber}.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Community Reviews */}
+      {show.reviews && show.reviews.length > 0 && (
+        <div className="card bg-[#1E1E1E] border border-[#333333] p-6 space-y-4">
+          <h3 className="text-base font-bold flex items-center gap-2 text-[#EDEDED]">
+            <MessageSquare className="w-4 h-4 text-[#00FF66]" />
+            Community Reviews ({show.reviews.length})
+          </h3>
+          
+          <div className="space-y-3">
+            {show.reviews.map((review, index) => (
+              <div key={index} className="bg-[#121212] border border-[#333333] p-4 rounded text-xs">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-[#00FF66] text-[#121212] rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+                    {review.username.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Link 
+                        href={`/profile/${review.username}`}
+                        className="font-bold text-sm text-[#EDEDED] hover:text-[#00FF66] transition-colors"
+                      >
+                        {review.username}
+                      </Link>
+                      <StarRating rating={review.rating} readOnly size="small" />
+                      <span className="text-[10px] text-[#A0A0A0]">
+                        {new Date(review.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    {review.watched_where && review.watched_where.length > 0 && (
+                      <div className="flex items-center gap-1 flex-wrap my-1">
+                        {review.watched_where.map((platform, i) => (
+                          <span 
+                            key={i} 
+                            className="bg-[#1E1E1E] border border-[#333333] px-1.5 py-0.2 rounded text-[9px] font-medium text-[#A0A0A0]"
+                          >
+                            {platform}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <p className="text-xs text-[#EDEDED]/90 leading-relaxed italic">
+                      &ldquo;{review.review}&rdquo;
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Mark Watched Date Modal */}
+      {bulkDateModal && (
+        <div className="fixed inset-0 bg-[#121212]/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="card bg-[#1E1E1E] border border-[#333333] max-w-md w-full p-6 space-y-4 rounded">
+            <h4 className="text-base font-bold text-[#EDEDED]">
+              {bulkDateModal.type === 'show' ? 'Mark Entire Show Watched' : `Mark Season ${bulkDateModal.seasonNumber} Watched`}
+            </h4>
+            <p className="text-xs text-[#A0A0A0]">
+              Select watched date for {bulkDateModal.type === 'show' ? 'this show' : `Season ${bulkDateModal.seasonNumber}`}:
+            </p>
+            
+            <div>
+              <label htmlFor="bulkDateInput" className="block text-xs font-bold uppercase tracking-widest text-[#A0A0A0] mb-1">
+                Watched Date
+              </label>
+              <input
+                id="bulkDateInput"
+                type="date"
+                value={bulkDate}
+                max={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setBulkDate(e.target.value)}
+                className="form-input text-xs py-2"
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setBulkDateModal(null)}
+                className="btn btn-secondary text-xs py-2 px-4"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (bulkDateModal.type === 'show') {
+                    handleMarkShowAsWatched(bulkDate);
+                  } else if (bulkDateModal.seasonNumber) {
+                    handleMarkSeasonAsWatched(bulkDateModal.seasonNumber, bulkDate);
+                  }
+                }}
+                className="btn btn-primary text-xs py-2 px-4"
+              >
+                Confirm & Mark Watched
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

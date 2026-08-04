@@ -25,16 +25,22 @@ The application is built on a modern full-stack **TypeScript + Next.js App Route
 
 - **Framework**: Next.js 16+ (App Router with `src/app` and Turbopack compiler)
 - **Language**: TypeScript (`tsconfig.json` with strict type-checking and path alias `@/*`)
-- **Icons**: Lucide React (`lucide-react`) with thick stroke width (`2.5` to `3`)
+- **Icons**: Lucide React (`lucide-react`)
 - **Rating System**: 1 to 10 scale supported across all media types (movies, TV series, individual episodes)
-- **Database Initialization & Auto-Migration**: Auto-executing migrations (`npm run build` calls `backend/db/migrate.ts`) plus runtime guard (`ensureSchema()` in `backend/lib/turso.ts`) that removes legacy 1–5 rating check constraints.
-- **Styling & Design System**: Custom Hand-Drawn UI built on Tailwind CSS v4 (`@tailwindcss/postcss`)
-  - **Typography**: Google Fonts (`Kalam` for felt-tip marker titles, `Patrick Hand` for legible handwritten body text)
-  - **Color Palette**: Warm Paper (`#fdfbf7`), Soft Pencil Black (`#2d2d2d`), Erased Paper Muted (`#e5e0d8`), Red Correction Marker (`#ff4d4d`), Blue Pen (`#2d5da1`), Post-it Yellow (`#fff9c4`)
-  - **Wobbly Borders**: Irregular organic `border-radius` ellipses (`border-3 border-[#2d2d2d]`, `borderRadius: 255px 15px 225px 15px / 15px 225px 15px 255px`)
-  - **Hard Offset Shadows**: Blurless solid box-shadows (`4px 4px 0px #2d2d2d` and `8px 8px 0px #2d2d2d`). Buttons press flat (`0px 0px` shadow with translation) on click.
-  - **Paper Grain Texture**: Background radial dot grid pattern (`radial-gradient(#e5e0d8 1.5px, transparent 1.5px)`)
-  - **Paper Accents**: Semi-transparent tape strips (`.tape-strip`) and red pin thumbtacks (`.thumbtack`)
+- **Database Initialization & Auto-Migration**: Auto-executing migrations (`npm run build` calls `backend/db/migrate.ts`) plus runtime guard (`ensureSchema()` in `backend/lib/turso.ts`).
+- **Styling & Design System (`design2.md`)**: Utilitarian, Minimalist, High-Contrast Dark Mode System
+  - **Typography**: Google Font (`Inter`, sans-serif) across headings and body text. Metadata labels are uppercase, `text-xs` (or smaller), `font-bold` with `tracking-widest`.
+  - **Color Palette Tokens**:
+    - `bgBase`: `#121212` (App background, dropdowns)
+    - `bgSurface`: `#1E1E1E` (Elevated cards, container backgrounds, sticky navbar)
+    - `bgHover`: `#2A2A2A` (Hover states, poster placeholders)
+    - `borderSubtle`: `#333333` (1px solid borders, dividers)
+    - `textMain`: `#EDEDED` (Primary headings, text)
+    - `textMuted`: `#A0A0A0` (Secondary text, metadata)
+    - `accent`: `#00FF66` (Neon green CTAs, ratings, badges, active states)
+    - `accentHover`: `#00CC52` (Hover state for accent elements)
+  - **Elevation**: Elevation achieved strictly through background color contrast (`#121212` -> `#1E1E1E` -> `#2A2A2A`) and `1px solid #333333` borders. Zero box-shadows.
+  - **Media Grid & Posters**: Strict `aspect-[2/3]` wrapper, 4px border-radius, `border border-[#333333]`, hover `scale-105` (0.3s ease) image scaling, backdrop-blur hover overlay.
 - **Routing & Rendering**: Next.js Client and Server Components (`.tsx`) with `next/navigation` (`useRouter`, `useParams`) and `next/link`
 - **HTTP Client**: Axios (`src/lib/api.ts`) configured with relative paths (`baseURL: ''`) for API routes
 - **Backend API Routes**: Next.js Route Handlers in `src/app/api/...` (`route.ts`) (`GET`, `POST` functions returning `NextResponse`)

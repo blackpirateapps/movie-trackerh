@@ -5,7 +5,7 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import StarRating from '@/components/StarRating';
 import { FeedItem } from '@/types';
-import { Rss, Filter, Film, Tv, User, Eye, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Rss, Film, Tv, User, Eye, AlertTriangle, RefreshCw } from 'lucide-react';
 
 export default function Feed() {
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
@@ -38,10 +38,10 @@ export default function Feed() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="card text-center max-w-sm w-full">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-3 border-[#ff4d4d] mx-auto mb-4" />
-          <p className="font-bold text-xl text-[#2d2d2d]">Loading your activity feed...</p>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#121212]">
+        <div className="card text-center max-w-sm w-full bg-[#1E1E1E] border border-[#333333] p-6 rounded">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#00FF66] border-t-transparent mx-auto mb-3" />
+          <p className="font-bold text-sm text-[#EDEDED]">Loading activity feed...</p>
         </div>
       </div>
     );
@@ -49,18 +49,18 @@ export default function Feed() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="card-postit text-center max-w-md w-full">
-          <div className="w-16 h-16 bg-[#ff4d4d] text-white border-3 border-[#2d2d2d] rounded-full flex items-center justify-center mx-auto mb-4 shadow-[3px_3px_0px_#2d2d2d]">
-            <AlertTriangle className="w-8 h-8 stroke-[3]" />
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#121212]">
+        <div className="card text-center max-w-md w-full bg-[#1E1E1E] border border-[#333333] p-6 rounded space-y-3">
+          <div className="w-12 h-12 bg-[#ff4d4d]/10 text-[#ff4d4d] border border-[#ff4d4d]/30 rounded-full flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-6 h-6" />
           </div>
-          <h2 className="text-3xl font-heading font-bold mb-2">Something went wrong</h2>
-          <p className="text-[#2d2d2d]/80 text-lg mb-6">{error}</p>
+          <h2 className="text-base font-bold text-[#EDEDED]">Something went wrong</h2>
+          <p className="text-xs text-[#A0A0A0]">{error}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="btn btn-primary flex items-center gap-2 mx-auto"
+            className="btn btn-primary text-xs py-2 px-4 inline-flex items-center gap-1.5 mx-auto"
           >
-            <RefreshCw className="w-4 h-4 stroke-[3]" />
+            <RefreshCw className="w-3.5 h-3.5" />
             Try Again
           </button>
         </div>
@@ -69,192 +69,172 @@ export default function Feed() {
   }
 
   return (
-    <div className="min-h-screen py-10 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="card mb-8">
-          <div className="tape-strip" />
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-heading font-bold flex items-center gap-3">
-                <Rss className="w-8 h-8 stroke-[3] text-[#ff4d4d]" />
-                Community Activity Feed
-              </h1>
-              <p className="text-lg text-[#2d2d2d]/80 mt-1">
-                See what your friends are watching (Movies & TV Shows)!
-              </p>
-            </div>
-            
-            <span className="bg-[#fff9c4] border-2 border-[#2d2d2d] rounded-[255px_15px_225px_15px/15px_225px_15px_255px] px-3 py-1 font-bold text-sm shadow-[2px_2px_0px_#2d2d2d] rotate-2">
-              📌 Live Stream
-            </span>
+    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto space-y-6 bg-[#121212] text-[#EDEDED]">
+      {/* Header Card */}
+      <div className="card bg-[#1E1E1E] border border-[#333333] p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-[#EDEDED]">
+              <Rss className="w-5 h-5 text-[#00FF66]" />
+              Community Activity Stream
+            </h1>
+            <p className="text-xs text-[#A0A0A0] mt-1">
+              Latest reviews and logging activity from users you follow.
+            </p>
           </div>
+          
+          <span className="bg-[#121212] border border-[#333333] text-[#00FF66] px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
+            LIVE FEED
+          </span>
         </div>
+      </div>
 
-        {feedItems.length > 0 ? (
-          <>
-            {/* Filter Bar */}
-            <div className="card mb-8">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-2 font-bold text-lg">
-                  <Filter className="w-5 h-5 stroke-[2.5] text-[#2d5da1]" />
-                  <span>Filter Feed:</span>
-                </div>
-                
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={() => setFilter('all')}
-                    className={`btn text-sm py-1.5 px-4 ${
-                      filter === 'all' ? 'btn-primary' : 'btn-ghost'
-                    }`}
-                  >
-                    All ({feedItems.length})
-                  </button>
-                  <button
-                    onClick={() => setFilter('movies')}
-                    className={`btn text-sm py-1.5 px-4 ${
-                      filter === 'movies' ? 'btn-primary' : 'btn-ghost'
-                    }`}
-                  >
-                    Movies
-                  </button>
-                  <button
-                    onClick={() => setFilter('tv')}
-                    className={`btn text-sm py-1.5 px-4 ${
-                      filter === 'tv' ? 'btn-primary' : 'btn-ghost'
-                    }`}
-                  >
-                    TV Shows
-                  </button>
-                  <button
-                    onClick={() => setFilter('reviews')}
-                    className={`btn text-sm py-1.5 px-4 ${
-                      filter === 'reviews' ? 'btn-primary' : 'btn-ghost'
-                    }`}
-                  >
-                    Reviews
-                  </button>
-                </div>
+      {feedItems.length > 0 ? (
+        <>
+          {/* Filter Bar */}
+          <div className="card bg-[#1E1E1E] border border-[#333333] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="text-xs font-bold uppercase tracking-widest text-[#A0A0A0]">Filter Stream:</span>
+              
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  onClick={() => setFilter('all')}
+                  className={`btn text-xs py-1 px-3 ${filter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
+                >
+                  All ({feedItems.length})
+                </button>
+                <button
+                  onClick={() => setFilter('movies')}
+                  className={`btn text-xs py-1 px-3 ${filter === 'movies' ? 'btn-primary' : 'btn-ghost'}`}
+                >
+                  Movies
+                </button>
+                <button
+                  onClick={() => setFilter('tv')}
+                  className={`btn text-xs py-1 px-3 ${filter === 'tv' ? 'btn-primary' : 'btn-ghost'}`}
+                >
+                  TV Shows
+                </button>
+                <button
+                  onClick={() => setFilter('reviews')}
+                  className={`btn text-xs py-1 px-3 ${filter === 'reviews' ? 'btn-primary' : 'btn-ghost'}`}
+                >
+                  Reviews
+                </button>
               </div>
             </div>
+          </div>
 
-            {/* Feed Items */}
-            <div className="space-y-8">
-              {filteredItems.map((item, index) => {
-                const isTv = item.type === 'tv' || item.tvShowId || item.tv_show_id;
-                const title = isTv ? (item.tvShowName || 'TV Show') : (item.movieTitle || 'Movie');
-                const linkHref = isTv ? `/tv/${item.tvShowId || item.tv_show_id}` : `/movie/${item.movieId || item.movie_id}`;
+          {/* Feed Items */}
+          <div className="space-y-4">
+            {filteredItems.map((item, index) => {
+              const isTv = item.type === 'tv' || item.tvShowId || item.tv_show_id;
+              const title = isTv ? (item.tvShowName || 'TV Show') : (item.movieTitle || 'Movie');
+              const linkHref = isTv ? `/tv/${item.tvShowId || item.tv_show_id}` : `/movie/${item.movieId || item.movie_id}`;
 
-                return (
-                  <div 
-                    key={index} 
-                    className={`card relative transition-all duration-200 hover:-translate-y-1 hover:shadow-[6px_6px_0px_#2d2d2d] ${
-                      index % 2 === 0 ? '-rotate-1' : 'rotate-1'
-                    }`}
-                  >
-                    <div className={index % 2 === 0 ? "tape-strip" : "thumbtack"} />
-
-                    {/* Feed Item Header */}
-                    <div className="flex items-center justify-between mb-4 border-b-2 border-dashed border-[#2d2d2d]/30 pb-3">
-                      <Link 
-                        href={`/profile/${item.username}`} 
-                        className="flex items-center gap-3 group"
-                      >
-                        <div className="w-11 h-11 bg-[#ff4d4d] text-white border-2 border-[#2d2d2d] rounded-full flex items-center justify-center font-heading text-lg font-bold shadow-[2px_2px_0px_#2d2d2d] group-hover:scale-110 transition-transform">
-                          {item.username ? item.username.charAt(0).toUpperCase() : '?'}
-                        </div>
-                        <div>
-                          <span className="font-heading font-bold text-xl text-[#2d2d2d] group-hover:text-[#ff4d4d] transition-colors">
-                            {item.username}
-                          </span>
-                          <span className="text-[#2d2d2d]/70 text-sm ml-2 font-semibold">
-                            {isTv ? 'reviewed a TV Show' : 'reviewed a movie'}
-                          </span>
-                        </div>
-                      </Link>
-
-                      <time className="text-xs font-bold bg-[#e5e0d8] border border-[#2d2d2d] px-2.5 py-1 rounded-full">
-                        {new Date(item.updated_at || item.created_at).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </time>
-                    </div>
-
-                    {/* Title Link */}
+              return (
+                <div 
+                  key={index} 
+                  className="card bg-[#1E1E1E] border border-[#333333] p-5 rounded space-y-3"
+                >
+                  {/* Feed Item Header */}
+                  <div className="flex items-center justify-between border-b border-[#333333] pb-3">
                     <Link 
-                      href={linkHref} 
-                      className="inline-flex items-center gap-2 mb-3 group"
+                      href={`/profile/${item.username}`} 
+                      className="flex items-center gap-2.5 group"
                     >
-                      {isTv ? (
-                        <Tv className="w-6 h-6 text-[#2d5da1] stroke-[2.5]" />
-                      ) : (
-                        <Film className="w-6 h-6 text-[#ff4d4d] stroke-[2.5]" />
-                      )}
-                      <h3 className="text-2xl font-heading font-bold text-[#2d5da1] group-hover:text-[#ff4d4d] transition-colors underline decoration-wavy decoration-[#ff4d4d]/40">
-                        {title}
-                      </h3>
+                      <div className="w-8 h-8 bg-[#00FF66] text-[#121212] rounded-full flex items-center justify-center text-xs font-bold">
+                        {item.username ? item.username.charAt(0).toUpperCase() : '?'}
+                      </div>
+                      <div>
+                        <span className="font-bold text-sm text-[#EDEDED] group-hover:text-[#00FF66] transition-colors">
+                          {item.username}
+                        </span>
+                        <span className="text-[#A0A0A0] text-xs ml-1.5">
+                          {isTv ? 'logged a TV Show' : 'logged a movie'}
+                        </span>
+                      </div>
                     </Link>
 
-                    {/* Rating */}
-                    {item.rating > 0 && (
-                      <div className="flex items-center gap-3 mb-4">
-                        <StarRating rating={item.rating} maxStars={10} readOnly size="medium" />
-                      </div>
-                    )}
-
-                    {/* Review Text */}
-                    {item.review && item.review.trim().length > 0 && (
-                      <div className="bg-[#fdfbf7] border-3 border-[#2d2d2d] p-4 rounded-[15px_225px_15px_255px/255px_15px_225px_15px] shadow-[3px_3px_0px_#2d2d2d] mb-4 relative">
-                        <p className="text-xl text-[#2d2d2d] font-body leading-relaxed italic">
-                          &ldquo;{item.review}&rdquo;
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-3 pt-2">
-                      <Link 
-                        href={linkHref}
-                        className="btn btn-secondary text-sm flex items-center gap-1.5"
-                      >
-                        <Eye className="w-4 h-4 stroke-[2.5]" />
-                        <span>View Details</span>
-                      </Link>
-                      <Link 
-                        href={`/profile/${item.username}`}
-                        className="btn btn-ghost text-sm flex items-center gap-1.5"
-                      >
-                        <User className="w-4 h-4 stroke-[2.5]" />
-                        <span>View Profile</span>
-                      </Link>
-                    </div>
+                    <time className="text-[10px] text-[#A0A0A0] font-medium bg-[#121212] border border-[#333333] px-2 py-0.5 rounded">
+                      {new Date(item.updated_at || item.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </time>
                   </div>
-                );
-              })}
-            </div>
-          </>
-        ) : (
-          <div className="card-postit text-center py-12 px-6">
-            <h2 className="text-3xl font-heading font-bold mb-3 text-[#2d2d2d]">
-              Your Feed is Empty!
-            </h2>
-            <p className="text-xl text-[#2d2d2d]/80 max-w-md mx-auto mb-8 leading-relaxed">
-              Follow other enthusiasts to see their movie & TV show reviews here.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/" className="btn btn-primary text-lg">
-                Discover Content
-              </Link>
-              <Link href="/users" className="btn btn-secondary text-lg">
-                Find Community Members
-              </Link>
-            </div>
+
+                  {/* Title Link */}
+                  <Link 
+                    href={linkHref} 
+                    className="inline-flex items-center gap-2 group"
+                  >
+                    {isTv ? (
+                      <Tv className="w-4 h-4 text-[#00FF66]" />
+                    ) : (
+                      <Film className="w-4 h-4 text-[#00FF66]" />
+                    )}
+                    <h3 className="text-base font-bold text-[#EDEDED] group-hover:text-[#00FF66] transition-colors">
+                      {title}
+                    </h3>
+                  </Link>
+
+                  {/* Rating */}
+                  {item.rating > 0 && (
+                    <div className="flex items-center gap-2">
+                      <StarRating rating={item.rating} maxStars={10} readOnly size="small" />
+                    </div>
+                  )}
+
+                  {/* Review Text */}
+                  {item.review && item.review.trim().length > 0 && (
+                    <div className="bg-[#121212] border border-[#333333] p-3 rounded text-xs text-[#EDEDED]/90 italic">
+                      &ldquo;{item.review}&rdquo;
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <Link 
+                      href={linkHref}
+                      className="btn btn-secondary text-xs py-1 px-3 flex items-center gap-1"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-[#00FF66]" />
+                      <span>Details</span>
+                    </Link>
+                    <Link 
+                      href={`/profile/${item.username}`}
+                      className="btn btn-ghost text-xs py-1 px-3 flex items-center gap-1"
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      <span>Profile</span>
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        )}
-      </div>
+        </>
+      ) : (
+        <div className="card bg-[#1E1E1E] border border-[#333333] text-center py-10 px-6">
+          <h2 className="text-base font-bold text-[#EDEDED] mb-2">
+            Your Feed is Empty
+          </h2>
+          <p className="text-xs text-[#A0A0A0] max-w-md mx-auto mb-4">
+            Follow other community members to view their movie and TV logs.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <Link href="/" className="btn btn-primary text-xs py-2 px-4">
+              Discover Content
+            </Link>
+            <Link href="/users" className="btn btn-secondary text-xs py-2 px-4">
+              Explore Community
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

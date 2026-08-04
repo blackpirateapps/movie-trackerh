@@ -6,7 +6,7 @@ import api from '@/lib/api';
 import MovieCard from '@/components/MovieCard';
 import TVShowCard from '@/components/TVShowCard';
 import { Movie, TVShow } from '@/types';
-import { Search, Flame, Sparkles, ArrowRight, Film, Tv } from 'lucide-react';
+import { Search, Flame, ArrowRight, Film, Tv } from 'lucide-react';
 
 export default function Home() {
   const [searchType, setSearchType] = useState<'movie' | 'tv'>('movie');
@@ -27,10 +27,10 @@ export default function Home() {
           api.get<TVShow[]>('/api/tv?query=popular')
         ]);
         if (Array.isArray(movieRes.data)) {
-          setTrendingMovies(movieRes.data.slice(0, 8));
+          setTrendingMovies(movieRes.data.slice(0, 12));
         }
         if (Array.isArray(tvRes.data)) {
-          setTrendingTv(tvRes.data.slice(0, 8));
+          setTrendingTv(tvRes.data.slice(0, 12));
         }
       } catch (error) {
         console.error('Failed to load trending items', error);
@@ -62,88 +62,75 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen pb-16">
+    <div className="min-h-screen pb-16 bg-[#121212] text-[#EDEDED]">
       {/* Hero Section */}
-      <section className="relative py-16 md:py-24 px-4 overflow-hidden">
-        <div className="max-w-4xl mx-auto text-center relative z-10">
+      <section className="relative py-12 md:py-16 px-4 border-b border-[#333333] bg-[#1E1E1E]/50">
+        <div className="max-w-4xl mx-auto text-center relative z-10 space-y-4">
           
-          {/* Tagline Badge */}
-          <div className="inline-flex items-center gap-2 bg-[#fff9c4] border-2 border-[#2d2d2d] rounded-[255px_15px_225px_15px/15px_225px_15px_255px] px-4 py-1 mb-6 shadow-[3px_3px_0px_#2d2d2d] -rotate-1">
-            <Sparkles className="w-4 h-4 text-[#ff4d4d] stroke-[2.5]" />
-            <span className="font-bold text-sm text-[#2d2d2d] tracking-wide">
-              Your Personal Hand-Drawn Cinema & TV Journal
-            </span>
-          </div>
+          {/* Metadata Tagline */}
+          <span className="text-xs uppercase font-bold text-[#00FF66] tracking-widest block">
+            DATA-DENSE MEDIA TRACKING SYSTEM
+          </span>
 
-          <h1 className="text-5xl md:text-7xl font-heading font-bold mb-6 text-[#2d2d2d] leading-tight">
-            Track Movies &{' '}
-            <span className="relative inline-block text-[#ff4d4d] underline decoration-wavy decoration-[#2d5da1] decoration-3">
-              TV Shows
-            </span>
-            <span className="inline-block animate-bounce ml-2">!</span>
+          <h1 className="text-3xl md:text-5xl font-bold text-[#EDEDED] tracking-tight leading-tight">
+            Track Movies & <span className="text-[#00FF66]">TV Shows</span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-[#2d2d2d]/80 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Discover films and series, track episode progress, review seasons, and share your watch history with friends.
+          <p className="text-sm md:text-base text-[#A0A0A0] max-w-xl mx-auto leading-relaxed">
+            Minimalist media tracker. Rate films, log seasons, track individual episodes, and analyze watch history.
           </p>
           
-          {/* Post-it Search Form */}
-          <div className="relative max-w-2xl mx-auto">
-            <div className="thumbtack" />
-
-            <div className="card-postit">
-              {/* Search Type Switcher */}
-              <div className="flex items-center justify-center gap-3 mb-4">
+          {/* Search Bar */}
+          <div className="max-w-2xl mx-auto pt-2">
+            <div className="card-surface p-4 border border-[#333333]">
+              {/* Type Switcher */}
+              <div className="flex items-center justify-center gap-2 mb-3">
                 <button
                   type="button"
                   onClick={() => setSearchType('movie')}
-                  className={`btn text-sm py-1.5 px-4 flex items-center gap-2 border-2 ${
-                    searchType === 'movie' 
-                      ? 'bg-[#ff4d4d] text-white border-[#2d2d2d]' 
-                      : 'bg-white text-[#2d2d2d] border-[#2d2d2d]'
+                  className={`btn text-xs py-1 px-3 ${
+                    searchType === 'movie' ? 'btn-primary' : 'btn-ghost'
                   }`}
                 >
-                  <Film className="w-4 h-4 stroke-[2.5]" />
+                  <Film className="w-3.5 h-3.5" />
                   <span>Movies</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setSearchType('tv')}
-                  className={`btn text-sm py-1.5 px-4 flex items-center gap-2 border-2 ${
-                    searchType === 'tv' 
-                      ? 'bg-[#2d5da1] text-white border-[#2d2d2d]' 
-                      : 'bg-white text-[#2d2d2d] border-[#2d2d2d]'
+                  className={`btn text-xs py-1 px-3 ${
+                    searchType === 'tv' ? 'btn-primary' : 'btn-ghost'
                   }`}
                 >
-                  <Tv className="w-4 h-4 stroke-[2.5]" />
+                  <Tv className="w-3.5 h-3.5" />
                   <span>TV Shows</span>
                 </button>
               </div>
 
-              <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
+              <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
                 <div className="relative flex-1">
                   <input
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder={searchType === 'movie' ? "Search movies..." : "Search TV shows, series..."}
-                    className="form-input text-lg py-3.5 pr-4 pl-12"
+                    placeholder={searchType === 'movie' ? "Search movies..." : "Search TV shows..."}
+                    className="form-input text-sm py-2.5 pr-4 pl-10"
                   />
-                  <Search className="w-5 h-5 stroke-[2.5] text-[#2d2d2d]/50 absolute left-4 top-1/2 -translate-y-1/2" />
+                  <Search className="w-4 h-4 text-[#A0A0A0] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 </div>
 
                 <button 
                   type="submit" 
                   disabled={loading}
-                  className="btn btn-primary px-8 py-3.5 text-lg flex items-center justify-center gap-2"
+                  className="btn btn-primary px-5 py-2.5 text-xs flex items-center justify-center gap-1.5"
                 >
                   {loading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-3 border-white" />
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#121212] border-t-transparent" />
                   ) : (
                     <>
-                      <span>Search</span>
-                      <ArrowRight className="w-5 h-5 stroke-[3]" />
+                      <span>SEARCH</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </>
                   )}
                 </button>
@@ -154,18 +141,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Search Results */}
+      {/* Search Results Grid */}
       {(movieResults.length > 0 || tvResults.length > 0) && (
-        <section className="py-12 px-4 max-w-7xl mx-auto">
-          <div className="relative card mb-10">
-            <div className="tape-strip" />
-            <h2 className="text-3xl md:text-4xl font-heading font-bold flex items-center gap-3">
-              <Search className="w-8 h-8 stroke-[3] text-[#2d5da1]" />
-              Search Results ({movieResults.length || tvResults.length})
-            </h2>
-          </div>
+        <section className="py-8 px-4 max-w-6xl mx-auto">
+          <h2 className="text-lg font-bold mb-4 text-[#EDEDED] flex items-center gap-2">
+            <Search className="w-4 h-4 text-[#00FF66]" />
+            Search Results ({movieResults.length || tvResults.length})
+          </h2>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-4">
             {movieResults.map(movie => (
               <Link key={movie.id} href={`/movie/${movie.id}`}>
                 <MovieCard movie={movie} />
@@ -180,22 +164,20 @@ export default function Home() {
         </section>
       )}
 
-      {/* Trending Section */}
-      <section className="py-12 px-4 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-[#ff4d4d] text-white border-3 border-[#2d2d2d] rounded-full flex items-center justify-center shadow-[3px_3px_0px_#2d2d2d] -rotate-6">
-              <Flame className="w-6 h-6 stroke-[2.5]" />
-            </div>
-            <h2 className="text-3xl md:text-4xl font-heading font-bold text-[#2d2d2d]">
-              Trending Entertainment
+      {/* Trending Media Grid */}
+      <section className="py-8 px-4 max-w-6xl mx-auto">
+        <div className="flex flex-row items-center justify-between gap-4 mb-4 pb-2 border-b border-[#333333]">
+          <div className="flex items-center gap-2">
+            <Flame className="w-4 h-4 text-[#00FF66]" />
+            <h2 className="text-base font-bold text-[#EDEDED] uppercase tracking-wider text-xs">
+              Trending Releases
             </h2>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setTrendingTab('movie')}
-              className={`btn text-xs py-1.5 px-3 border-2 ${
+              className={`btn text-xs py-1 px-2.5 ${
                 trendingTab === 'movie' ? 'btn-primary' : 'btn-ghost'
               }`}
             >
@@ -203,7 +185,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => setTrendingTab('tv')}
-              className={`btn text-xs py-1.5 px-3 border-2 ${
+              className={`btn text-xs py-1 px-2.5 ${
                 trendingTab === 'tv' ? 'btn-primary' : 'btn-ghost'
               }`}
             >
@@ -213,7 +195,7 @@ export default function Home() {
         </div>
 
         {trendingTab === 'movie' ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-4">
             {trendingMovies.map(movie => (
               <Link key={movie.id} href={`/movie/${movie.id}`}>
                 <MovieCard movie={movie} />
@@ -221,7 +203,7 @@ export default function Home() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-4">
             {trendingTv.map(show => (
               <Link key={show.id} href={`/tv/${show.id}`}>
                 <TVShowCard show={show} />

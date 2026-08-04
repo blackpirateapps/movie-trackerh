@@ -18,96 +18,92 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="bg-[#fdfbf7] border-b-[3px] border-[#2d2d2d] sticky top-0 z-50 shadow-[0_4px_0_0_#2d2d2d]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+    <nav className="sticky top-0 z-50 bg-[#121212]/90 backdrop-blur-md border-b border-[#333333] h-16 flex items-center">
+      <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
           
-          {/* Hand-sketched Brand Logo */}
+          {/* Brand Logo */}
           <Link 
             href="/" 
-            className="flex items-center gap-3 group transition-transform hover:-rotate-1"
+            className="flex items-center gap-2.5 group"
           >
-            <div className="w-11 h-11 bg-[#fff9c4] border-3 border-[#2d2d2d] rounded-[255px_15px_225px_15px/15px_225px_15px_255px] flex items-center justify-center shadow-[3px_3px_0px_#2d2d2d] group-hover:bg-[#ff4d4d] group-hover:text-white transition-all">
-              <Film className="w-6 h-6 stroke-[2.5]" />
+            <div className="w-8 h-8 bg-[#00FF66] text-[#121212] rounded flex items-center justify-center font-bold">
+              <Film className="w-4 h-4 stroke-[2.5]" />
             </div>
-            <span className="font-heading font-bold text-2xl md:text-3xl text-[#2d2d2d] tracking-tight">
-              Cine<span className="text-[#ff4d4d]">Tracker</span>
+            <span className="font-bold text-xl text-[#EDEDED] tracking-tight">
+              Cine<span className="text-[#00FF66]">Tracker</span>
             </span>
           </Link>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden md:flex items-center gap-6 font-semibold text-lg">
+          <div className="hidden md:flex items-center gap-6 font-medium text-sm">
             <Link 
               href="/" 
-              className="flex items-center gap-2 px-3 py-1 text-[#2d2d2d] hover:text-[#ff4d4d] transition-colors relative group"
+              className="flex items-center gap-2 text-[#A0A0A0] hover:text-[#EDEDED] transition-colors"
             >
-              <Home className="w-4 h-4 stroke-[2.5]" />
+              <Home className="w-4 h-4" />
               <span>Home</span>
-              <span className="absolute bottom-0 left-0 w-0 h-1 bg-[#ff4d4d] transition-all group-hover:w-full rounded-full"></span>
             </Link>
 
             <Link 
               href="/users" 
-              className="flex items-center gap-2 px-3 py-1 text-[#2d2d2d] hover:text-[#2d5da1] transition-colors relative group"
+              className="flex items-center gap-2 text-[#A0A0A0] hover:text-[#EDEDED] transition-colors"
             >
-              <Users className="w-4 h-4 stroke-[2.5]" />
+              <Users className="w-4 h-4" />
               <span>Community</span>
-              <span className="absolute bottom-0 left-0 w-0 h-1 bg-[#2d5da1] transition-all group-hover:w-full rounded-full"></span>
             </Link>
 
             {user && (
               <Link 
                 href="/feed" 
-                className="flex items-center gap-2 px-3 py-1 text-[#2d2d2d] hover:text-[#ff4d4d] transition-colors relative group"
+                className="flex items-center gap-2 text-[#A0A0A0] hover:text-[#EDEDED] transition-colors"
               >
-                <Rss className="w-4 h-4 stroke-[2.5]" />
+                <Rss className="w-4 h-4" />
                 <span>Activity Feed</span>
-                <span className="absolute bottom-0 left-0 w-0 h-1 bg-[#ff4d4d] transition-all group-hover:w-full rounded-full"></span>
               </Link>
             )}
 
             {user && (
               <Link 
                 href="/import" 
-                className="flex items-center gap-2 px-3 py-1 text-[#2d2d2d] hover:text-[#2d5da1] transition-colors relative group"
+                className="flex items-center gap-2 text-[#A0A0A0] hover:text-[#EDEDED] transition-colors"
               >
-                <FileUp className="w-4 h-4 stroke-[2.5]" />
+                <FileUp className="w-4 h-4" />
                 <span>Import CSV</span>
-                <span className="absolute bottom-0 left-0 w-0 h-1 bg-[#2d5da1] transition-all group-hover:w-full rounded-full"></span>
               </Link>
             )} 
           </div>
 
           {/* Desktop User Menu / Auth Buttons */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-3">
             {user ? (
               <div className="flex items-center gap-3">
                 <Link 
                   href={`/profile/${user.username}`}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-[#e5e0d8] border-2 border-[#2d2d2d] rounded-[255px_15px_225px_15px/15px_225px_15px_255px] shadow-[2px_2px_0px_#2d2d2d] hover:bg-[#fff9c4] transition-all"
+                  className="flex items-center gap-2 px-3 py-1 bg-[#1E1E1E] border border-[#333333] rounded hover:bg-[#2A2A2A] transition-colors text-sm font-medium"
                 >
-                  <div className="w-7 h-7 bg-[#ff4d4d] text-white border border-[#2d2d2d] rounded-full flex items-center justify-center font-heading text-sm font-bold">
+                  <div className="w-5 h-5 bg-[#00FF66] text-[#121212] rounded-full flex items-center justify-center text-xs font-bold">
                     {user.username.charAt(0).toUpperCase()}
                   </div>
-                  <span className="font-bold text-[#2d2d2d] text-base">{user.username}</span>
+                  <span className="text-[#EDEDED]">{user.username}</span>
                 </Link>
                 <button 
                   onClick={handleLogout}
-                  className="btn btn-ghost text-base flex items-center gap-1.5"
+                  className="btn btn-ghost text-xs py-1.5 px-3 flex items-center gap-1.5"
                   title="Logout"
                 >
-                  <LogOut className="w-4 h-4 stroke-[2.5]" />
+                  <LogOut className="w-3.5 h-3.5" />
                   <span>Logout</span>
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
-                <Link href="/login" className="btn btn-secondary text-base">
-                  <LogIn className="w-4 h-4 stroke-[2.5]" />
+              <div className="flex items-center gap-2">
+                <Link href="/login" className="btn btn-secondary text-xs py-1.5 px-3">
+                  <LogIn className="w-3.5 h-3.5" />
                   Login
                 </Link>
-                <Link href="/signup" className="btn btn-primary text-base">
-                  <UserPlus className="w-4 h-4 stroke-[2.5]" />
+                <Link href="/signup" className="btn btn-primary text-xs py-1.5 px-3">
+                  <UserPlus className="w-3.5 h-3.5" />
                   Sign Up
                 </Link>
               </div>
@@ -118,13 +114,13 @@ const Navbar: React.FC = () => {
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 border-2 border-[#2d2d2d] rounded-[15px_225px_15px_255px/255px_15px_225px_15px] bg-[#fff9c4] shadow-[2px_2px_0px_#2d2d2d]"
+              className="p-2 border border-[#333333] rounded bg-[#1E1E1E] text-[#EDEDED]"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? (
-                <X className="w-6 h-6 stroke-[3]" />
+                <X className="w-5 h-5" />
               ) : (
-                <Menu className="w-6 h-6 stroke-[3]" />
+                <Menu className="w-5 h-5" />
               )}
             </button>
           </div>
@@ -132,30 +128,30 @@ const Navbar: React.FC = () => {
 
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t-2 border-[#2d2d2d] space-y-3 bg-[#fdfbf7] animate-fade-in">
+          <div className="md:hidden py-4 border-t border-[#333333] space-y-3 bg-[#121212] animate-in fade-in duration-150">
             <Link 
               href="/" 
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-3 px-4 py-2 font-semibold text-lg hover:bg-[#e5e0d8] rounded-lg"
+              className="flex items-center gap-3 px-3 py-2 font-medium text-sm text-[#A0A0A0] hover:text-[#EDEDED] hover:bg-[#1E1E1E] rounded"
             >
-              <Home className="w-5 h-5 stroke-[2.5]" />
+              <Home className="w-4 h-4" />
               Home
             </Link>
             <Link 
               href="/users" 
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-3 px-4 py-2 font-semibold text-lg hover:bg-[#e5e0d8] rounded-lg"
+              className="flex items-center gap-3 px-3 py-2 font-medium text-sm text-[#A0A0A0] hover:text-[#EDEDED] hover:bg-[#1E1E1E] rounded"
             >
-              <Users className="w-5 h-5 stroke-[2.5]" />
+              <Users className="w-4 h-4" />
               Community
             </Link>
             {user && (
               <Link 
                 href="/feed" 
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-2 font-semibold text-lg hover:bg-[#e5e0d8] rounded-lg"
+                className="flex items-center gap-3 px-3 py-2 font-medium text-sm text-[#A0A0A0] hover:text-[#EDEDED] hover:bg-[#1E1E1E] rounded"
               >
-                <Rss className="w-5 h-5 stroke-[2.5]" />
+                <Rss className="w-4 h-4" />
                 Activity Feed
               </Link>
             )}
@@ -163,22 +159,22 @@ const Navbar: React.FC = () => {
               <Link 
                 href="/import" 
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-2 font-semibold text-lg hover:bg-[#e5e0d8] rounded-lg"
+                className="flex items-center gap-3 px-3 py-2 font-medium text-sm text-[#A0A0A0] hover:text-[#EDEDED] hover:bg-[#1E1E1E] rounded"
               >
-                <FileUp className="w-5 h-5 stroke-[2.5]" />
+                <FileUp className="w-4 h-4" />
                 Import CSV
               </Link>
             )}
             
-            <div className="pt-3 border-t border-[#2d2d2d]/30 px-4">
+            <div className="pt-3 border-t border-[#333333] px-3">
               {user ? (
                 <div className="space-y-3">
                   <Link 
                     href={`/profile/${user.username}`}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 py-2 font-bold text-lg"
+                    className="flex items-center gap-2 py-2 font-medium text-sm text-[#EDEDED]"
                   >
-                    <div className="w-8 h-8 bg-[#ff4d4d] text-white border border-[#2d2d2d] rounded-full flex items-center justify-center font-heading text-sm font-bold">
+                    <div className="w-6 h-6 bg-[#00FF66] text-[#121212] rounded-full flex items-center justify-center text-xs font-bold">
                       {user.username.charAt(0).toUpperCase()}
                     </div>
                     {user.username} (View Profile)
@@ -188,9 +184,9 @@ const Navbar: React.FC = () => {
                       handleLogout();
                       setMobileMenuOpen(false);
                     }}
-                    className="btn btn-secondary w-full text-base flex items-center justify-center gap-2"
+                    className="btn btn-secondary w-full text-xs py-2 flex items-center justify-center gap-2"
                   >
-                    <LogOut className="w-4 h-4 stroke-[2.5]" />
+                    <LogOut className="w-4 h-4" />
                     Logout
                   </button>
                 </div>
@@ -199,14 +195,14 @@ const Navbar: React.FC = () => {
                   <Link 
                     href="/login" 
                     onClick={() => setMobileMenuOpen(false)}
-                    className="btn btn-secondary w-full text-base"
+                    className="btn btn-secondary w-full text-xs py-2"
                   >
                     Login
                   </Link>
                   <Link 
                     href="/signup" 
                     onClick={() => setMobileMenuOpen(false)}
-                    className="btn btn-primary w-full text-base"
+                    className="btn btn-primary w-full text-xs py-2"
                   >
                     Sign Up
                   </Link>

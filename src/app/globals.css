@@ -1,240 +1,181 @@
-@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Patrick+Hand&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
 @theme {
-  --font-heading: 'Kalam', cursive, sans-serif;
-  --font-body: 'Patrick Hand', cursive, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 
-  --color-paper: #fdfbf7;
-  --color-pencil: #2d2d2d;
-  --color-paper-muted: #e5e0d8;
-  --color-marker-red: #ff4d4d;
-  --color-pen-blue: #2d5da1;
-  --color-postit: #fff9c4;
-
-  --shadow-hand-sm: 2px 2px 0px 0px #2d2d2d;
-  --shadow-hand: 4px 4px 0px 0px #2d2d2d;
-  --shadow-hand-lg: 8px 8px 0px 0px #2d2d2d;
+  /* Design Tokens from design2.md */
+  --color-bg-base: #121212;
+  --color-bg-surface: #1E1E1E;
+  --color-bg-hover: #2A2A2A;
+  --color-border-subtle: #333333;
+  --color-text-main: #EDEDED;
+  --color-text-muted: #A0A0A0;
+  --color-accent: #00FF66;
+  --color-accent-hover: #00CC52;
 }
 
 @layer base {
   html {
-    font-family: 'Patrick Hand', cursive, system-ui, sans-serif;
-    color: #2d2d2d;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #EDEDED;
+    background-color: #121212;
   }
   
   body {
-    background-color: #fdfbf7;
-    background-image: radial-gradient(#e5e0d8 1.5px, transparent 1.5px);
-    background-size: 24px 24px;
-    color: #2d2d2d;
-    font-family: 'Patrick Hand', cursive, system-ui, sans-serif;
+    background-color: #121212;
+    color: #EDEDED;
+    font-family: 'Inter', system-ui, sans-serif;
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Kalam', cursive, sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 700;
-    color: #2d2d2d;
+    color: #EDEDED;
   }
 }
 
 @layer components {
-  /* Wobbly Hand-Drawn Borders */
-  .wobbly-border {
-    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
-  }
-  
-  .wobbly-border-alt {
-    border-radius: 15px 225px 15px 255px / 255px 15px 225px 15px;
-  }
-
-  .wobbly-border-md {
-    border-radius: 20px 255px 20px 255px / 255px 20px 255px 20px;
+  /* Utilitarian Dark Cards */
+  .card {
+    background-color: #1E1E1E;
+    border: 1px solid #333333;
+    border-radius: 4px;
+    padding: 1.25rem;
+    position: relative;
   }
 
-  .wobbly-border-lg {
-    border-radius: 255px 25px 225px 25px / 25px 225px 25px 255px;
+  .card-postit, .card-surface {
+    background-color: #1E1E1E;
+    border: 1px solid #333333;
+    border-radius: 4px;
+    padding: 1.25rem;
+    position: relative;
   }
 
-  /* Buttons */
+  /* Utilitarian Minimalist Buttons */
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.625rem 1.25rem;
-    font-family: 'Patrick Hand', cursive, sans-serif;
-    font-size: 1.125rem;
+    padding: 0.5rem 1rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
     font-weight: 600;
-    line-height: 1.2;
-    border-width: 3px;
-    border-color: #2d2d2d;
-    border-style: solid;
-    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
-    background-color: #ffffff;
-    color: #2d2d2d;
-    box-shadow: 4px 4px 0px 0px #2d2d2d;
-    transition: all 0.1s ease-in-out;
+    line-height: 1.25;
+    border-radius: 4px;
+    transition: all 0.15s ease;
     cursor: pointer;
     user-select: none;
+    outline: none;
   }
 
-  .btn:hover:not(:disabled) {
-    background-color: #ff4d4d;
-    color: #ffffff;
-    box-shadow: 2px 2px 0px 0px #2d2d2d;
-    transform: translate(2px, 2px);
-  }
-
-  .btn:active:not(:disabled) {
-    box-shadow: 0px 0px 0px 0px #2d2d2d;
-    transform: translate(4px, 4px);
+  .btn:focus-visible {
+    outline: 2px solid #00FF66;
+    outline-offset: 2px;
   }
 
   .btn:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
   }
 
   .btn-primary {
-    background-color: #ff4d4d;
-    color: #ffffff;
+    background-color: #00FF66;
+    color: #121212;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid #00FF66;
   }
 
   .btn-primary:hover:not(:disabled) {
-    background-color: #e03a3a;
-    color: #ffffff;
+    background-color: #00CC52;
+    border-color: #00CC52;
+    color: #121212;
   }
 
   .btn-secondary {
-    background-color: #e5e0d8;
-    color: #2d2d2d;
+    background-color: #1E1E1E;
+    color: #EDEDED;
+    border: 1px solid #333333;
+    font-weight: 500;
   }
 
   .btn-secondary:hover:not(:disabled) {
-    background-color: #2d5da1;
-    color: #ffffff;
+    background-color: #2A2A2A;
+    border-color: #333333;
+    color: #EDEDED;
   }
 
   .btn-ghost {
     background-color: transparent;
-    border-color: transparent;
-    box-shadow: none;
+    color: #A0A0A0;
+    border: 1px solid #333333;
   }
 
   .btn-ghost:hover:not(:disabled) {
-    background-color: #e5e0d8;
-    border-color: #2d2d2d;
-    color: #2d2d2d;
-    box-shadow: 2px 2px 0px 0px #2d2d2d;
-    transform: translate(-1px, -1px);
+    background-color: #2A2A2A;
+    color: #EDEDED;
   }
 
   .btn-postit {
-    background-color: #fff9c4;
-    color: #2d2d2d;
+    background-color: #2A2A2A;
+    color: #EDEDED;
+    border: 1px solid #333333;
   }
 
   .btn-postit:hover:not(:disabled) {
-    background-color: #2d5da1;
-    color: #ffffff;
+    background-color: #333333;
   }
 
-  /* Form Inputs */
+  /* High-Contrast Dark Form Inputs */
   .form-input {
     width: 100%;
-    padding: 0.75rem 1rem;
-    font-family: 'Patrick Hand', cursive, sans-serif;
-    font-size: 1.125rem;
-    color: #2d2d2d;
-    background-color: #ffffff;
-    border: 3px solid #2d2d2d;
-    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
-    box-shadow: 3px 3px 0px 0px #2d2d2d;
+    padding: 0.625rem 0.875rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+    color: #EDEDED;
+    background-color: #1E1E1E;
+    border: 1px solid #333333;
+    border-radius: 4px;
     outline: none;
-    transition: all 0.15s ease-in-out;
+    transition: border-color 0.15s ease;
   }
 
   .form-input::placeholder {
-    color: rgba(45, 45, 45, 0.45);
+    color: #A0A0A0;
   }
 
   .form-input:focus {
-    border-color: #2d5da1;
-    box-shadow: 4px 4px 0px 0px #2d5da1;
-    transform: translate(-1px, -1px);
-  }
-
-  /* Hand-drawn Cards */
-  .card {
-    background-color: #ffffff;
-    border: 3px solid #2d2d2d;
-    border-radius: 20px 255px 20px 255px / 255px 20px 255px 20px;
-    box-shadow: 4px 4px 0px 0px #2d2d2d;
-    padding: 1.5rem;
-    position: relative;
-    transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-  }
-
-  .card-postit {
-    background-color: #fff9c4;
-    border: 3px solid #2d2d2d;
-    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
-    box-shadow: 5px 5px 0px 0px #2d2d2d;
-    padding: 1.5rem;
-    position: relative;
-  }
-
-  /* Tape decoration */
-  .tape-strip {
-    position: absolute;
-    top: -12px;
-    left: 50%;
-    transform: translateX(-50%) rotate(-2deg);
-    width: 90px;
-    height: 24px;
-    background-color: rgba(229, 224, 216, 0.85);
-    border: 1px dashed rgba(45, 45, 45, 0.3);
-    box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.08);
-    z-index: 10;
-    pointer-events: none;
-  }
-
-  /* Thumbtack decoration */
-  .thumbtack {
-    position: absolute;
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 18px;
-    height: 18px;
-    background-color: #ff4d4d;
-    border: 2px solid #2d2d2d;
-    border-radius: 50%;
-    box-shadow: 2px 2px 0px 0px #2d2d2d;
-    z-index: 10;
-    pointer-events: none;
+    border-color: #00FF66;
+    outline: 2px solid #00FF66;
+    outline-offset: 1px;
   }
 }
 
 @layer utilities {
   .text-marker {
-    background: linear-gradient(180deg, transparent 60%, #fff9c4 60%);
+    background: transparent;
+    color: #00FF66;
     display: inline;
   }
 
   .text-marker-red {
-    background: linear-gradient(180deg, transparent 60%, #ff4d4d33 60%);
+    background: transparent;
+    color: #ff4d4d;
     display: inline;
   }
 
-  .wavy-underline {
-    text-decoration-line: underline;
-    text-decoration-style: wavy;
-    text-decoration-color: #ff4d4d;
-    text-underline-offset: 4px;
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .line-clamp-2 {
@@ -252,22 +193,21 @@
   }
 }
 
-/* Custom scrollbar matching pencil aesthetic */
+/* Custom Minimal Dark Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #fdfbf7;
-  border-left: 2px solid #2d2d2d;
+  background: #121212;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #e5e0d8;
-  border: 2px solid #2d2d2d;
-  border-radius: 10px;
+  background: #333333;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #ff4d4d;
+  background: #00FF66;
 }
