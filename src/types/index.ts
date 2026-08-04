@@ -92,7 +92,7 @@ export interface TVShow {
     watched_where?: string[];
     created_at?: string;
   } | null;
-  userEpisodes?: Record<string, { watched: boolean; rating?: number }>;
+  userEpisodes?: Record<string, { watched: boolean; rating?: number; watched_date?: string }>;
   reviews?: TVShowReview[];
   // For profile list view
   rating?: number;

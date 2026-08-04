@@ -239,9 +239,9 @@ The database relies on Turso (SQLite/LibSQL).
   - Default (Track TV Show): Body: `{ tvShowId, rating, review, isFavorite, startDate, endDate, watchedWhere }`. Upserts into `user_tv_shows`.
   - `action: 'favorite'`: Body: `{ tvShowId, isFavorite }`. Toggles favorite in `user_tv_shows`.
   - `action: 'delete'`: Body: `{ tvShowId }`. Removes show from user's collection and clears episode tracking records.
-  - `action: 'mark_show_watched'`: Body: `{ tvShowId }`. Bulk marks all seasons and episodes for this show as watched in `user_episodes`.
-  - `action: 'mark_season_watched'`: Body: `{ tvShowId, seasonNumber }`. Bulk marks all episodes in the target season as watched in `user_episodes`.
-  - `action: 'episode_watched'`: Body: `{ tvShowId, seasonNumber, episodeNumber, watched, rating }`. Upserts into `user_episodes`.
+  - `action: 'mark_show_watched'`: Body: `{ tvShowId, watchedDate }`. Bulk marks all seasons and episodes for this show as watched with the specified date in `user_episodes`.
+  - `action: 'mark_season_watched'`: Body: `{ tvShowId, seasonNumber, watchedDate }`. Bulk marks all episodes in the target season as watched with the specified date in `user_episodes`.
+  - `action: 'episode_watched'`: Body: `{ tvShowId, seasonNumber, episodeNumber, watched, rating, watchedDate }`. Upserts into `user_episodes`.
 
 ### `/api/auth`
 - `GET`: Validates session cookie. Returns `{ user: { id, username, email } }`.

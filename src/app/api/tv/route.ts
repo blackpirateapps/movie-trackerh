@@ -242,14 +242,15 @@ async function getUserTVTrack(userId: string | number, tvId: string | number) {
 async function getUserEpisodes(userId: string | number, tvId: string | number) {
   try {
     const { rows } = await db.execute({
-      sql: 'SELECT season_number, episode_number, watched, rating FROM user_episodes WHERE user_id = ? AND tv_show_id = ?',
+      sql: 'SELECT season_number, episode_number, watched, watched_date, rating FROM user_episodes WHERE user_id = ? AND tv_show_id = ?',
       args: [userId, tvId],
     });
-    const map: Record<string, { watched: boolean; rating?: number }> = {};
+    const map: Record<string, { watched: boolean; rating?: number; watched_date?: string }> = {};
     for (const r of rows) {
       const key = `${r.season_number}_${r.episode_number}`;
       map[key] = {
         watched: Boolean(r.watched),
+        watched_date: (r.watched_date as string) || undefined,
         rating: (r.rating as number) || undefined
       };
     }
@@ -410,7 +411,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { tvShowId, action, rating, review, isFavorite, startDate, endDate, watchedWhere, seasonNumber, episodeNumber, watched } = body;
+  const { tvShowId, action, rating, review, isFavorite, startDate, endDate, watchedWhere, seasonNumber, episodeNumber, watched, watchedDate } = body;
 
   if (!tvShowId) {
     return NextResponse.json({ message: 'TV Show ID is required.' }, { status: 400 });
@@ -472,7 +473,7 @@ export async function POST(request: NextRequest) {
     }
     try {
       const seasonData = await getAndCacheSeason(tvShowId, seasonNumber);
-      const today = new Date().toISOString().split('T')[0];
+      const targetDate = watchedDate || new Date().toISOString().split('T')[0];
       
       if (Array.isArray(seasonData.episodes) && seasonData.episodes.length > 0) {
         const batchStmts = seasonData.episodes.map((ep: any) => ({
@@ -481,10 +482,10 @@ export async function POST(request: NextRequest) {
             VALUES (?, ?, ?, ?, 1, ?)
             ON CONFLICT(user_id, tv_show_id, season_number, episode_number) DO UPDATE SET
             watched = 1,
-            watched_date = COALESCE(user_episodes.watched_date, excluded.watched_date),
+            watched_date = excluded.watched_date,
             updated_at = CURRENT_TIMESTAMP
           `,
-          args: [authUser.sub, tvShowId, seasonNumber, ep.episode_number, today],
+          args: [authUser.sub, tvShowId, seasonNumber, ep.episode_number, targetDate],
         }));
         await db.batch(batchStmts, 'write');
       }
@@ -500,7 +501,7 @@ export async function POST(request: NextRequest) {
   if (action === 'mark_show_watched') {
     try {
       const show = await getAndCacheTVShow(tvShowId);
-      const today = new Date().toISOString().split('T')[0];
+      const targetDate = watchedDate || new Date().toISOString().split('T')[0];
       const batchStmts: any[] = [];
 
       if (Array.isArray(show.seasons)) {
@@ -516,10 +517,10 @@ export async function POST(request: NextRequest) {
                       VALUES (?, ?, ?, ?, 1, ?)
                       ON CONFLICT(user_id, tv_show_id, season_number, episode_number) DO UPDATE SET
                       watched = 1,
-                      watched_date = COALESCE(user_episodes.watched_date, excluded.watched_date),
+                      watched_date = excluded.watched_date,
                       updated_at = CURRENT_TIMESTAMP
                     `,
-                    args: [authUser.sub, tvShowId, season.season_number, ep.episode_number, today],
+                    args: [authUser.sub, tvShowId, season.season_number, ep.episode_number, targetDate],
                   });
                 }
               }
@@ -540,10 +541,10 @@ export async function POST(request: NextRequest) {
           INSERT INTO user_tv_shows (user_id, tv_show_id, end_date)
           VALUES (?, ?, ?)
           ON CONFLICT(user_id, tv_show_id) DO UPDATE SET
-          end_date = COALESCE(user_tv_shows.end_date, excluded.end_date),
+          end_date = COALESCE(excluded.end_date, user_tv_shows.end_date),
           updated_at = CURRENT_TIMESTAMP
         `,
-        args: [authUser.sub, tvShowId, today],
+        args: [authUser.sub, tvShowId, targetDate],
       });
 
       return NextResponse.json({ message: 'All seasons and episodes marked as watched!' });
@@ -560,7 +561,7 @@ export async function POST(request: NextRequest) {
     }
     try {
       const isWatched = watched !== undefined ? (watched ? 1 : 0) : 1;
-      const today = new Date().toISOString().split('T')[0];
+      const epDate = watchedDate !== undefined ? watchedDate : new Date().toISOString().split('T')[0];
 
       await db.execute({
         sql: `
@@ -569,13 +570,13 @@ export async function POST(request: NextRequest) {
           ON CONFLICT(user_id, tv_show_id, season_number, episode_number) DO UPDATE SET
           watched = excluded.watched,
           watched_date = excluded.watched_date,
-          rating = excluded.rating,
+          rating = COALESCE(excluded.rating, user_episodes.rating),
           updated_at = CURRENT_TIMESTAMP
         `,
-        args: [authUser.sub, tvShowId, seasonNumber, episodeNumber, isWatched, today, rating || null],
+        args: [authUser.sub, tvShowId, seasonNumber, episodeNumber, isWatched, epDate || null, rating || null],
       });
 
-      return NextResponse.json({ message: 'Episode updated successfully.' });
+      return NextResponse.json({ message: 'Episode updated successfully.', watched_date: epDate });
     } catch (error) {
       console.error('Error updating episode:', error);
       return NextResponse.json({ message: 'Failed to update episode.' }, { status: 500 });

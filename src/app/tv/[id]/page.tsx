@@ -42,6 +42,13 @@ export default function TVShowPage() {
   // Episode tracking loading map
   const [epLoadingMap, setEpLoadingMap] = useState<Record<string, boolean>>({});
 
+  // Bulk mark watched date modal state
+  const [bulkDateModal, setBulkDateModal] = useState<{
+    type: 'show' | 'season';
+    seasonNumber?: number;
+  } | null>(null);
+  const [bulkDate, setBulkDate] = useState<string>(new Date().toISOString().split('T')[0]);
+
   const fetchTVShowData = useCallback(async (showSpinner = false) => {
     if (!id) return;
     try {
@@ -156,13 +163,15 @@ export default function TVShowPage() {
     }
   };
 
-  const handleMarkShowAsWatched = async () => {
+  const handleMarkShowAsWatched = async (targetDateString?: string) => {
     if (!user || !id) return;
+    const dateToUse = targetDateString || bulkDate || new Date().toISOString().split('T')[0];
     setMarkShowLoading(true);
     try {
       await api.post('/api/tv', {
         tvShowId: id,
-        action: 'mark_show_watched'
+        action: 'mark_show_watched',
+        watchedDate: dateToUse
       });
       await fetchTVShowData(false);
       if (selectedSeasonNumber) {
@@ -172,17 +181,20 @@ export default function TVShowPage() {
       console.error('Error marking show watched:', err);
     } finally {
       setMarkShowLoading(false);
+      setBulkDateModal(null);
     }
   };
 
-  const handleMarkSeasonAsWatched = async (seasonNum: number) => {
+  const handleMarkSeasonAsWatched = async (seasonNum: number, targetDateString?: string) => {
     if (!user || !id) return;
+    const dateToUse = targetDateString || bulkDate || new Date().toISOString().split('T')[0];
     setMarkSeasonLoading(true);
     try {
       await api.post('/api/tv', {
         tvShowId: id,
         action: 'mark_season_watched',
-        seasonNumber: seasonNum
+        seasonNumber: seasonNum,
+        watchedDate: dateToUse
       });
       await fetchTVShowData(false);
       await fetchSeasonData(seasonNum, false);
@@ -190,6 +202,7 @@ export default function TVShowPage() {
       console.error('Error marking season watched:', err);
     } finally {
       setMarkSeasonLoading(false);
+      setBulkDateModal(null);
     }
   };
 
@@ -207,7 +220,7 @@ export default function TVShowPage() {
     }
   };
 
-  const handleEpisodeWatchedToggle = async (ep: Episode, currentWatched: boolean, currentRating?: number) => {
+  const handleEpisodeWatchedToggle = async (ep: Episode, currentWatched: boolean, currentRating?: number, currentWatchedDate?: string) => {
     if (!user || !id) return;
     const key = `${ep.season_number}_${ep.episode_number}`;
 
@@ -215,13 +228,17 @@ export default function TVShowPage() {
 
     try {
       const nextWatched = !currentWatched;
+      const today = new Date().toISOString().split('T')[0];
+      const dateToUse = nextWatched ? (currentWatchedDate || today) : null;
+
       await api.post('/api/tv', {
         tvShowId: id,
         action: 'episode_watched',
         seasonNumber: ep.season_number,
         episodeNumber: ep.episode_number,
         watched: nextWatched,
-        rating: currentRating || null
+        rating: currentRating || null,
+        watchedDate: dateToUse
       });
 
       // Update local show userEpisodes state
@@ -230,7 +247,8 @@ export default function TVShowPage() {
         const updated = { ...(prev.userEpisodes || {}) };
         updated[key] = {
           watched: nextWatched,
-          rating: currentRating
+          rating: currentRating,
+          watched_date: dateToUse || undefined
         };
         return { ...prev, userEpisodes: updated };
       });
@@ -244,6 +262,9 @@ export default function TVShowPage() {
   const handleEpisodeRatingChange = async (ep: Episode, newRating: number) => {
     if (!user || !id) return;
     const key = `${ep.season_number}_${ep.episode_number}`;
+    const epState = show?.userEpisodes?.[key];
+    const today = new Date().toISOString().split('T')[0];
+    const dateToUse = epState?.watched_date || today;
 
     setEpLoadingMap(prev => ({ ...prev, [key]: true }));
 
@@ -254,7 +275,8 @@ export default function TVShowPage() {
         seasonNumber: ep.season_number,
         episodeNumber: ep.episode_number,
         watched: true,
-        rating: newRating
+        rating: newRating,
+        watchedDate: dateToUse
       });
 
       setShow(prev => {
@@ -262,12 +284,48 @@ export default function TVShowPage() {
         const updated = { ...(prev.userEpisodes || {}) };
         updated[key] = {
           watched: true,
-          rating: newRating
+          rating: newRating,
+          watched_date: dateToUse
         };
         return { ...prev, userEpisodes: updated };
       });
     } catch (err) {
       console.error('Error rating episode:', err);
+    } finally {
+      setEpLoadingMap(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const handleEpisodeDateChange = async (ep: Episode, newDate: string) => {
+    if (!user || !id) return;
+    const key = `${ep.season_number}_${ep.episode_number}`;
+    const epState = show?.userEpisodes?.[key];
+
+    setEpLoadingMap(prev => ({ ...prev, [key]: true }));
+
+    try {
+      await api.post('/api/tv', {
+        tvShowId: id,
+        action: 'episode_watched',
+        seasonNumber: ep.season_number,
+        episodeNumber: ep.episode_number,
+        watched: true,
+        rating: epState?.rating || null,
+        watchedDate: newDate || null
+      });
+
+      setShow(prev => {
+        if (!prev) return null;
+        const updated = { ...(prev.userEpisodes || {}) };
+        updated[key] = {
+          watched: true,
+          rating: epState?.rating,
+          watched_date: newDate
+        };
+        return { ...prev, userEpisodes: updated };
+      });
+    } catch (err) {
+      console.error('Error updating episode watched date:', err);
     } finally {
       setEpLoadingMap(prev => ({ ...prev, [key]: false }));
     }
@@ -408,7 +466,10 @@ export default function TVShowPage() {
               {user && (
                 <div className="flex flex-wrap gap-3 pt-2">
                   <button
-                    onClick={handleMarkShowAsWatched}
+                    onClick={() => {
+                      setBulkDate(new Date().toISOString().split('T')[0]);
+                      setBulkDateModal({ type: 'show' });
+                    }}
                     disabled={markShowLoading}
                     className="btn btn-secondary text-base flex items-center gap-2"
                   >
@@ -618,7 +679,10 @@ export default function TVShowPage() {
               {user && (
                 <button
                   type="button"
-                  onClick={() => handleMarkSeasonAsWatched(selectedSeasonNumber)}
+                  onClick={() => {
+                    setBulkDate(new Date().toISOString().split('T')[0]);
+                    setBulkDateModal({ type: 'season', seasonNumber: selectedSeasonNumber });
+                  }}
                   disabled={markSeasonLoading}
                   className="btn btn-secondary text-sm flex items-center gap-2 self-start sm:self-auto"
                 >
@@ -719,7 +783,7 @@ export default function TVShowPage() {
                               {user && (
                                 <div className="flex items-center gap-3 shrink-0">
                                   <button
-                                    onClick={() => handleEpisodeWatchedToggle(ep, isEpWatched, epRating)}
+                                    onClick={() => handleEpisodeWatchedToggle(ep, isEpWatched, epRating, epState?.watched_date)}
                                     disabled={isEpLoading}
                                     className={`btn text-xs py-1.5 px-3 flex items-center gap-1.5 ${
                                       isEpWatched ? 'btn-primary' : 'btn-secondary'
@@ -767,16 +831,31 @@ export default function TVShowPage() {
                               </p>
                             )}
 
-                            {/* Episode Rating bar */}
+                            {/* Episode Rating & Watched Date controls */}
                             {user && isEpWatched && (
-                              <div className="pt-2 border-t border-dashed border-[#2d2d2d]/30 flex items-center gap-3">
-                                <span className="text-xs font-bold text-[#2d2d2d]">Episode Rating (1-10):</span>
-                                <StarRating 
-                                  rating={epRating}
-                                  maxStars={10}
-                                  onRatingChange={(newRating) => handleEpisodeRatingChange(ep, newRating)}
-                                  size="small"
-                                />
+                              <div className="pt-2 border-t border-dashed border-[#2d2d2d]/30 flex flex-wrap items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold text-[#2d2d2d]">Rating (1-10):</span>
+                                  <StarRating 
+                                    rating={epRating}
+                                    maxStars={10}
+                                    onRatingChange={(newRating) => handleEpisodeRatingChange(ep, newRating)}
+                                    size="small"
+                                  />
+                                </div>
+
+                                <div className="flex items-center gap-2 bg-white px-2 py-1 border border-[#2d2d2d] rounded-lg shadow-[1px_1px_0px_#2d2d2d]">
+                                  <Calendar className="w-3.5 h-3.5 text-[#2d5da1] stroke-[2.5]" />
+                                  <label htmlFor={`ep-date-${epKey}`} className="text-xs font-bold text-[#2d2d2d]">Watched Date:</label>
+                                  <input
+                                    id={`ep-date-${epKey}`}
+                                    type="date"
+                                    value={epState?.watched_date || ''}
+                                    max={new Date().toISOString().split('T')[0]}
+                                    onChange={(e) => handleEpisodeDateChange(ep, e.target.value)}
+                                    className="text-xs font-bold bg-[#fff9c4] border border-[#2d2d2d] rounded px-1.5 py-0.5"
+                                  />
+                                </div>
                               </div>
                             )}
                           </div>
@@ -847,6 +926,57 @@ export default function TVShowPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+        {/* Bulk Mark Watched Date Modal */}
+        {bulkDateModal && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="card-postit max-w-md w-full relative animate-in fade-in zoom-in duration-150">
+              <div className="thumbtack" />
+              <h4 className="text-2xl font-heading font-bold text-[#2d2d2d] mb-2">
+                {bulkDateModal.type === 'show' ? 'Mark Entire Show Watched' : `Mark Season ${bulkDateModal.seasonNumber} Watched`}
+              </h4>
+              <p className="text-sm font-body text-[#2d2d2d]/80 mb-4">
+                Select the date you watched {bulkDateModal.type === 'show' ? 'this show' : `Season ${bulkDateModal.seasonNumber}`}:
+              </p>
+              
+              <div className="mb-6">
+                <label htmlFor="bulkDateInput" className="block text-sm font-bold mb-1 text-[#2d2d2d]">
+                  Watched Date:
+                </label>
+                <input
+                  id="bulkDateInput"
+                  type="date"
+                  value={bulkDate}
+                  max={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setBulkDate(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setBulkDateModal(null)}
+                  className="btn btn-secondary text-sm py-2 px-4"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (bulkDateModal.type === 'show') {
+                      handleMarkShowAsWatched(bulkDate);
+                    } else if (bulkDateModal.seasonNumber) {
+                      handleMarkSeasonAsWatched(bulkDateModal.seasonNumber, bulkDate);
+                    }
+                  }}
+                  className="btn btn-primary text-sm py-2 px-5"
+                >
+                  Confirm & Mark Watched
+                </button>
+              </div>
             </div>
           </div>
         )}
