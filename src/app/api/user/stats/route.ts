@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, ensureSchema } from '@/../backend/lib/turso';
 import { authenticate } from '@/../backend/lib/auth';
+import { getCachedUserStats, setCachedUserStats, invalidateUserStatsCache } from '@/../backend/lib/statsCache';
 
 export async function GET(req: Request) {
   try {
@@ -14,9 +15,13 @@ export async function GET(req: Request) {
     const sinceParam = url.searchParams.get('since') || '';
     const untilParam = url.searchParams.get('until') || '';
     const mediaParam = url.searchParams.get('media') || 'all'; // all | movie | tv
+    const forceRefresh = url.searchParams.get('refresh') === 'true';
 
     let userId: number | null = null;
     let targetUser: any = null;
+    let isOwnStats = false;
+
+    const userPayload = authenticate(req, null, false);
 
     if (usernameParam) {
       const uRes = await db.execute({
@@ -28,12 +33,15 @@ export async function GET(req: Request) {
       }
       targetUser = uRes.rows[0];
       userId = Number(targetUser.id);
+      if (userPayload && userPayload.id === userId) {
+        isOwnStats = true;
+      }
     } else {
-      const userPayload = authenticate(req, null, false);
       if (!userPayload) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
       }
       userId = userPayload.id;
+      isOwnStats = true;
       const uRes = await db.execute({
         sql: `SELECT id, username, display_name, avatar_url, created_at FROM users WHERE id = ?`,
         args: [userId],
@@ -41,6 +49,11 @@ export async function GET(req: Request) {
       if (uRes.rows.length > 0) {
         targetUser = uRes.rows[0];
       }
+    }
+
+    // Handle manual cache refresh request
+    if (forceRefresh && isOwnStats && userId) {
+      await invalidateUserStatsCache(userId);
     }
 
     // 1. Calculate Date Range Boundaries
@@ -69,27 +82,62 @@ export async function GET(req: Request) {
       endDateStr = untilParam;
     }
 
-    // 2. Fetch User Movies
+    // 2. Cache Lookup (Check 24-hour cache unless forceRefresh)
+    const cacheKey = `u_${userId}_tf_${timeframe}_m_${mediaParam}_y_${targetYear}_mo_${targetMonth}_s_${startDateStr}_e_${endDateStr}`;
+
+    if (!forceRefresh && userId) {
+      const cachedData = await getCachedUserStats(userId, cacheKey, 24);
+      if (cachedData) {
+        return NextResponse.json({ ...cachedData, cached: true, is_own_stats: isOwnStats });
+      }
+    }
+
+    // 3. Query ALL Available Years (UNFILTERED across entire user history)
+    const yearsRes = await db.execute({
+      sql: `
+        SELECT DISTINCT CAST(STRFTIME('%Y', COALESCE(watched_date, DATE(created_at))) AS INTEGER) as y
+        FROM (
+          SELECT watched_date, created_at FROM user_movies WHERE user_id = ?
+          UNION ALL
+          SELECT watched_date, created_at FROM user_episodes WHERE user_id = ? AND watched = 1
+          UNION ALL
+          SELECT start_date as watched_date, created_at FROM user_tv_shows WHERE user_id = ?
+        )
+        WHERE y IS NOT NULL AND y > 1900
+        ORDER BY y DESC
+      `,
+      args: [userId, userId, userId],
+    });
+
+    const currentYr = new Date().getFullYear();
+    const availableYearsSet = new Set<number>([currentYr]);
+    yearsRes.rows.forEach((r: any) => {
+      const yVal = Number(r.y);
+      if (yVal > 1900) availableYearsSet.add(yVal);
+    });
+    const availableYears = Array.from(availableYearsSet).sort((a, b) => b - a);
+
+    // 4. Fetch User Movies (Prioritizing watched_date over created_at)
     let moviesResRows: any[] = [];
     if (mediaParam === 'all' || mediaParam === 'movie') {
       const moviesRes = await db.execute({
         sql: `
-          SELECT um.id, um.movie_id, m.title, m.runtime, m.release_date, um.rating, um.review, um.watched_date, um.created_at, um.updated_at
+          SELECT um.id, um.movie_id, m.title, m.runtime, m.release_date, um.rating, um.review,
+                 COALESCE(um.watched_date, DATE(um.created_at)) as effective_watched_date,
+                 um.watched_date, um.created_at, um.updated_at
           FROM user_movies um
           JOIN movies m ON um.movie_id = m.id
           WHERE um.user_id = ?
-            AND (
-              (um.watched_date IS NOT NULL AND um.watched_date >= ? AND um.watched_date <= ?)
-              OR (um.watched_date IS NULL AND DATE(um.created_at) >= ? AND DATE(um.created_at) <= ?)
-            )
+            AND COALESCE(um.watched_date, DATE(um.created_at)) >= ?
+            AND COALESCE(um.watched_date, DATE(um.created_at)) <= ?
           ORDER BY COALESCE(um.watched_date, DATE(um.created_at)) ASC
         `,
-        args: [userId, startDateStr, endDateStr, startDateStr, endDateStr],
+        args: [userId, startDateStr, endDateStr],
       });
       moviesResRows = moviesRes.rows;
     }
 
-    // 3. Fetch User TV Shows
+    // 5. Fetch User TV Shows
     let tvShowsResRows: any[] = [];
     if (mediaParam === 'all' || mediaParam === 'tv') {
       const tvShowsRes = await db.execute({
@@ -104,29 +152,29 @@ export async function GET(req: Request) {
       tvShowsResRows = tvShowsRes.rows;
     }
 
-    // 4. Fetch User Episodes
+    // 6. Fetch User Episodes (Prioritizing watched_date over created_at)
     let episodesResRows: any[] = [];
     if (mediaParam === 'all' || mediaParam === 'tv') {
       const episodesRes = await db.execute({
         sql: `
           SELECT ue.id, ue.tv_show_id, t.name as tv_show_name, ue.season_number, ue.episode_number,
-                 e.runtime as episode_runtime, ue.watched, ue.watched_date, ue.rating, ue.created_at, ue.updated_at
+                 e.runtime as episode_runtime, ue.watched,
+                 COALESCE(ue.watched_date, DATE(ue.created_at)) as effective_watched_date,
+                 ue.watched_date, ue.rating, ue.created_at, ue.updated_at
           FROM user_episodes ue
           JOIN tv_shows t ON ue.tv_show_id = t.id
           LEFT JOIN episodes e ON (ue.tv_show_id = e.tv_show_id AND ue.season_number = e.season_number AND ue.episode_number = e.episode_number)
           WHERE ue.user_id = ? AND ue.watched = 1
-            AND (
-              (ue.watched_date IS NOT NULL AND ue.watched_date >= ? AND ue.watched_date <= ?)
-              OR (ue.watched_date IS NULL AND DATE(ue.created_at) >= ? AND DATE(ue.created_at) <= ?)
-            )
+            AND COALESCE(ue.watched_date, DATE(ue.created_at)) >= ?
+            AND COALESCE(ue.watched_date, DATE(ue.created_at)) <= ?
           ORDER BY COALESCE(ue.watched_date, DATE(ue.created_at)) ASC
         `,
-        args: [userId, startDateStr, endDateStr, startDateStr, endDateStr],
+        args: [userId, startDateStr, endDateStr],
       });
       episodesResRows = episodesRes.rows;
     }
 
-    // 5. Aggregate KPIs
+    // 7. Aggregate KPIs
     let totalMovieMinutes = 0;
     moviesResRows.forEach((m: any) => {
       totalMovieMinutes += m.runtime ? Number(m.runtime) : 105;
@@ -195,11 +243,11 @@ export async function GET(req: Request) {
       }))
       .sort((a, b) => b.count - a.count);
 
-    // 6. Time Series Aggregation (Daily / Weekly / Monthly)
+    // 8. Time Series Aggregation (Using effective_watched_date)
     const dailyMap: Record<string, { date: string; label: string; hours: number; movies: number; episodes: number }> = {};
 
     moviesResRows.forEach((m: any) => {
-      const rawDate = m.watched_date || (m.created_at ? String(m.created_at).split('T')[0] : '');
+      const rawDate = m.effective_watched_date || m.watched_date || (m.created_at ? String(m.created_at).split('T')[0] : '');
       if (rawDate) {
         if (!dailyMap[rawDate]) {
           const dObj = new Date(rawDate);
@@ -212,7 +260,7 @@ export async function GET(req: Request) {
     });
 
     episodesResRows.forEach((e: any) => {
-      const rawDate = e.watched_date || (e.created_at ? String(e.created_at).split('T')[0] : '');
+      const rawDate = e.effective_watched_date || e.watched_date || (e.created_at ? String(e.created_at).split('T')[0] : '');
       if (rawDate) {
         if (!dailyMap[rawDate]) {
           const dObj = new Date(rawDate);
@@ -234,13 +282,12 @@ export async function GET(req: Request) {
       total_titles: dailyMap[d].movies + dailyMap[d].episodes,
     }));
 
-    // 7. Streak Calculation & Heatmap (Last 365 Days)
+    // 9. Streak Calculation & Heatmap (Last 365 Days)
     const activeDatesSet = new Set(sortedDates);
     let currentStreak = 0;
     let longestStreak = 0;
     let tempStreak = 0;
 
-    // Check streak backward from today
     const checkDate = new Date();
     while (true) {
       const iso = checkDate.toISOString().split('T')[0];
@@ -248,7 +295,6 @@ export async function GET(req: Request) {
         currentStreak++;
         checkDate.setDate(checkDate.getDate() - 1);
       } else {
-        // If today hasn't been logged yet, check yesterday before stopping
         if (currentStreak === 0 && iso === new Date().toISOString().split('T')[0]) {
           checkDate.setDate(checkDate.getDate() - 1);
           continue;
@@ -257,7 +303,6 @@ export async function GET(req: Request) {
       }
     }
 
-    // Longest streak
     const allUniqueDates = Array.from(activeDatesSet).sort();
     for (let i = 0; i < allUniqueDates.length; i++) {
       if (i === 0) {
@@ -277,7 +322,6 @@ export async function GET(req: Request) {
       }
     }
 
-    // Daily Activity Heatmap (Last 365 days)
     const heatmap: Array<{ date: string; count: number; level: number }> = [];
     const endDateHeatmap = new Date();
     for (let i = 364; i >= 0; i--) {
@@ -294,23 +338,10 @@ export async function GET(req: Request) {
       heatmap.push({ date: iso, count, level });
     }
 
-    // 8. Available Years List (for Filter Dropdown)
-    const yearsSet = new Set<number>();
-    yearsSet.add(new Date().getFullYear());
-
-    moviesResRows.forEach((m) => {
-      const d = m.watched_date || m.created_at;
-      if (d) yearsSet.add(new Date(d).getFullYear());
-    });
-    episodesResRows.forEach((e) => {
-      const d = e.watched_date || e.created_at;
-      if (d) yearsSet.add(new Date(d).getFullYear());
-    });
-
-    const availableYears = Array.from(yearsSet).sort((a, b) => b - a);
-
-    return NextResponse.json({
+    const responsePayload = {
       status: 'success',
+      cached: false,
+      is_own_stats: isOwnStats,
       user: {
         id: Number(targetUser.id),
         username: String(targetUser.username),
@@ -340,7 +371,16 @@ export async function GET(req: Request) {
       rating_distribution: ratingDistribution,
       platform_breakdown: platformBreakdown,
       activity_heatmap: heatmap,
-    });
+    };
+
+    // Store in 24-hour cache
+    if (userId) {
+      setCachedUserStats(userId, cacheKey, responsePayload).catch((err) =>
+        console.error('Failed to update stats cache:', err)
+      );
+    }
+
+    return NextResponse.json(responsePayload);
   } catch (error: any) {
     console.error('Error fetching user stats:', error);
     return NextResponse.json({ message: error.message || 'Internal server error' }, { status: 500 });

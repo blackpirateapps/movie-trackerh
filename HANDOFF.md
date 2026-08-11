@@ -415,18 +415,21 @@ The codebase incorporates high-performance full-stack optimizations to eliminate
 ## 11. Flagship Analytics & Interactive Graphs Architecture (`/stats`)
 
 - **Frontend Page** ([`src/app/stats/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/stats/page.tsx)):
-  - **Timeframe Controls**: All-Time, Yearly, Monthly, Weekly, Custom Range, and Media Type (All, Films, TV) filters.
+  - **Timeframe Controls**: All-Time, Yearly, Monthly, Weekly, Custom Range, and Media Type (All, Films, TV) filters with dynamic multi-year dropdown selection.
+  - **Refresh Analytics Control**: Manual "Refresh Analytics" button (available when viewing own stats) that clears the user's cache and re-aggregates fresh data from the database.
+  - **Cache Status Indicator**: Displays a `Cached (24h)` badge in the header when response is served from the database cache.
   - **KPI Metric Summary Cards**: Total hours watched, days non-stop equivalent, films & episodes count, average 1-10 star rating, current watch streak, longest watch streak.
   - **Recharts Visualizations**:
     - **Watch Time & Velocity**: Area chart with `#00FF66` gradient fill.
     - **Rating Distribution**: Bar chart histogram across 1-10 rating scale.
     - **Platform Share**: Donut chart breakdown for `watched_where` tags.
     - **Daily Activity Heatmap**: 365-day contribution matrix grid with 4 intensity levels.
-- **Backend Endpoint** ([`src/app/api/user/stats/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/user/stats/route.ts)):
-  - Performs SQL date-range aggregations over `user_movies`, `user_tv_shows`, and `user_episodes`.
-  - Calculates daily watch hours, rating histograms, platform tag counts, streaks, and heatmap matrices.
+- **Backend Analytics Endpoint & 24h DB Cache Engine**:
+  - **API Route** ([`src/app/api/user/stats/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/user/stats/route.ts)): Computes aggregations prioritizing `COALESCE(watched_date, DATE(created_at))`. Fetches unfiltered available years across full user history for year picker dropdowns.
+  - **Cache Helper & Table** ([`backend/lib/statsCache.ts`](file:///home/dog/git/movie-trackerh/backend/lib/statsCache.ts)): Stores stats in `user_stats_cache` table for up to 24 hours.
+  - **Automatic Cache Invalidation**: Automatically clears cached stats for a user upon any movie log/rating update ([`src/app/api/movies/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/movies/route.ts)), TV show/episode track ([`src/app/api/tv/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/tv/route.ts)), or Letterboxd CSV import ([`src/app/api/import/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/import/route.ts)).
 
 ---
 
-*Document updated post Flagship Analytics & Stats Page implementation on 2026-08-11.*
+*Document updated post DB Caching & Analytics Refresh implementation on 2026-08-11.*
 

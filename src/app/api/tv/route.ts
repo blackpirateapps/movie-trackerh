@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, ensureSchema } from '@/../backend/lib/turso';
 import { authenticate } from '@/../backend/lib/auth';
+import { invalidateUserStatsCache } from '@/../backend/lib/statsCache';
 import axios from 'axios';
 
 export const dynamic = 'force-dynamic';
@@ -459,6 +460,7 @@ export async function POST(request: NextRequest) {
         sql: 'DELETE FROM user_episodes WHERE user_id = ? AND tv_show_id = ?',
         args: [authUser.sub, tvShowId],
       });
+      invalidateUserStatsCache(Number(authUser.sub || authUser.id)).catch(() => {});
       return NextResponse.json({ message: 'TV Show deleted from your collection.' });
     } catch (error) {
       console.error('Error deleting TV show:', error);
@@ -490,6 +492,7 @@ export async function POST(request: NextRequest) {
         await db.batch(batchStmts, 'write');
       }
 
+      invalidateUserStatsCache(Number(authUser.sub || authUser.id)).catch(() => {});
       return NextResponse.json({ message: `Season ${seasonNumber} marked as watched.` });
     } catch (error) {
       console.error('Error marking season watched:', error);
@@ -547,6 +550,7 @@ export async function POST(request: NextRequest) {
         args: [authUser.sub, tvShowId, targetDate],
       });
 
+      invalidateUserStatsCache(Number(authUser.sub || authUser.id)).catch(() => {});
       return NextResponse.json({ message: 'All seasons and episodes marked as watched!' });
     } catch (error) {
       console.error('Error marking show watched:', error);
@@ -576,6 +580,7 @@ export async function POST(request: NextRequest) {
         args: [authUser.sub, tvShowId, seasonNumber, episodeNumber, isWatched, epDate || null, rating || null],
       });
 
+      invalidateUserStatsCache(Number(authUser.sub || authUser.id)).catch(() => {});
       return NextResponse.json({ message: 'Episode updated successfully.', watched_date: epDate });
     } catch (error) {
       console.error('Error updating episode:', error);
@@ -612,6 +617,7 @@ export async function POST(request: NextRequest) {
       ],
     });
 
+    invalidateUserStatsCache(Number(authUser.sub || authUser.id)).catch(() => {});
     return NextResponse.json({ message: 'TV show tracked successfully.' });
   } catch (error) {
     console.error('Error tracking TV show:', error);

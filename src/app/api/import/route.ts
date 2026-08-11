@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/../backend/lib/turso';
 import { authenticate } from '@/../backend/lib/auth';
+import { invalidateUserStatsCache } from '@/../backend/lib/statsCache';
 import axios from 'axios';
 import csvParser from 'csv-parser';
 import { Readable } from 'stream';
@@ -144,6 +145,8 @@ export async function POST(request: NextRequest) {
           args: [authUser.sub, movieData.id, originalData.date || new Date().toISOString().split('T')[0]]
         });
       }
+
+      invalidateUserStatsCache(Number(authUser.sub || authUser.id)).catch(() => {});
 
       return NextResponse.json({
         message: 'Movie imported successfully.',

@@ -150,6 +150,14 @@ export async function ensureSchema() {
         window_start INTEGER NOT NULL,
         request_count INTEGER NOT NULL,
         FOREIGN KEY (key_id) REFERENCES api_keys (id) ON DELETE CASCADE
+      );`,
+      `CREATE TABLE IF NOT EXISTS user_stats_cache (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        cache_key TEXT NOT NULL UNIQUE,
+        stats_data TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
       );`
     ];
 

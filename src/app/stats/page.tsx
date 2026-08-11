@@ -13,6 +13,8 @@ import {
 
 interface StatsResponse {
   status: string;
+  cached?: boolean;
+  is_own_stats?: boolean;
   user: {
     id: number;
     username: string;
@@ -86,15 +88,17 @@ export default function StatsPage() {
   // Analytics Data State
   const [data, setData] = useState<StatsResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    fetchStats();
+    fetchStats(false);
   }, [timeframe, selectedYear, selectedMonth, sinceDate, untilDate, mediaType]);
 
-  const fetchStats = async () => {
+  const fetchStats = async (forceRefresh = false) => {
     try {
-      setLoading(true);
+      if (forceRefresh) setRefreshing(true);
+      else setLoading(true);
       setError('');
 
       let query = `/api/user/stats?timeframe=${timeframe}&media=${mediaType}`;
@@ -106,6 +110,10 @@ export default function StatsPage() {
         query += `&since=${sinceDate}&until=${untilDate}`;
       }
 
+      if (forceRefresh) {
+        query += `&refresh=true`;
+      }
+
       const res = await api.get<StatsResponse>(query);
       setData(res.data);
     } catch (err: any) {
@@ -113,6 +121,7 @@ export default function StatsPage() {
       setError(err.response?.data?.message || 'Failed to fetch analytics statistics');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -167,24 +176,45 @@ export default function StatsPage() {
             <BarChart3 className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-[#EDEDED]">
-              Flagship Analytics & Stats
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold text-[#EDEDED]">
+                Flagship Analytics & Stats
+              </h1>
+              {data?.cached && (
+                <span className="bg-[#121212] border border-[#333333] text-[10px] px-2 py-0.5 rounded font-mono text-[#A0A0A0]">
+                  Cached (24h)
+                </span>
+              )}
+            </div>
             <p className="text-xs text-[#A0A0A0]">
               Deep insights into your watching velocity, rating distributions, platform share, and activity streaks.
             </p>
           </div>
         </div>
 
-        {currentUser && (
-          <Link
-            href={`/profile/${currentUser.username}`}
-            className="btn btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5"
-          >
-            <Film className="w-3.5 h-3.5 text-[#00FF66]" />
-            <span>My Profile</span>
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          {data?.is_own_stats && (
+            <button
+              onClick={() => fetchStats(true)}
+              disabled={refreshing || loading}
+              className="btn btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 font-bold"
+              title="Force clear DB cache and recalculate analytics"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-[#00FF66] ${refreshing ? 'animate-spin' : ''}`} />
+              <span>{refreshing ? 'Refreshing...' : 'Refresh Analytics'}</span>
+            </button>
+          )}
+
+          {currentUser && (
+            <Link
+              href={`/profile/${currentUser.username}`}
+              className="btn btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5"
+            >
+              <Film className="w-3.5 h-3.5 text-[#00FF66]" />
+              <span>My Profile</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Sticky Timeframe Filter Bar */}
@@ -314,7 +344,7 @@ export default function StatsPage() {
       ) : error ? (
         <div className="card bg-[#ff4d4d]/10 border border-[#ff4d4d]/30 p-6 text-center text-xs text-[#ff4d4d] space-y-2">
           <p className="font-bold">{error}</p>
-          <button onClick={fetchStats} className="btn btn-secondary text-xs py-1 px-3 inline-block">Retry</button>
+          <button onClick={() => fetchStats(true)} className="btn btn-secondary text-xs py-1 px-3 inline-block">Retry</button>
         </div>
       ) : data ? (
         <div className="space-y-6">

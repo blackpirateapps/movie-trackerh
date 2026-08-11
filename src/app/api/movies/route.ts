@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, ensureSchema } from '@/../backend/lib/turso';
 import { authenticate } from '@/../backend/lib/auth';
+import { invalidateUserStatsCache } from '@/../backend/lib/statsCache';
 import axios from 'axios';
 
 export const dynamic = 'force-dynamic';
@@ -204,12 +205,14 @@ export async function POST(request: NextRequest) {
           sql: 'DELETE FROM watchlist WHERE user_id = ? AND movie_id = ?',
           args: [authUser.sub, movieId],
         });
+        invalidateUserStatsCache(Number(authUser.sub || authUser.id)).catch(() => {});
         return NextResponse.json({ message: 'Removed from watchlist', isInWatchlist: false });
       } else {
         await db.execute({
           sql: 'INSERT INTO watchlist (user_id, movie_id) VALUES (?, ?)',
           args: [authUser.sub, movieId],
         });
+        invalidateUserStatsCache(Number(authUser.sub || authUser.id)).catch(() => {});
         return NextResponse.json({ message: 'Added to watchlist', isInWatchlist: true });
       }
     } catch (error) {
@@ -237,6 +240,7 @@ export async function POST(request: NextRequest) {
       args: [authUser.sub, movieId, rating || null, review || null, watchedDate || null],
     });
 
+    invalidateUserStatsCache(Number(authUser.sub || authUser.id)).catch(() => {});
     return NextResponse.json({ message: 'Movie tracked successfully.' });
   } catch (error) {
     console.error('Error tracking movie:', error);
