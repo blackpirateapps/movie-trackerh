@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../hooks/useAuth';
-import { Film, Home, Users, Rss, FileUp, LogOut, LogIn, UserPlus, Menu, X, Settings } from 'lucide-react';
+import { Film, Home, Users, Rss, FileUp, LogOut, LogIn, UserPlus, Menu, X, Settings, BarChart3 } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -60,6 +60,16 @@ const Navbar: React.FC = () => {
               >
                 <Rss className="w-4 h-4" />
                 <span>Activity Feed</span>
+              </Link>
+            )}
+
+            {user && (
+              <Link 
+                href="/stats" 
+                className="flex items-center gap-2 text-[#A0A0A0] hover:text-[#EDEDED] transition-colors"
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span>Analytics</span>
               </Link>
             )}
 
@@ -163,6 +173,16 @@ const Navbar: React.FC = () => {
               >
                 <Rss className="w-4 h-4" />
                 Activity Feed
+              </Link>
+            )}
+            {user && (
+              <Link 
+                href="/stats" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2 font-medium text-sm text-[#A0A0A0] hover:text-[#EDEDED] hover:bg-[#1E1E1E] rounded"
+              >
+                <BarChart3 className="w-4 h-4" />
+                Analytics & Stats
               </Link>
             )}
             {user && (

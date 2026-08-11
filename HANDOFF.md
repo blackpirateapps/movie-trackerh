@@ -17,6 +17,7 @@ This document provides a comprehensive technical overview of the **CineTracker**
 - **User Authentication**: Secure signup/login using bcrypt-hashed passwords and JWT tokens set in HTTP-only cookies.
 - **REST API Keys & Complete Data Export API**: Authenticated users can generate cryptographically secure API keys (`cin_live_...`), manage/revoke keys, and make rate-limited REST requests (`/api/v1/export`) to retrieve their full user data (movies watched, TV shows tracked, episode watch dates & 1–10 ratings, reviews, platform tags, watchlist, and social graph).
 - **Developer Settings Portal & Interactive Console**: Integrated developer portal at `/settings` with key creation, one-time raw key display, live API tester console, interactive multi-language code snippets (cURL, JavaScript, Python, Node.js), one-click **Copy AI Agent Docs** button (markdown specification prompt), and complete endpoint documentation.
+- **Flagship Analytics & Interactive Graphs (`/stats`)**: Fully featured analytics dashboard with timeframe filtering (**All-Time**, **Yearly**, **Monthly**, **Weekly**, **Custom Range**), KPI metric cards (hours watched, days spent, avg 1–10 rating, watch streaks), Recharts time series area charts, 1–10 rating distribution histogram, platform share pie charts, and a GitHub-style 365-day activity heatmap grid.
 - **Temporary Root Admin Password Reset**: Allows resetting any user password by authenticating with `ROOT_ADMIN_PASSWORD` stored in environment variables.
 
 ---
@@ -394,6 +395,10 @@ The codebase incorporates high-performance full-stack optimizations to eliminate
 
 ---
 
+- **Flagship Analytics & Interactive Graphs (`/stats`)**: Fully featured analytics dashboard with timeframe filtering (**All-Time**, **Yearly**, **Monthly**, **Weekly**, **Custom Range**), KPI metric cards (hours watched, days spent, avg 1–10 rating, watch streaks), Recharts time series area charts, 1–10 rating distribution histogram, platform share pie charts, and a GitHub-style 365-day activity heatmap grid.
+
+...
+
 ## 10. Developer Portal, API Key Management & Data Export Architecture
 
 - **Developer Settings Portal UI** ([`src/app/settings/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/settings/page.tsx)):
@@ -407,5 +412,21 @@ The codebase incorporates high-performance full-stack optimizations to eliminate
 
 ---
 
-*Document updated post Data Export API & Developer Portal implementation on 2026-08-11.*
+## 11. Flagship Analytics & Interactive Graphs Architecture (`/stats`)
+
+- **Frontend Page** ([`src/app/stats/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/stats/page.tsx)):
+  - **Timeframe Controls**: All-Time, Yearly, Monthly, Weekly, Custom Range, and Media Type (All, Films, TV) filters.
+  - **KPI Metric Summary Cards**: Total hours watched, days non-stop equivalent, films & episodes count, average 1-10 star rating, current watch streak, longest watch streak.
+  - **Recharts Visualizations**:
+    - **Watch Time & Velocity**: Area chart with `#00FF66` gradient fill.
+    - **Rating Distribution**: Bar chart histogram across 1-10 rating scale.
+    - **Platform Share**: Donut chart breakdown for `watched_where` tags.
+    - **Daily Activity Heatmap**: 365-day contribution matrix grid with 4 intensity levels.
+- **Backend Endpoint** ([`src/app/api/user/stats/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/user/stats/route.ts)):
+  - Performs SQL date-range aggregations over `user_movies`, `user_tv_shows`, and `user_episodes`.
+  - Calculates daily watch hours, rating histograms, platform tag counts, streaks, and heatmap matrices.
+
+---
+
+*Document updated post Flagship Analytics & Stats Page implementation on 2026-08-11.*
 

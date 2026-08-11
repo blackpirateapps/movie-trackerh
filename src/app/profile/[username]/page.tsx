@@ -10,7 +10,7 @@ import TVShowCard from '@/components/TVShowCard';
 import { User, Movie, TVShow } from '@/types';
 import { 
   Film, Tv, Users, UserPlus, UserCheck, 
-  AlertTriangle, Calendar, Edit3, Globe, Clock, Star, Heart, Bookmark, History
+  AlertTriangle, Calendar, Edit3, Globe, Clock, Star, Heart, Bookmark, History, BarChart3
 } from 'lucide-react';
 
 interface ProfileData {
@@ -227,7 +227,14 @@ export default function Profile() {
           </div>
 
           {/* Action Buttons: Edit Profile or Follow */}
-          <div className="shrink-0">
+          <div className="shrink-0 flex items-center gap-2">
+            <Link
+              href={`/stats`}
+              className="btn btn-secondary text-xs py-2 px-3 flex items-center gap-1.5"
+            >
+              <BarChart3 className="w-4 h-4 text-[#00FF66]" />
+              <span>Stats</span>
+            </Link>
             {isOwnProfile ? (
               <Link 
                 href="/profile/edit" 
