@@ -153,6 +153,7 @@ export interface Pagination {
 
 export interface JWTPayload {
   sub: string;
+  id?: number;
   username: string;
   email: string;
 }

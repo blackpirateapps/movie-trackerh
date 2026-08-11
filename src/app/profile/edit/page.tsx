@@ -200,12 +200,21 @@ export default function EditProfile() {
           </div>
         </div>
 
-        <Link 
-          href={`/profile/${currentUser.username}`} 
-          className="btn btn-secondary text-xs py-1.5 px-3"
-        >
-          View Profile
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link 
+            href="/settings?tab=api-keys" 
+            className="btn btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5 font-bold"
+          >
+            <Key className="w-3.5 h-3.5" />
+            <span>API Keys & Dev Portal</span>
+          </Link>
+          <Link 
+            href={`/profile/${currentUser.username}`} 
+            className="btn btn-secondary text-xs py-1.5 px-3"
+          >
+            View Profile
+          </Link>
+        </div>
       </div>
 
       {success && (

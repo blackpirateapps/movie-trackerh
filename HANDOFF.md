@@ -15,6 +15,8 @@ This document provides a comprehensive technical overview of the **CineTracker**
 - **Letterboxd CSV Import**: Interactively import watched history (`watched.csv`) or watchlists (`watchlist.csv`) exported from Letterboxd with TMDB title matching and manual selection.
 - **Social Graph & Feed**: Follow/unfollow other users, view community profiles, and see recent movie & TV show activity from followed users.
 - **User Authentication**: Secure signup/login using bcrypt-hashed passwords and JWT tokens set in HTTP-only cookies.
+- **REST API Keys & Complete Data Export API**: Authenticated users can generate cryptographically secure API keys (`cin_live_...`), manage/revoke keys, and make rate-limited REST requests (`/api/v1/export`) to retrieve their full user data (movies watched, TV shows tracked, episode watch dates & 1–10 ratings, reviews, platform tags, watchlist, and social graph).
+- **Developer Settings Portal & Interactive Console**: Integrated developer portal at `/settings` with key creation, one-time raw key display, live API tester console, interactive multi-language code snippets (cURL, JavaScript, Python, Node.js), and complete endpoint documentation.
 - **Temporary Root Admin Password Reset**: Allows resetting any user password by authenticating with `ROOT_ADMIN_PASSWORD` stored in environment variables.
 
 ---
@@ -44,7 +46,7 @@ The application is built on a modern full-stack **TypeScript + Next.js App Route
 - **Routing & Rendering**: Next.js Client and Server Components (`.tsx`) with `next/navigation` (`useRouter`, `useParams`) and `next/link`
 - **HTTP Client**: Axios (`src/lib/api.ts`) configured with relative paths (`baseURL: ''`) for API routes
 - **Backend API Routes**: Next.js Route Handlers in `src/app/api/...` (`route.ts`) (`GET`, `POST` functions returning `NextResponse`)
-- **Authentication**: JWT signed token stored in HTTP-only `token` cookie, authenticated via `backend/lib/auth.ts`
+- **Authentication**: JWT signed token stored in HTTP-only `token` cookie, authenticated via `backend/lib/auth.ts`, alongside SHA-256 hashed API Keys (`cin_live_...`) verified in `backend/lib/apiKeys.ts`
 - **Database Engine**: Turso (Hosted LibSQL / SQLite) via `@libsql/client`
 
 ---
@@ -56,8 +58,9 @@ movie-trackerh/
 ├── backend/
 │   ├── db/
 │   │   ├── migrate.ts       # Database migration script (reads schema.sql & updates table structure + migrates legacy constraints)
-│   │   └── schema.sql       # Initial SQLite database schema DDL (includes users, movies, user_movies, tv_shows, seasons, episodes, user_tv_shows, user_episodes, follows, watchlist)
+│   │   └── schema.sql       # Initial SQLite database schema DDL (includes users, movies, user_movies, tv_shows, seasons, episodes, user_tv_shows, user_episodes, follows, watchlist, api_keys, api_rate_limits)
 │   └── lib/
+│       ├── apiKeys.ts       # Cryptographic API key generation (cin_live_...), SHA-256 hashing, rate limiting (60 req/min), & key validation
 │       ├── auth.ts          # Authentication helper function (verifies token from cookie)
 │       ├── jwt.ts           # JWT signing (`signToken`) & verification (`verifyToken`) helpers
 │       └── turso.ts         # Turso db client instance initialization (@libsql/client) & ensureSchema runtime guard
@@ -68,12 +71,20 @@ movie-trackerh/
 │   │   │   │   └── route.ts # GET session check; POST login, signup, logout, reset-password
 │   │   │   ├── import/
 │   │   │   │   └── route.ts # POST parse CSV, search TMDB, import movie to DB
+│   │   │   ├── keys/
+│   │   │   │   └── route.ts # GET list user API keys; POST create/revoke API keys
 │   │   │   ├── movies/
 │   │   │   │   └── route.ts # GET search TMDB / get movie details / popular current year; POST rate/review & watchlist toggle
 │   │   │   ├── tv/
 │   │   │   │   └── route.ts # GET search TMDB TV / show details & seasons; POST track TV, favorite, delete, mark_season_watched, mark_show_watched, episode watched/rated
-│   │   │   └── user/
-│   │   │       └── route.ts # GET list users, single profile (movies & TV), action=feed; POST follow/unfollow user
+│   │   │   ├── user/
+│   │   │   │   └── route.ts # GET list users, single profile (movies & TV), action=feed; POST follow/unfollow user
+│   │   │   └── v1/
+│   │   │       ├── export/
+│   │   │       │   └── route.ts # GET full user data export (movies, TV, episodes, ratings, reviews, tags, watchlist, social, stats) with rate limiting & query filters
+│   │   │       └── user/
+│   │   │           └── data/
+│   │   │               └── route.ts # GET alias endpoint delegating to /api/v1/export
 │   │   ├── feed/
 │   │   │   └── page.tsx     # Hand-Drawn activity feed pinboard (Movies & TV)
 │   │   ├── import/
@@ -87,8 +98,14 @@ movie-trackerh/
 │   │   │   └── [id]/
 │   │   │       └── page.tsx # Dynamic TV Show detail & season/episode breakdown page with bulk watch controls
 │   │   ├── profile/
+│   │   │   ├── edit/
+│   │   │   │   └── page.tsx # Utility settings page (profile info, avatar, app preferences, password, danger zone)
 │   │   │   └── [username]/
 │   │   │       └── page.tsx # Dynamic User personal profile page (Movies & TV tabs)
+│   │   ├── settings/
+│   │   │   ├── page.tsx     # Flagship Developer Portal & Settings UI (API key management, live API tester, docs & code snippets)
+│   │   │   └── api-keys/
+│   │   │       └── page.tsx # Redirect route to /settings?tab=api-keys
 │   │   ├── signup/
 │   │   │   └── page.tsx     # Hand-Drawn post-it signup form
 │   │   ├── users/
@@ -108,11 +125,12 @@ movie-trackerh/
 │   ├── lib/
 │   │   └── api.ts           # Pre-configured Axios instance using relative API paths
 │   └── types/
-│       └── index.ts         # Shared TypeScript interfaces (User, Movie, TVShow, Season, Episode, etc.)
+│       └── index.ts         # Shared TypeScript interfaces (User, Movie, TVShow, Season, Episode, ApiKeyRecord, etc.)
 ├── design.md                # Comprehensive Hand-Drawn Design System Specification
 ├── tsconfig.json            # TypeScript configuration (`compilerOptions`, `@/*` path mapping)
 ├── next.config.js           # Next.js configuration (remote image domains)
 ├── vercel.json              # Vercel deployment configuration (`framework: nextjs`)
+
 ├── package.json             # NPM dependencies & Next.js scripts (`dev`, `build` runs migration, `start`, `lint`)
 └── HANDOFF.md               # AI Handoff documentation
 ```
@@ -239,9 +257,40 @@ The database relies on Turso (SQLite/LibSQL).
     - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     - `UNIQUE(user_id, movie_id)`
 
+11. `api_keys` (API key credentials & usage stats)
+    - `id`: INTEGER PRIMARY KEY AUTOINCREMENT
+    - `user_id`: INTEGER NOT NULL
+    - `name`: TEXT NOT NULL
+    - `key_prefix`: TEXT NOT NULL (e.g. `cin_live_a1b2c3d4...`)
+    - `key_hash`: TEXT NOT NULL UNIQUE (SHA-256 hash of full raw key)
+    - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    - `last_used_at`: TIMESTAMP
+    - `request_count`: INTEGER DEFAULT 0
+    - `is_active`: INTEGER DEFAULT 1
+
+12. `api_rate_limits` (Per-key 1-minute window rate limit counters)
+    - `key_id`: INTEGER PRIMARY KEY
+    - `window_start`: INTEGER NOT NULL (UNIX timestamp of current 1-minute window)
+    - `request_count`: INTEGER NOT NULL
+
 ---
 
 ## 5. API Endpoint Reference (Next.js App Router Route Handlers)
+
+### `/api/v1/export` (and alias `/api/v1/user/data`)
+- `GET`:
+  - **Authentication**: `Authorization: Bearer <api_key>`, `X-API-Key: <api_key>`, `?api_key=<api_key>`, or cookie session.
+  - **Query Parameters**:
+    - `include`: Comma-separated list of data blocks (`profile`, `stats`, `movies`, `tv`, `episodes`, `watchlist`, `social`). Default: all.
+    - `since`: ISO date string to filter records created or updated after specified date (`YYYY-MM-DD`).
+  - **Rate Limiting**: 60 requests per minute per key. Returns `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` headers.
+  - **Response Payload**: Returns full structured JSON export containing user profile, lifetime statistics (total films, total TV shows, total episodes, calculated total hours watched), watched movies with 1–10 ratings & reviews, tracked TV shows with platform tags, episode watch dates & ratings, watchlist, and social graph.
+
+### `/api/keys`
+- `GET`: Returns list of active API keys for authenticated user (`id`, `name`, `key_prefix`, `created_at`, `last_used_at`, `request_count`).
+- `POST`:
+  - `action: 'create'`: Generates a new API key. Body: `{ action: 'create', name: 'Key Label' }`. Returns `{ key: { id, name, rawKey, keyPrefix, createdAt } }`. Note: Raw key is returned ONCE.
+  - `action: 'revoke'`: Revokes an API key. Body: `{ action: 'revoke', keyId: <id> }`.
 
 ### `/api/tv`
 - `GET`:
@@ -344,4 +393,18 @@ The codebase incorporates high-performance full-stack optimizations to eliminate
 
 ---
 
-*Document updated post Profile Showcase & Utility Settings implementation on 2026-08-04.*
+## 10. Developer Portal, API Key Management & Data Export Architecture
+
+- **Developer Settings Portal UI** ([`src/app/settings/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/settings/page.tsx)):
+  - **API Keys Sub-Tab**: Create named API keys, copy raw key string on generation, view active keys table with prefix, created date, last used timestamp, total request count, and revocation action.
+  - **API Documentation Sub-Tab**: Comprehensive specification for `/api/v1/export`, header format (`Authorization: Bearer cin_live_...`), rate limits (60 req/min), and field definitions.
+  - **Interactive API Console**: Test requests directly in browser using session cookie or active API keys, view live HTTP status, response latency (ms), rate limit headers, and formatted JSON output.
+  - **Multi-Language Code Snippets**: Copyable code samples in cURL, JavaScript (Fetch), Python (requests), and Node.js (Axios).
+- **Backend API Key Security & Rate Limiting** ([`backend/lib/apiKeys.ts`](file:///home/dog/git/movie-trackerh/backend/lib/apiKeys.ts)):
+  - **Cryptographic Keys**: Format `cin_live_<48 hex chars>`. Raw secrets displayed once to user; SHA-256 key hash stored in DB.
+  - **Sliding Window Rate Limiter**: Tracks request counts per 1-minute window in `api_rate_limits` table. Enforces 60 req/min limit and appends `X-RateLimit-*` headers to responses.
+
+---
+
+*Document updated post Data Export API & Developer Portal implementation on 2026-08-11.*
+

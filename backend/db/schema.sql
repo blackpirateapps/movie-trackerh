@@ -136,3 +136,26 @@ CREATE TABLE IF NOT EXISTS user_episodes (
     FOREIGN KEY (tv_show_id) REFERENCES tv_shows (id) ON DELETE CASCADE,
     UNIQUE (user_id, tv_show_id, season_number, episode_number)
 );
+
+-- API Keys table for user API access
+CREATE TABLE IF NOT EXISTS api_keys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    key_prefix TEXT NOT NULL,
+    key_hash TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_used_at TIMESTAMP,
+    request_count INTEGER DEFAULT 0,
+    is_active INTEGER DEFAULT 1,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
+-- API Rate Limits tracking table
+CREATE TABLE IF NOT EXISTS api_rate_limits (
+    key_id INTEGER PRIMARY KEY,
+    window_start INTEGER NOT NULL,
+    request_count INTEGER NOT NULL,
+    FOREIGN KEY (key_id) REFERENCES api_keys (id) ON DELETE CASCADE
+);
+

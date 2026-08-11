@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../hooks/useAuth';
-import { Film, Home, Users, Rss, FileUp, LogOut, LogIn, UserPlus, Menu, X } from 'lucide-react';
+import { Film, Home, Users, Rss, FileUp, LogOut, LogIn, UserPlus, Menu, X, Settings } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -71,7 +71,17 @@ const Navbar: React.FC = () => {
                 <FileUp className="w-4 h-4" />
                 <span>Import CSV</span>
               </Link>
-            )} 
+            )}
+
+            {user && (
+              <Link 
+                href="/settings" 
+                className="flex items-center gap-2 text-[#A0A0A0] hover:text-[#EDEDED] transition-colors"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Settings API</span>
+              </Link>
+            )}
           </div>
 
           {/* Desktop User Menu / Auth Buttons */}
@@ -163,6 +173,16 @@ const Navbar: React.FC = () => {
               >
                 <FileUp className="w-4 h-4" />
                 Import CSV
+              </Link>
+            )}
+            {user && (
+              <Link 
+                href="/settings" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2 font-medium text-sm text-[#A0A0A0] hover:text-[#EDEDED] hover:bg-[#1E1E1E] rounded"
+              >
+                <Settings className="w-4 h-4" />
+                Settings & API
               </Link>
             )}
             
