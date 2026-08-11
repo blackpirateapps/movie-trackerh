@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/api';
 import { 
-  Key, Code, Copy, Check, Trash2, Plus, Terminal, RefreshCw, Shield, AlertTriangle, CheckCircle2, Server, BookOpen, Layers, ArrowLeft, ExternalLink, Play, Lock, Globe, EyeOff, LayoutGrid, Sliders, User as UserIcon
+  Key, Code, Copy, Check, Trash2, Plus, Terminal, RefreshCw, Shield, AlertTriangle, CheckCircle2, Server, BookOpen, Layers, ArrowLeft, ExternalLink, Play, Lock, Globe, EyeOff, LayoutGrid, Sliders, User as UserIcon, Bot, Sparkles
 } from 'lucide-react';
 
 interface ApiKeyRecord {
@@ -255,6 +255,188 @@ export default function SettingsPage() {
   const activeSampleKey = generatedKey?.rawKey || (keys.length > 0 ? `${keys[0].key_prefix}...` : 'cin_live_your_api_key_here');
   const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/v1/export` : 'https://cinetracker.app/api/v1/export';
 
+  const [copiedAiDocs, setCopiedAiDocs] = useState<boolean>(false);
+
+  const handleCopyAiDocs = () => {
+    const aiDocsMarkdown = `# CineTracker REST Data Export API Specification for AI Agents
+
+## Overview
+CineTracker provides a REST API endpoint that allows authenticated users to export their complete movie and TV show tracking data, reviews, ratings, watchlists, episode breakdowns, platform tags, and social connections.
+
+## Endpoints
+- **Primary Endpoint**: \`GET ${baseUrl}\`
+- **Alias Endpoint**: \`GET ${baseUrl.replace('/export', '/user/data')}\`
+
+## Authentication
+Supply your API key using any of the following HTTP mechanisms:
+1. **HTTP Bearer Token**: Header \`Authorization: Bearer <YOUR_API_KEY>\`
+2. **Custom HTTP Header**: Header \`X-API-Key: <YOUR_API_KEY>\`
+3. **URL Query Parameter**: Parameter \`?api_key=<YOUR_API_KEY>\`
+
+Key Format: \`cin_live_<48_hex_characters>\`
+
+## Rate Limits
+- **Limit**: 60 requests per minute per API key.
+- **Headers Returned**:
+  - \`X-RateLimit-Limit\`: Maximum requests per window (60).
+  - \`X-RateLimit-Remaining\`: Remaining allowed requests in current window.
+  - \`X-RateLimit-Reset\`: Time in seconds until rate limit resets.
+- **Exceeded Limit**: Returns HTTP \`429 Too Many Requests\` with a \`Retry-After: <seconds>\` header.
+
+## Query Parameters
+- \`include\` (string, optional): Comma-separated list of modules to include. Options: \`profile,stats,movies,tv,episodes,watchlist,social\`. Default: all.
+- \`since\` (string, optional): ISO date string (\`YYYY-MM-DD\` or full timestamp). Filters items updated or watched after this date.
+
+## Data Payload Schema & Structure
+\`\`\`json
+{
+  "status": "success",
+  "data_version": "1.0",
+  "generated_at": "${new Date().toISOString()}",
+  "user": {
+    "id": ${currentUser?.id || 1},
+    "username": "${currentUser?.username || 'username'}",
+    "email": "${currentUser?.email || 'user@example.com'}",
+    "display_name": "${displayName || currentUser?.username || 'User'}",
+    "bio": ${bio ? JSON.stringify(bio) : 'null'},
+    "website": ${website ? JSON.stringify(website) : 'null'},
+    "avatar_url": ${avatarUrl ? JSON.stringify(avatarUrl) : 'null'},
+    "preferences": {
+      "default_layout": "${prefDefaultLayout}",
+      "hide_nsfw": ${prefHideNsfw},
+      "is_private": ${prefIsPrivate}
+    },
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  "stats": {
+    "total_movies_watched": 42,
+    "total_tv_shows_tracked": 12,
+    "total_episodes_watched": 185,
+    "total_hours_watched": 340.5,
+    "total_reviews": 30,
+    "total_favorites": 5,
+    "watchlist_count": 8
+  },
+  "movies": [
+    {
+      "log_id": 101,
+      "movie_id": 550,
+      "title": "Fight Club",
+      "overview": "An insomniac office worker...",
+      "release_date": "1999-10-15",
+      "poster_path": "/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
+      "backdrop_path": "/hZkgoQY85xsWFmPk8DcMkgWYwIh.jpg",
+      "runtime_minutes": 139,
+      "tmdb_vote_average": 8.4,
+      "user_rating": 10,
+      "user_review": "Masterpiece.",
+      "watched_date": "2026-05-10",
+      "created_at": "2026-05-10T12:00:00Z",
+      "updated_at": "2026-05-10T12:00:00Z"
+    }
+  ],
+  "tv_shows": [
+    {
+      "log_id": 201,
+      "tv_show_id": 1396,
+      "name": "Breaking Bad",
+      "overview": "A high school chemistry teacher...",
+      "first_air_date": "2008-01-20",
+      "poster_path": "/zqImL2p7Ehn4b5f8Yn5h3Yn6Z.jpg",
+      "backdrop_path": "/tsRy63MuZvKCZCkGZpB5Y2.jpg",
+      "number_of_seasons": 5,
+      "number_of_episodes": 62,
+      "tmdb_vote_average": 8.9,
+      "user_rating": 10,
+      "user_review": "Unmatched character arc.",
+      "is_favorite": true,
+      "start_date": "2026-01-01",
+      "end_date": "2026-02-15",
+      "watched_where": ["Netflix", "Prime Video"],
+      "created_at": "2026-01-01T10:00:00Z",
+      "updated_at": "2026-02-15T20:00:00Z"
+    }
+  ],
+  "episodes": [
+    {
+      "log_id": 301,
+      "tv_show_id": 1396,
+      "tv_show_name": "Breaking Bad",
+      "season_number": 1,
+      "episode_number": 1,
+      "episode_name": "Pilot",
+      "overview": "Walter White discovers...",
+      "still_path": "/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
+      "air_date": "2008-01-20",
+      "runtime_minutes": 58,
+      "tmdb_vote_average": 8.5,
+      "watched": true,
+      "watched_date": "2026-01-01",
+      "user_rating": 9,
+      "created_at": "2026-01-01T10:00:00Z",
+      "updated_at": "2026-01-01T10:00:00Z"
+    }
+  ],
+  "watchlist": [
+    {
+      "item_id": 401,
+      "movie_id": 27205,
+      "title": "Inception",
+      "overview": "A thief who steals corporate secrets...",
+      "release_date": "2010-07-15",
+      "poster_path": "/oYuLEW9Wz152hT235u35.jpg",
+      "backdrop_path": "/s3TBrRGB1iav7y5OiJ.jpg",
+      "runtime_minutes": 148,
+      "tmdb_vote_average": 8.3,
+      "added_at": "2026-03-01T08:00:00Z"
+    }
+  ],
+  "social": {
+    "followers": [{ "id": 2, "username": "jane", "display_name": "Jane Doe", "avatar_url": null }],
+    "following": [{ "id": 3, "username": "bob", "display_name": "Bob Smith", "avatar_url": null }]
+  }
+}
+\`\`\`
+
+## Quick Start Code Examples
+
+### cURL
+\`\`\`bash
+curl -X GET "${baseUrl}?include=movies,tv,episodes,watchlist" \\
+  -H "Authorization: Bearer ${activeSampleKey}"
+\`\`\`
+
+### JavaScript (fetch)
+\`\`\`javascript
+const response = await fetch('${baseUrl}?include=movies,tv,episodes,watchlist', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer ${activeSampleKey}'
+  }
+});
+const data = await response.json();
+console.log(data);
+\`\`\`
+
+### Python (requests)
+\`\`\`python
+import requests
+
+url = "${baseUrl}"
+headers = {"Authorization": "Bearer ${activeSampleKey}"}
+params = {"include": "movies,tv,episodes,watchlist"}
+
+response = requests.get(url, headers=headers, params=params)
+data = response.json()
+print(data)
+\`\`\`
+`;
+
+    navigator.clipboard.writeText(aiDocsMarkdown);
+    setCopiedAiDocs(true);
+    setTimeout(() => setCopiedAiDocs(false), 3000);
+  };
+
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-6 bg-[#121212] text-[#EDEDED]">
       
@@ -274,7 +456,24 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleCopyAiDocs}
+            className="btn bg-[#00FF66] text-[#121212] font-bold text-xs py-1.5 px-3 flex items-center gap-1.5 hover:bg-[#00CC52] transition-colors"
+            title="Copy formatted markdown documentation for AI agent prompts (ChatGPT, Claude, Cursor)"
+          >
+            {copiedAiDocs ? (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                <span>AI Docs Copied!</span>
+              </>
+            ) : (
+              <>
+                <Bot className="w-3.5 h-3.5" />
+                <span>Copy AI Agent Docs</span>
+              </>
+            )}
+          </button>
           <Link 
             href={`/profile/${currentUser.username}`} 
             className="btn btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5"
@@ -512,7 +711,42 @@ export default function SettingsPage() {
           
           {/* Section 1: Endpoint & Auth Overview */}
           <div className="card bg-[#1E1E1E] border border-[#333333] p-6 space-y-4">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[#00FF66] flex items-center gap-2">
+            
+            {/* AI Agent Copy Callout Banner */}
+            <div className="bg-[#00FF66]/10 border border-[#00FF66]/30 p-4 rounded flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-[#00FF66] text-[#121212] rounded flex items-center justify-center font-bold shrink-0">
+                  <Bot className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-[#EDEDED] flex items-center gap-1.5">
+                    Prompting an AI Agent? (ChatGPT, Claude, Cursor, etc.)
+                  </span>
+                  <span className="text-[11px] text-[#A0A0A0] block">
+                    Copy the complete API specification formatted as Markdown to paste directly into your AI prompt.
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleCopyAiDocs}
+                className="btn bg-[#00FF66] text-[#121212] font-bold text-xs py-2 px-4 flex items-center gap-1.5 shrink-0 hover:bg-[#00CC52] transition-colors"
+              >
+                {copiedAiDocs ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Copied Markdown!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span>Copy AI Agent Docs</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <h2 className="text-xs font-bold uppercase tracking-widest text-[#00FF66] flex items-center gap-2 pt-2">
               <Server className="w-4 h-4" />
               API ENDPOINT SPECIFICATION
             </h2>

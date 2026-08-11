@@ -16,7 +16,7 @@ This document provides a comprehensive technical overview of the **CineTracker**
 - **Social Graph & Feed**: Follow/unfollow other users, view community profiles, and see recent movie & TV show activity from followed users.
 - **User Authentication**: Secure signup/login using bcrypt-hashed passwords and JWT tokens set in HTTP-only cookies.
 - **REST API Keys & Complete Data Export API**: Authenticated users can generate cryptographically secure API keys (`cin_live_...`), manage/revoke keys, and make rate-limited REST requests (`/api/v1/export`) to retrieve their full user data (movies watched, TV shows tracked, episode watch dates & 1–10 ratings, reviews, platform tags, watchlist, and social graph).
-- **Developer Settings Portal & Interactive Console**: Integrated developer portal at `/settings` with key creation, one-time raw key display, live API tester console, interactive multi-language code snippets (cURL, JavaScript, Python, Node.js), and complete endpoint documentation.
+- **Developer Settings Portal & Interactive Console**: Integrated developer portal at `/settings` with key creation, one-time raw key display, live API tester console, interactive multi-language code snippets (cURL, JavaScript, Python, Node.js), one-click **Copy AI Agent Docs** button (markdown specification prompt), and complete endpoint documentation.
 - **Temporary Root Admin Password Reset**: Allows resetting any user password by authenticating with `ROOT_ADMIN_PASSWORD` stored in environment variables.
 
 ---
@@ -384,6 +384,7 @@ The codebase incorporates high-performance full-stack optimizations to eliminate
   - **Top 4 Favorites**: 4-poster mini-grid highlighting top rated/favorite releases.
   - **Recent Activity**: 5 most recently logged releases.
   - **Sub-Tabs**: Showcase, Diary, Films, TV, Watchlist.
+  - **Developer Settings Portal & Interactive Console**: Integrated developer portal at `/settings` with key creation, one-time raw key display, live API tester console, interactive multi-language code snippets (cURL, JavaScript, Python, Node.js), one-click **Copy AI Agent Docs** button (markdown specification prompt), and complete endpoint documentation.
 - **Profile Edit & Utility Settings** ([`src/app/profile/edit/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/profile/edit/page.tsx)):
   - **Basic Info**: Display Name, Username, Bio (textarea), Website.
   - **Avatar Management**: Image URL input, live preview, preset avatar pickers.
@@ -397,7 +398,7 @@ The codebase incorporates high-performance full-stack optimizations to eliminate
 
 - **Developer Settings Portal UI** ([`src/app/settings/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/settings/page.tsx)):
   - **API Keys Sub-Tab**: Create named API keys, copy raw key string on generation, view active keys table with prefix, created date, last used timestamp, total request count, and revocation action.
-  - **API Documentation Sub-Tab**: Comprehensive specification for `/api/v1/export`, header format (`Authorization: Bearer cin_live_...`), rate limits (60 req/min), and field definitions.
+  - **API Documentation Sub-Tab**: Comprehensive specification for `/api/v1/export`, header format (`Authorization: Bearer cin_live_...`), rate limits (60 req/min), field definitions, and one-click **Copy AI Agent Docs** button for instant markdown prompting.
   - **Interactive API Console**: Test requests directly in browser using session cookie or active API keys, view live HTTP status, response latency (ms), rate limit headers, and formatted JSON output.
   - **Multi-Language Code Snippets**: Copyable code samples in cURL, JavaScript (Fetch), Python (requests), and Node.js (Axios).
 - **Backend API Key Security & Rate Limiting** ([`backend/lib/apiKeys.ts`](file:///home/dog/git/movie-trackerh/backend/lib/apiKeys.ts)):
