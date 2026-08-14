@@ -1,5 +1,4 @@
 import { db } from './turso';
-import axios from 'axios';
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
@@ -52,8 +51,13 @@ export async function getAndCacheTVShow(tvId: string | number, forceFetch = fals
       };
     }
 
-    const response = await axios.get(`${TMDB_BASE_URL}/tv/${tvId}?api_key=${TMDB_API_KEY}`);
-    const show = response.data;
+    const res = await fetch(`${TMDB_BASE_URL}/tv/${tvId}?api_key=${TMDB_API_KEY}`, {
+      next: { revalidate: 3600 }
+    });
+    if (!res.ok) {
+      throw new Error(`TMDB error: ${res.statusText}`);
+    }
+    const show = await res.json();
 
     try {
       const batchStmts: any[] = [
@@ -161,8 +165,13 @@ export async function getAndCacheSeason(tvId: string | number, seasonNumber: str
       };
     }
 
-    const response = await axios.get(`${TMDB_BASE_URL}/tv/${tvId}/season/${seasonNumber}?api_key=${TMDB_API_KEY}`);
-    const seasonData = response.data;
+    const res = await fetch(`${TMDB_BASE_URL}/tv/${tvId}/season/${seasonNumber}?api_key=${TMDB_API_KEY}`, {
+      next: { revalidate: 3600 }
+    });
+    if (!res.ok) {
+      throw new Error(`TMDB season error: ${res.statusText}`);
+    }
+    const seasonData = await res.json();
 
     if (Array.isArray(seasonData.episodes) && seasonData.episodes.length > 0) {
       const batchStmts = seasonData.episodes.map((ep: any) => ({

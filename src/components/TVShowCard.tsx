@@ -12,7 +12,7 @@ interface TVShowCardProps {
 
 const TVShowCard: React.FC<TVShowCardProps> = ({ show, showUserRating = false }) => {
   const posterUrl = show.poster_path 
-    ? `https://image.tmdb.org/t/p/w300${show.poster_path}`
+    ? `https://image.tmdb.org/t/p/w342${show.poster_path}`
     : null;
 
   const releaseYear = show.first_air_date 
@@ -28,6 +28,7 @@ const TVShowCard: React.FC<TVShowCardProps> = ({ show, showUserRating = false })
             src={posterUrl} 
             alt={show.name}
             loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (

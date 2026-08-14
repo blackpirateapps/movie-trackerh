@@ -169,6 +169,17 @@ export default function Home() {
     }
   }, [user, selectedShowId, fetchDashboard]);
 
+  // Revalidate Dashboard on Tab Focus (Multi-Tab SWR Sync)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user) {
+        fetchDashboard(selectedShowId || undefined, false);
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user, selectedShowId, fetchDashboard]);
+
   // Load Trending Items with SWR Client Caching
   useEffect(() => {
     const loadTrending = async () => {
@@ -207,7 +218,31 @@ export default function Home() {
     loadTrending();
   }, []);
 
-  // Handle Universal Search
+  // Debounced Live Universal Search (350ms delay to prevent rate limits & excess queries)
+  useEffect(() => {
+    if (!query.trim()) {
+      setUniversalResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const { data } = await api.get<UniversalSearchResult[]>(
+          `/api/search?q=${encodeURIComponent(query.trim())}&type=${searchType}`
+        );
+        setUniversalResults(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Universal Search failed", error);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [query, searchType]);
+
+  // Handle Universal Search Form Submit
   const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!query.trim()) return;

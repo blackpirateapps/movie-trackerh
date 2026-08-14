@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/api';
 import { Movie } from '@/types';
-import { FileUp, Eye, Bookmark, CheckCircle2, SkipForward, RefreshCw, AlertCircle } from 'lucide-react';
+import { FileUp, Eye, Bookmark, CheckCircle2, SkipForward, RefreshCw, AlertCircle, Zap, Layers } from 'lucide-react';
 
 interface ImportedMovieItem {
   id: number;
@@ -35,6 +35,10 @@ export default function Import() {
   const [importedMovies, setImportedMovies] = useState<ImportedMovieItem[]>([]);
   const [skippedMovies, setSkippedMovies] = useState<ParsedMovie[]>([]);
   const [error, setError] = useState<string>('');
+
+  // Chunked Batch Import State (Avoids Vercel Serverless Function Timeouts)
+  const [bulkImporting, setBulkImporting] = useState<boolean>(false);
+  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
 
   const handleFileSelect = (type: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -69,6 +73,47 @@ export default function Import() {
       setError(err.response?.data?.message || 'Failed to parse CSV file.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const bulkImportInBatches = async () => {
+    if (!movies.length || bulkImporting) return;
+    setBulkImporting(true);
+    setError('');
+
+    const chunkSize = 25; // Safe batch size per serverless request
+    const totalCount = movies.length;
+    setBulkProgress({ current: 0, total: totalCount });
+
+    try {
+      for (let i = 0; i < totalCount; i += chunkSize) {
+        const chunk = movies.slice(i, i + chunkSize);
+        const batchItems = chunk.map(m => ({
+          movieId: null,
+          originalData: m
+        }));
+
+        const res = await api.post('/api/import', {
+          action: 'batch_import',
+          items: batchItems,
+          importType
+        });
+
+        if (Array.isArray(res.data?.imported)) {
+          setImportedMovies(prev => [...prev, ...res.data.imported]);
+        }
+
+        const processed = Math.min(i + chunkSize, totalCount);
+        setBulkProgress({ current: processed, total: totalCount });
+      }
+
+      setCurrentIndex(totalCount);
+      setCurrentMovie(null);
+      setSearchResults([]);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed during batch chunk import.');
+    } finally {
+      setBulkImporting(false);
     }
   };
 
@@ -146,6 +191,8 @@ export default function Import() {
     setImportedMovies([]);
     setSkippedMovies([]);
     setError('');
+    setBulkImporting(false);
+    setBulkProgress({ current: 0, total: 0 });
   };
 
   if (!user) {
@@ -159,8 +206,8 @@ export default function Import() {
     );
   }
 
-  const isCompleted = movies.length > 0 && !currentMovie;
-  const progress = movies.length > 0 ? Math.round((currentIndex / movies.length) * 100) : 0;
+  const isCompleted = movies.length > 0 && !currentMovie && !bulkImporting;
+  const progress = movies.length > 0 ? Math.round(((bulkImporting ? bulkProgress.current : currentIndex) / movies.length) * 100) : 0;
 
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto space-y-6 bg-[#121212] text-[#EDEDED]">
@@ -171,7 +218,7 @@ export default function Import() {
           Letterboxd CSV Importer
         </h1>
         <p className="text-xs text-[#A0A0A0]">
-          Import watched movies or watchlists from Letterboxd with interactive TMDB search matching.
+          Import watched movies or watchlists from Letterboxd using high-performance chunked batch execution.
         </p>
       </div>
 
@@ -229,46 +276,63 @@ export default function Import() {
                 </div>
                 <h3 className="text-base font-bold text-[#EDEDED]">Watchlist</h3>
                 <p className="text-xs text-[#A0A0A0]">Upload watchlist.csv</p>
-                <span className="btn btn-primary text-xs py-1.5 px-4 inline-block">Choose File</span>
+                <span className="btn btn-secondary text-xs py-1.5 px-4 inline-block">Choose File</span>
               </label>
             </div>
           </div>
 
           {csvData && (
-            <div className="text-center pt-2">
+            <div className="pt-4 border-t border-[#333333] flex flex-col items-center space-y-3">
+              <span className="text-xs font-semibold text-[#00FF66]">
+                ✓ CSV file loaded successfully. Ready to process.
+              </span>
               <button
                 onClick={startImport}
                 disabled={loading}
-                className="btn btn-primary w-full py-3 text-xs flex items-center justify-center gap-2"
+                className="btn btn-primary text-xs py-2 px-6 flex items-center gap-2"
               >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#121212] border-t-transparent" />
-                    Parsing CSV...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    Start Interactive {importType} Import
-                  </>
-                )}
+                {loading ? 'Parsing File...' : 'Start Import Wizard'}
               </button>
             </div>
           )}
         </div>
       )}
 
-      {/* Progress */}
+      {/* Step 2: Import Progress Bar & Batch Control Header */}
       {movies.length > 0 && (
-        <div className="card bg-[#1E1E1E] border border-[#333333] p-4 space-y-3">
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span className="text-[#EDEDED]">Import Progress</span>
-            <span className="bg-[#121212] border border-[#333333] px-2.5 py-0.5 rounded text-[#00FF66]">
-              {currentIndex} of {movies.length} ({progress}%)
-            </span>
+        <div className="card bg-[#1E1E1E] border border-[#333333] p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold text-[#EDEDED]">
+                Import Progress: {bulkImporting ? bulkProgress.current : currentIndex} / {movies.length} Movies
+              </h2>
+              <p className="text-xs text-[#A0A0A0]">
+                {importType === 'watchlist' ? 'Watchlist Import' : 'Watched Movies Import'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {!isCompleted && !bulkImporting && (
+                <button
+                  onClick={bulkImportInBatches}
+                  className="btn bg-[#00FF66] text-[#121212] font-bold text-xs py-1.5 px-3 flex items-center gap-1.5 hover:bg-[#00CC52]"
+                  title="Chunk into arrays of 25 movies and process sequentially without timeout"
+                >
+                  <Zap className="w-3.5 h-3.5 fill-[#121212]" />
+                  <span>Auto-Import All in Chunks</span>
+                </button>
+              )}
+              <button
+                onClick={resetImport}
+                className="btn btn-ghost text-xs py-1.5 px-3 flex items-center gap-1"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Reset
+              </button>
+            </div>
           </div>
 
-          <div className="w-full bg-[#121212] border border-[#333333] rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-[#121212] border border-[#333333] rounded-full h-2.5 overflow-hidden">
             <div 
               className="bg-[#00FF66] h-full transition-all duration-300"
               style={{ width: `${progress}%` }}
@@ -282,8 +346,19 @@ export default function Import() {
         </div>
       )}
 
+      {/* Bulk Batch Progress Loading Overlay */}
+      {bulkImporting && (
+        <div className="card bg-[#1E1E1E] border border-[#00FF66] p-8 text-center space-y-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-3 border-[#00FF66] border-t-transparent mx-auto" />
+          <h3 className="font-bold text-sm text-[#EDEDED]">Processing Chunked Batch Import...</h3>
+          <p className="text-xs text-[#A0A0A0]">
+            Processing items in batches of 25 to respect TMDB rate limits and Vercel serverless execution constraints. ({bulkProgress.current} / {bulkProgress.total})
+          </p>
+        </div>
+      )}
+
       {/* Current Movie Matching */}
-      {currentMovie && searchResults.length > 0 && (
+      {currentMovie && searchResults.length > 0 && !bulkImporting && (
         <div className="card bg-[#1E1E1E] border border-[#333333] p-6 space-y-4">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-widest text-[#00FF66]">
@@ -332,70 +407,34 @@ export default function Import() {
             ))}
           </div>
 
-          <div className="flex gap-2 pt-2 border-t border-[#333333]">
+          <div className="flex justify-end pt-2">
             <button
               onClick={skipMovie}
-              className="btn btn-secondary text-xs py-2 px-4 flex-1 flex items-center justify-center gap-1.5"
+              className="btn btn-ghost text-xs py-1.5 px-4 flex items-center gap-1.5"
             >
-              <SkipForward className="w-3.5 h-3.5" />
+              <SkipForward className="w-4 h-4" />
               Skip Movie
             </button>
-            <button
-              onClick={() => searchForMovie(currentMovie)}
-              className="btn btn-ghost text-xs py-2 px-4 flex items-center gap-1.5"
-              disabled={loading}
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Re-Search
-            </button>
           </div>
         </div>
       )}
 
-      {/* No Results */}
-      {currentMovie && searchResults.length === 0 && !loading && (
-        <div className="card bg-[#1E1E1E] border border-[#333333] text-center p-6 space-y-3">
-          <h3 className="text-sm font-bold text-[#EDEDED]">No Matches Found</h3>
-          <p className="text-xs text-[#A0A0A0]">
-            Could not find &ldquo;{currentMovie.originalName}&rdquo; on TMDB.
-          </p>
-          <div className="flex gap-2 justify-center">
-            <button onClick={skipMovie} className="btn btn-secondary text-xs py-1.5 px-4">
-              Skip
-            </button>
-            <button onClick={() => searchForMovie(currentMovie)} className="btn btn-primary text-xs py-1.5 px-4">
-              Try Again
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Complete */}
+      {/* Completion View */}
       {isCompleted && (
-        <div className="card bg-[#1E1E1E] border border-[#333333] text-center p-8 space-y-4">
+        <div className="card bg-[#1E1E1E] border border-[#333333] p-8 text-center space-y-4">
           <div className="w-12 h-12 bg-[#00FF66] text-[#121212] rounded-full flex items-center justify-center mx-auto font-bold">
             <CheckCircle2 className="w-6 h-6" />
           </div>
-
-          <h3 className="text-lg font-bold text-[#EDEDED]">Import Complete!</h3>
-
-          <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto text-center">
-            <div className="bg-[#121212] border border-[#333333] rounded p-3">
-              <div className="text-lg font-bold text-[#00FF66]">{importedMovies.length}</div>
-              <div className="text-xs text-[#A0A0A0]">Imported</div>
-            </div>
-            <div className="bg-[#121212] border border-[#333333] rounded p-3">
-              <div className="text-lg font-bold text-[#EDEDED]">{skippedMovies.length}</div>
-              <div className="text-xs text-[#A0A0A0]">Skipped</div>
-            </div>
-          </div>
-          
-          <div className="flex gap-3 justify-center pt-2">
+          <h2 className="text-xl font-bold text-[#EDEDED]">Import Complete!</h2>
+          <p className="text-xs text-[#A0A0A0]">
+            Successfully imported {importedMovies.length} movies into your CineTracker profile.
+          </p>
+          <div className="flex justify-center gap-3 pt-2">
             <Link href={`/profile/${user.username}`} className="btn btn-primary text-xs py-2 px-5">
               View Profile
             </Link>
             <button onClick={resetImport} className="btn btn-secondary text-xs py-2 px-5">
-              Import Another
+              Import Another File
             </button>
           </div>
         </div>

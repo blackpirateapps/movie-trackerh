@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/../backend/lib/turso';
 import { authenticate } from '@/../backend/lib/auth';
 import { invalidateUserStatsCache } from '@/../backend/lib/statsCache';
-import axios from 'axios';
 import csvParser from 'csv-parser';
 import { Readable } from 'stream';
 
@@ -31,7 +30,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { action, csvData, importType, movieName, movieId, originalData } = body;
+  const { action, csvData, importType, movieName, movieId, originalData, items } = body;
 
   if (action === 'parse') {
     if (!csvData) {
@@ -76,19 +75,113 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ results: [] });
       }
 
-      const response = await axios.get(`${TMDB_BASE_URL}/search/movie`, {
-        params: {
-          api_key: TMDB_API_KEY,
-          query: movieName
-        }
+      const res = await fetch(`${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(movieName)}`, {
+        next: { revalidate: 3600 }
       });
+      if (!res.ok) {
+        return NextResponse.json({ results: [] });
+      }
+      const data = await res.json();
 
       return NextResponse.json({
-        results: response.data.results.slice(0, 5)
+        results: (data.results || []).slice(0, 5)
       });
     } catch (error) {
       console.error('Error searching movie:', error);
       return NextResponse.json({ message: 'Failed to search movie.' }, { status: 500 });
+    }
+  }
+
+  if (action === 'batch_import') {
+    if (!Array.isArray(items) || items.length === 0) {
+      return NextResponse.json({ message: 'Items array is required for batch import.' }, { status: 400 });
+    }
+
+    try {
+      const batchStmts: any[] = [];
+      const importedList: any[] = [];
+
+      for (const item of items) {
+        const { movieId: itemMovieId, originalData: itemOriginalData } = item;
+        let movieData: any = null;
+
+        if (TMDB_API_KEY && itemMovieId) {
+          try {
+            const res = await fetch(`${TMDB_BASE_URL}/movie/${itemMovieId}?api_key=${TMDB_API_KEY}`, {
+              next: { revalidate: 86400 }
+            });
+            if (res.ok) {
+              movieData = await res.json();
+            }
+          } catch (e) {}
+        }
+
+        if (!movieData) {
+          movieData = {
+            id: Number(itemMovieId || Math.floor(Math.random() * 1000000)),
+            title: itemOriginalData.originalName,
+            overview: 'Imported movie.',
+            release_date: itemOriginalData.year ? `${itemOriginalData.year}-01-01` : '2024-01-01',
+            poster_path: null,
+            backdrop_path: null,
+            runtime: 120,
+            vote_average: 7.5
+          };
+        }
+
+        batchStmts.push({
+          sql: `INSERT OR IGNORE INTO movies (id, title, overview, release_date, poster_path, backdrop_path, runtime, vote_average) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [
+            movieData.id,
+            movieData.title,
+            movieData.overview || '',
+            movieData.release_date || null,
+            movieData.poster_path || null,
+            movieData.backdrop_path || null,
+            movieData.runtime || null,
+            movieData.vote_average || null
+          ]
+        });
+
+        if (importType === 'watchlist') {
+          batchStmts.push({
+            sql: 'INSERT OR IGNORE INTO watchlist (user_id, movie_id) VALUES (?, ?)',
+            args: [authUser.sub, movieData.id]
+          });
+        } else {
+          batchStmts.push({
+            sql: `INSERT INTO user_movies (user_id, movie_id, watched_date) 
+                  VALUES (?, ?, ?) 
+                  ON CONFLICT(user_id, movie_id) DO UPDATE SET 
+                  watched_date = excluded.watched_date,
+                  updated_at = CURRENT_TIMESTAMP`,
+            args: [authUser.sub, movieData.id, itemOriginalData.date || new Date().toISOString().split('T')[0]]
+          });
+        }
+
+        importedList.push({
+          id: movieData.id,
+          title: movieData.title,
+          year: movieData.release_date ? new Date(movieData.release_date).getFullYear() : null,
+          poster_path: movieData.poster_path,
+          originalName: itemOriginalData.originalName
+        });
+      }
+
+      if (batchStmts.length > 0) {
+        await db.batch(batchStmts, 'write');
+      }
+
+      invalidateUserStatsCache(Number(authUser.sub || authUser.id)).catch(() => {});
+
+      return NextResponse.json({
+        message: `Batch imported ${importedList.length} movies successfully.`,
+        imported: importedList
+      });
+    } catch (error) {
+      console.error('Error in batch_import:', error);
+      return NextResponse.json({ message: 'Batch import failed.' }, { status: 500 });
     }
   }
 
@@ -100,9 +193,15 @@ export async function POST(request: NextRequest) {
     try {
       let movieData: any = null;
       if (TMDB_API_KEY) {
-        const response = await axios.get(`${TMDB_BASE_URL}/movie/${movieId}?api_key=${TMDB_API_KEY}`);
-        movieData = response.data;
-      } else {
+        const res = await fetch(`${TMDB_BASE_URL}/movie/${movieId}?api_key=${TMDB_API_KEY}`, {
+          next: { revalidate: 86400 }
+        });
+        if (res.ok) {
+          movieData = await res.json();
+        }
+      }
+
+      if (!movieData) {
         movieData = {
           id: Number(movieId),
           title: originalData.originalName,

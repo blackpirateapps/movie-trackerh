@@ -487,11 +487,24 @@ The codebase incorporates high-performance full-stack optimizations to eliminate
   - **Automatic Server Cache Invalidation**: Any user mutation (marking episode as watched in `/api/tv`, rating/reviewing a movie in `/api/movies`, or importing CSV data in `/api/import`) automatically purges the cached dashboard payload so fresh data is returned immediately.
 - **Server Edge HTTP Caching for Popular Releases** ([`src/app/api/movies/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/movies/route.ts) & [`src/app/api/tv/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/tv/route.ts)):
   - Popular movie and TV queries add `Cache-Control: public, max-age=300, s-maxage=3600, stale-while-revalidate=86400` headers to cache TMDB release lookups for 1 hour with 24-hour background revalidation.
-- **Client-Side Stale-While-Revalidate (SWR)** ([`src/app/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/page.tsx)):
-  - **Instant Zero-Flicker Render**: Stores dashboard and trending data in client `sessionStorage`. On page refresh or re-navigation, the homepage renders instantly from `sessionStorage` (0ms delay, no loading spinner).
-  - **Seamless Background Revalidation**: Performs background fetch to revalidate and update state smoothly. User quick actions (e.g. marking episode watched or quick rating) automatically invalidate the client cache and force-refresh the dashboard payload.
+---
+
+## 16. Comprehensive System Performance & Resilience Architecture
+
+- **Database Performance Indexing** ([`backend/db/schema.sql`](file:///home/dog/git/movie-trackerh/backend/db/schema.sql) & [`backend/lib/turso.ts`](file:///home/dog/git/movie-trackerh/backend/lib/turso.ts)):
+  - Added explicit non-unique indexes for foreign key joins and read queries (`idx_user_movies_user_id`, `idx_user_movies_updated_at`, `idx_user_tv_shows_user_id`, `idx_episodes_tv_show_id`, `idx_user_episodes_user_id_tv_show_id`, `idx_watchlist_user_id`, `idx_follows_follower_id`, `idx_follows_following_id`). Eliminates full table scans across all user activity queries.
+- **Native Fetch for Next.js Server Request Memoization** ([`backend/lib/tvHelpers.ts`](file:///home/dog/git/movie-trackerh/backend/lib/tvHelpers.ts), [`src/app/api/search/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/search/route.ts), [`src/app/api/import/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/import/route.ts)):
+  - Replaced server-side Axios calls with native `fetch` API (`{ next: { revalidate: 3600 } }`), enabling Next.js Request Memoization and Data Cache to deduplicate identical TMDB calls during render passes.
+- **TMDB Image Size Standardization** ([`src/components/MovieCard.tsx`](file:///home/dog/git/movie-trackerh/src/components/MovieCard.tsx) & [`src/components/TVShowCard.tsx`](file:///home/dog/git/movie-trackerh/src/components/TVShowCard.tsx)):
+  - Standardized poster grid sizes to `/w342` with `loading="lazy"` and `decoding="async"` for optimal WebP image delivery and zero layout shifts.
+- **CSV Chunked Batch Import Engine** ([`src/app/import/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/import/page.tsx) & [`src/app/api/import/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/import/route.ts)):
+  - Added `action: 'batch_import'` with client-side chunking (25 items per batch). Prevents Vercel serverless function 10s/60s timeouts and TMDB rate-limiting during large CSV imports.
+- **Multi-Tab SWR Focus Sync** ([`src/app/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/page.tsx)):
+  - Added `window.addEventListener('focus', ...)` revalidation listener to sync dashboard state across browser tabs when user returns focus to a tab.
+- **Universal Search Debouncing** ([`src/app/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/page.tsx) & [`src/components/Navbar.tsx`](file:///home/dog/git/movie-trackerh/src/components/Navbar.tsx)):
+  - Implemented 350ms debounced live search effect to prevent keystroke flooding.
 
 ---
 
-*Document updated post Homepage Multi-Layer Caching implementation on 2026-08-14.*
+*Document updated post Performance & Resilience Architecture implementation on 2026-08-14.*
 

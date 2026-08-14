@@ -158,7 +158,15 @@ export async function ensureSchema() {
         stats_data TEXT NOT NULL,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-      );`
+      );`,
+      `CREATE INDEX IF NOT EXISTS idx_user_movies_user_id ON user_movies(user_id);`,
+      `CREATE INDEX IF NOT EXISTS idx_user_movies_updated_at ON user_movies(updated_at DESC);`,
+      `CREATE INDEX IF NOT EXISTS idx_user_tv_shows_user_id ON user_tv_shows(user_id);`,
+      `CREATE INDEX IF NOT EXISTS idx_episodes_tv_show_id ON episodes(tv_show_id, season_number);`,
+      `CREATE INDEX IF NOT EXISTS idx_user_episodes_user_id_tv_show_id ON user_episodes(user_id, tv_show_id);`,
+      `CREATE INDEX IF NOT EXISTS idx_watchlist_user_id ON watchlist(user_id);`,
+      `CREATE INDEX IF NOT EXISTS idx_follows_follower_id ON follows(follower_id);`,
+      `CREATE INDEX IF NOT EXISTS idx_follows_following_id ON follows(following_id);`
     ];
 
     await db.batch(statements, 'write');

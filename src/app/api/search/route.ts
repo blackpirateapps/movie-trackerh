@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, ensureSchema } from '@/../backend/lib/turso';
-import axios from 'axios';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,25 +67,47 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Task 3: TMDB Movie Search
+  // Task 3: TMDB Movie Search using native fetch (Next.js Request Memoization)
   if (TMDB_API_KEY && (type === 'all' || type === 'movie')) {
     tasks.push(
-      axios.get(`${TMDB_BASE_URL}/search/movie`, {
-        params: { api_key: TMDB_API_KEY, query: query.trim() },
-        timeout: 4000
-      }).then(res => ({ task: 'tmdb_movie', results: res.data?.results || [] }))
-        .catch(() => ({ task: 'tmdb_movie', results: [] }))
+      (async () => {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const res = await fetch(
+            `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query.trim())}`,
+            { signal: controller.signal, next: { revalidate: 3600 } }
+          );
+          clearTimeout(timeoutId);
+          if (!res.ok) return { task: 'tmdb_movie', results: [] };
+          const data = await res.json();
+          return { task: 'tmdb_movie', results: data?.results || [] };
+        } catch (e) {
+          return { task: 'tmdb_movie', results: [] };
+        }
+      })()
     );
   }
 
-  // Task 4: TMDB TV Search
+  // Task 4: TMDB TV Search using native fetch (Next.js Request Memoization)
   if (TMDB_API_KEY && (type === 'all' || type === 'tv')) {
     tasks.push(
-      axios.get(`${TMDB_BASE_URL}/search/tv`, {
-        params: { api_key: TMDB_API_KEY, query: query.trim() },
-        timeout: 4000
-      }).then(res => ({ task: 'tmdb_tv', results: res.data?.results || [] }))
-        .catch(() => ({ task: 'tmdb_tv', results: [] }))
+      (async () => {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const res = await fetch(
+            `${TMDB_BASE_URL}/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query.trim())}`,
+            { signal: controller.signal, next: { revalidate: 3600 } }
+          );
+          clearTimeout(timeoutId);
+          if (!res.ok) return { task: 'tmdb_tv', results: [] };
+          const data = await res.json();
+          return { task: 'tmdb_tv', results: data?.results || [] };
+        } catch (e) {
+          return { task: 'tmdb_tv', results: [] };
+        }
+      })()
     );
   }
 

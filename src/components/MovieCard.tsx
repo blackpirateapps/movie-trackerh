@@ -12,7 +12,7 @@ interface MovieCardProps {
 
 const MovieCard: React.FC<MovieCardProps> = ({ movie, showUserRating = false }) => {
   const posterUrl = movie.poster_path 
-    ? `https://image.tmdb.org/t/p/w300${movie.poster_path}`
+    ? `https://image.tmdb.org/t/p/w342${movie.poster_path}`
     : null;
 
   const releaseYear = movie.release_date 
@@ -28,6 +28,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, showUserRating = false }) 
             src={posterUrl} 
             alt={movie.title}
             loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
