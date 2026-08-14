@@ -58,7 +58,31 @@ export async function setCachedUserStats(
 }
 
 /**
- * Invalidate all cached stats for a user (called when user edits/logs movies, tv, episodes, or imports CSV).
+ * Retrieve cached user dashboard payload if younger than maxAgeMinutes (default 15 mins).
+ */
+export async function getCachedDashboard(
+  userId: number,
+  tvShowId?: number | null,
+  maxAgeMinutes: number = 15
+): Promise<any | null> {
+  const cacheKey = `dashboard_user_${userId}_show_${tvShowId || 'default'}`;
+  return getCachedUserStats(userId, cacheKey, maxAgeMinutes / 60);
+}
+
+/**
+ * Upsert cached user dashboard payload.
+ */
+export async function setCachedDashboard(
+  userId: number,
+  tvShowId: number | null | undefined,
+  data: object
+): Promise<void> {
+  const cacheKey = `dashboard_user_${userId}_show_${tvShowId || 'default'}`;
+  return setCachedUserStats(userId, cacheKey, data);
+}
+
+/**
+ * Invalidate all cached stats and dashboard data for a user (called when user edits/logs movies, tv, episodes, or imports CSV).
  */
 export async function invalidateUserStatsCache(userId: number): Promise<void> {
   try {

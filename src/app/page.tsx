@@ -124,14 +124,38 @@ export default function Home() {
   const [movieReview, setMovieReview] = useState<string>('');
   const [savingMovie, setSavingMovie] = useState<boolean>(false);
 
-  // Fetch Dashboard Data for Logged-In User
-  const fetchDashboard = useCallback(async (tvShowId?: number) => {
+  // Fetch Dashboard Data for Logged-In User with SWR Client Caching
+  const fetchDashboard = useCallback(async (tvShowId?: number, forceRefresh = false) => {
     if (!user) return;
-    setDashboardLoading(true);
+
+    const cacheKey = `cinetracker_dash_${user.id}_${tvShowId || 'default'}`;
+
+    // 1. Instantly load from sessionStorage cache if available
+    if (!forceRefresh && typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          setDashboardData(JSON.parse(cached));
+          setDashboardLoading(false);
+        } else {
+          setDashboardLoading(true);
+        }
+      } catch (e) {}
+    } else {
+      setDashboardLoading(true);
+    }
+
+    // 2. Background fetch for revalidation
     try {
-      const url = tvShowId ? `/api/user/dashboard?tvShowId=${tvShowId}` : '/api/user/dashboard';
+      let url = tvShowId ? `/api/user/dashboard?tvShowId=${tvShowId}` : '/api/user/dashboard';
+      if (forceRefresh) {
+        url += (url.includes('?') ? '&' : '?') + 'refresh=true';
+      }
       const { data } = await api.get<DashboardResponse>(url);
       setDashboardData(data);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(cacheKey, JSON.stringify(data));
+      }
     } catch (error) {
       console.error('Failed to load dashboard data', error);
     } finally {
@@ -145,19 +169,36 @@ export default function Home() {
     }
   }, [user, selectedShowId, fetchDashboard]);
 
-  // Load Trending Items
+  // Load Trending Items with SWR Client Caching
   useEffect(() => {
     const loadTrending = async () => {
+      if (typeof window !== 'undefined') {
+        try {
+          const cachedMovies = sessionStorage.getItem('cinetracker_trending_movies');
+          const cachedTv = sessionStorage.getItem('cinetracker_trending_tv');
+          if (cachedMovies) setTrendingMovies(JSON.parse(cachedMovies));
+          if (cachedTv) setTrendingTv(JSON.parse(cachedTv));
+        } catch (e) {}
+      }
+
       try {
         const [movieRes, tvRes] = await Promise.all([
           api.get<Movie[]>('/api/movies?query=popular'),
           api.get<TVShow[]>('/api/tv?query=popular')
         ]);
         if (Array.isArray(movieRes.data)) {
-          setTrendingMovies(movieRes.data.slice(0, 12));
+          const slicedMovies = movieRes.data.slice(0, 12);
+          setTrendingMovies(slicedMovies);
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('cinetracker_trending_movies', JSON.stringify(slicedMovies));
+          }
         }
         if (Array.isArray(tvRes.data)) {
-          setTrendingTv(tvRes.data.slice(0, 12));
+          const slicedTv = tvRes.data.slice(0, 12);
+          setTrendingTv(slicedTv);
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('cinetracker_trending_tv', JSON.stringify(slicedTv));
+          }
         }
       } catch (error) {
         console.error('Failed to load trending items', error);
@@ -202,8 +243,11 @@ export default function Home() {
       setQuickWatchSuccess(`Marked Season ${season_number} Episode ${episode_number} as watched!`);
       setTimeout(() => setQuickWatchSuccess(null), 4000);
       
-      // Re-fetch dashboard data to calculate next episode
-      await fetchDashboard(selectedShowId || undefined);
+      // Clear cache and force refresh dashboard payload
+      if (typeof window !== 'undefined' && user) {
+        sessionStorage.removeItem(`cinetracker_dash_${user.id}_${selectedShowId || 'default'}`);
+      }
+      await fetchDashboard(selectedShowId || undefined, true);
     } catch (error) {
       console.error('Failed to mark episode as watched', error);
     } finally {
@@ -232,7 +276,7 @@ export default function Home() {
       // Update local state immediately
       setDashboardData(prev => {
         if (!prev) return null;
-        return {
+        const updated = {
           ...prev,
           lastWatchedMovies: prev.lastWatchedMovies.map(m => 
             m.movieId === movieId 
@@ -240,6 +284,10 @@ export default function Home() {
               : m
           )
         };
+        if (typeof window !== 'undefined' && user) {
+          sessionStorage.setItem(`cinetracker_dash_${user.id}_${selectedShowId || 'default'}`, JSON.stringify(updated));
+        }
+        return updated;
       });
       
       setEditingMovieId(null);

@@ -140,7 +140,12 @@ export async function GET(request: NextRequest) {
         results = trendRes.data.results || [];
       }
 
-      return NextResponse.json(results);
+      const headers: Record<string, string> = {};
+      if (query === 'popular' || query === 'trending') {
+        headers['Cache-Control'] = 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400';
+      }
+
+      return NextResponse.json(results, { headers });
     } catch (error: any) {
       console.error('TMDB TV search error:', error.response ? error.response.data : error.message);
       return NextResponse.json({ message: 'Failed to search TV shows.' }, { status: 500 });

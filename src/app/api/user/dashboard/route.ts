@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, ensureSchema } from '@/../backend/lib/turso';
 import { authenticate } from '@/../backend/lib/auth';
 import { getAndCacheTVShow, getAndCacheSeason } from '@/../backend/lib/tvHelpers';
+import { getCachedDashboard, setCachedDashboard } from '@/../backend/lib/statsCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,22 @@ export async function GET(request: NextRequest) {
   }
 
   const userId = parseInt(authUser.sub);
+  const { searchParams } = new URL(request.url);
+  const requestedTvShowId = searchParams.get('tvShowId');
+  const forceRefresh = searchParams.get('refresh') === 'true';
+
+  // 1. Check DB Cache
+  if (!forceRefresh) {
+    const cachedData = await getCachedDashboard(userId, requestedTvShowId ? Number(requestedTvShowId) : null, 15);
+    if (cachedData) {
+      return NextResponse.json(cachedData, {
+        headers: {
+          'X-Cache': 'HIT',
+          'Cache-Control': 'private, no-cache, no-transform'
+        }
+      });
+    }
+  }
 
   try {
     // 1. Fetch Recently Watched Movies
@@ -81,9 +98,6 @@ export async function GET(request: NextRequest) {
       `,
       args: [userId, userId],
     });
-
-    const { searchParams } = new URL(request.url);
-    const requestedTvShowId = searchParams.get('tvShowId');
 
     let currentlyWatching = null;
 
@@ -227,9 +241,19 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const payload = {
       currentlyWatching,
       lastWatchedMovies,
+    };
+
+    // Save to DB Cache for fast 15-minute TTL re-serves
+    setCachedDashboard(userId, requestedTvShowId ? Number(requestedTvShowId) : null, payload).catch(() => {});
+
+    return NextResponse.json(payload, {
+      headers: {
+        'X-Cache': 'MISS',
+        'Cache-Control': 'private, no-cache, no-transform'
+      }
     });
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
