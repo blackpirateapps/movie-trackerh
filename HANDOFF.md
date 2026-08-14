@@ -511,15 +511,22 @@ Added high-precision composite indexes to [`backend/db/schema.sql`](file:///home
   - `idx_user_movies_stats` on `user_movies(user_id, watched_date, rating)`
   - `idx_user_tv_shows_stats` on `user_tv_shows(user_id, rating)`
   - `idx_user_episodes_stats` on `user_episodes(user_id, watched_date, watched)`
-- **Next Episode Resolution Engine**:
-  - `idx_user_episodes_progress` on `user_episodes(user_id, tv_show_id, season_number DESC, episode_number DESC)`
-  - `idx_episodes_season_lookup` on `episodes(tv_show_id, season_number)`
-  - `idx_seasons_show_lookup` on `seasons(tv_show_id, season_number)`
-- **Social Graph & Watchlist Traversal**:
-  - `idx_follows_reverse` on `follows(following_id, follower_id)` (bypasses full table scan for follower lookups)
-  - `idx_watchlist_timeline` on `watchlist(user_id, created_at DESC)`
+---
+
+## 18. Profile Page Utilitarian Design Refinement
+
+- **Flatter Lifetime Stats (Eliminated Box-in-Box Effect)** ([`src/app/profile/[username]/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/profile/[username]/page.tsx)):
+  - Removed dark background fills and nested card borders from `Films`, `TV Series`, and `Hours Watched` metrics. Numbers float directly on the parent card separated only by thin 1px `#333333` vertical divider lines (`divide-x divide-[#333333]`).
+- **Normalized Metric Typography**:
+  - Unified all stat numbers (`Films`, `TV Series`, `Hours Watched`) into bold neon green accent text (`text-[#00FF66]`).
+- **Tamed Active Tab Weight**:
+  - Stripped solid neon green fill from active navigation tab (`SHOWCASE`). Replaced with a raw HTML tab style (`bg-[#121212] text-[#00FF66] border border-[#00FF66]/40`) that eliminates visual clutter and highlights poster content.
+- **Top-Right Anchored Action Buttons**:
+  - Pinned `Stats` and `Edit Profile` / `Follow User` buttons to the top-right corner of the profile header container (`items-start`), aligned horizontally with display name.
+- **Physical Media Poster Framing**:
+  - Standardized all posters in `THE TOP 4` and recent logs to a strict `aspect-[2/3]` ratio with 1px `#333333` borders, `rounded` corners (4px), and `/w342` WebP TMDB asset sizes.
 
 ---
 
-*Document updated post Composite Indexes implementation on 2026-08-14.*
+*Document updated post Profile Utilitarian Design Refinement on 2026-08-14.*
 

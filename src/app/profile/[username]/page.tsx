@@ -163,20 +163,23 @@ export default function Profile() {
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-6 bg-[#121212] text-[#EDEDED]">
       
-      {/* 1. User Header (The Showcase) */}
-      <div className="card bg-[#1E1E1E] border border-[#333333] p-6 space-y-4">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      {/* 1. User Header Container */}
+      <div className="card bg-[#1E1E1E] border border-[#333333] p-6 space-y-6">
+        
+        {/* Header Top Section with Top-Right Anchored Action Buttons */}
+        <div className="flex flex-col md:flex-row items-start justify-between gap-4">
           
-          <div className="flex items-center gap-4">
+          {/* User Details */}
+          <div className="flex items-start gap-4">
             {/* Avatar */}
             {profile.user.avatar_url ? (
               <img 
                 src={profile.user.avatar_url} 
                 alt={profile.user.username}
-                className="w-20 h-20 rounded-full object-cover border-2 border-[#00FF66] shrink-0"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-[#00FF66] shrink-0"
               />
             ) : (
-              <div className="w-20 h-20 bg-[#00FF66] text-[#121212] rounded-full flex items-center justify-center font-bold text-3xl shrink-0">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#00FF66] text-[#121212] rounded-full flex items-center justify-center font-bold text-2xl sm:text-3xl shrink-0">
                 {profile.user.username.charAt(0).toUpperCase()}
               </div>
             )}
@@ -226,10 +229,10 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Action Buttons: Edit Profile or Follow */}
-          <div className="shrink-0 flex items-center gap-2">
+          {/* Action Buttons: Anchored to Top-Right Corner */}
+          <div className="shrink-0 flex items-center gap-2 self-start pt-1">
             <Link
-              href={`/stats`}
+              href="/stats"
               className="btn btn-secondary text-xs py-2 px-3 flex items-center gap-1.5"
             >
               <BarChart3 className="w-4 h-4 text-[#00FF66]" />
@@ -237,7 +240,7 @@ export default function Profile() {
             </Link>
             {isOwnProfile ? (
               <Link 
-                href="/profile/edit" 
+                href="/settings?tab=profile" 
                 className="btn btn-secondary text-xs py-2 px-4 flex items-center gap-1.5"
               >
                 <Edit3 className="w-4 h-4 text-[#00FF66]" />
@@ -274,42 +277,47 @@ export default function Profile() {
 
         </div>
 
-        {/* Lifetime Stats Counters */}
-        <div className="grid grid-cols-3 gap-3 pt-4 border-t border-[#333333]">
-          <div className="bg-[#121212] border border-[#333333] p-3 rounded text-center">
-            <span className="text-xs font-bold uppercase tracking-widest text-[#A0A0A0] block">Films</span>
-            <span className="text-xl sm:text-2xl font-bold text-[#00FF66]">{profile.stats.movies}</span>
+        {/* Flatter Utilitarian Lifetime Stats Counters (No Box-in-Box, Thin Vertical Dividers, Uniform Neon Green Numbers) */}
+        <div className="grid grid-cols-3 pt-5 border-t border-[#333333] divide-x divide-[#333333]">
+          <div className="px-2 text-center">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-[#A0A0A0] block mb-0.5">Films</span>
+            <span className="text-2xl sm:text-3xl font-extrabold text-[#00FF66]">{profile.stats.movies}</span>
           </div>
 
-          <div className="bg-[#121212] border border-[#333333] p-3 rounded text-center">
-            <span className="text-xs font-bold uppercase tracking-widest text-[#A0A0A0] block">TV Series</span>
-            <span className="text-xl sm:text-2xl font-bold text-[#00FF66]">{profile.stats.tv_shows || 0}</span>
+          <div className="px-2 text-center">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-[#A0A0A0] block mb-0.5">TV Series</span>
+            <span className="text-2xl sm:text-3xl font-extrabold text-[#00FF66]">{profile.stats.tv_shows || 0}</span>
           </div>
 
-          <div className="bg-[#121212] border border-[#333333] p-3 rounded text-center">
-            <span className="text-xs font-bold uppercase tracking-widest text-[#A0A0A0] block">Hours Watched</span>
-            <span className="text-xl sm:text-2xl font-bold text-[#EDEDED]">{profile.stats.hours_watched || 0}h</span>
+          <div className="px-2 text-center">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-[#A0A0A0] block mb-0.5">Hours Watched</span>
+            <span className="text-2xl sm:text-3xl font-extrabold text-[#00FF66]">{profile.stats.hours_watched || 0}h</span>
           </div>
         </div>
+
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="card bg-[#1E1E1E] border border-[#333333] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 overflow-x-auto">
+      {/* Navigation Sub-Tabs (Clean Non-Heavy Tabs) */}
+      <div className="card bg-[#1E1E1E] border border-[#333333] p-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`btn text-xs py-1.5 px-3.5 ${
-                activeTab === 'overview' ? 'btn-primary' : 'btn-ghost text-[#A0A0A0]'
+              className={`text-xs font-bold py-1.5 px-3.5 rounded transition-all uppercase tracking-wider ${
+                activeTab === 'overview' 
+                  ? 'bg-[#121212] text-[#00FF66] border border-[#00FF66]/40 shadow-sm' 
+                  : 'text-[#A0A0A0] hover:text-[#EDEDED] hover:bg-[#121212]/50'
               }`}
             >
-              <span>Showcase</span>
+              <span>SHOWCASE</span>
             </button>
 
             <button
               onClick={() => setActiveTab('diary')}
-              className={`btn text-xs py-1.5 px-3.5 ${
-                activeTab === 'diary' ? 'btn-primary' : 'btn-ghost text-[#A0A0A0]'
+              className={`text-xs font-bold py-1.5 px-3.5 rounded transition-all uppercase tracking-wider flex items-center gap-1.5 ${
+                activeTab === 'diary' 
+                  ? 'bg-[#121212] text-[#00FF66] border border-[#00FF66]/40 shadow-sm' 
+                  : 'text-[#A0A0A0] hover:text-[#EDEDED] hover:bg-[#121212]/50'
               }`}
             >
               <History className="w-3.5 h-3.5" />
@@ -318,8 +326,10 @@ export default function Profile() {
 
             <button
               onClick={() => setActiveTab('movies')}
-              className={`btn text-xs py-1.5 px-3.5 ${
-                activeTab === 'movies' ? 'btn-primary' : 'btn-ghost text-[#A0A0A0]'
+              className={`text-xs font-bold py-1.5 px-3.5 rounded transition-all uppercase tracking-wider flex items-center gap-1.5 ${
+                activeTab === 'movies' 
+                  ? 'bg-[#121212] text-[#00FF66] border border-[#00FF66]/40 shadow-sm' 
+                  : 'text-[#A0A0A0] hover:text-[#EDEDED] hover:bg-[#121212]/50'
               }`}
             >
               <Film className="w-3.5 h-3.5" />
@@ -328,8 +338,10 @@ export default function Profile() {
 
             <button
               onClick={() => setActiveTab('tv')}
-              className={`btn text-xs py-1.5 px-3.5 ${
-                activeTab === 'tv' ? 'btn-primary' : 'btn-ghost text-[#A0A0A0]'
+              className={`text-xs font-bold py-1.5 px-3.5 rounded transition-all uppercase tracking-wider flex items-center gap-1.5 ${
+                activeTab === 'tv' 
+                  ? 'bg-[#121212] text-[#00FF66] border border-[#00FF66]/40 shadow-sm' 
+                  : 'text-[#A0A0A0] hover:text-[#EDEDED] hover:bg-[#121212]/50'
               }`}
             >
               <Tv className="w-3.5 h-3.5" />
@@ -338,8 +350,10 @@ export default function Profile() {
 
             <button
               onClick={() => setActiveTab('watchlist')}
-              className={`btn text-xs py-1.5 px-3.5 ${
-                activeTab === 'watchlist' ? 'btn-primary' : 'btn-ghost text-[#A0A0A0]'
+              className={`text-xs font-bold py-1.5 px-3.5 rounded transition-all uppercase tracking-wider flex items-center gap-1.5 ${
+                activeTab === 'watchlist' 
+                  ? 'bg-[#121212] text-[#00FF66] border border-[#00FF66]/40 shadow-sm' 
+                  : 'text-[#A0A0A0] hover:text-[#EDEDED] hover:bg-[#121212]/50'
               }`}
             >
               <Bookmark className="w-3.5 h-3.5" />
@@ -349,30 +363,38 @@ export default function Profile() {
 
           {/* Sub filters when viewing movies/tv */}
           {(activeTab === 'movies' || activeTab === 'tv') && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => setFilter('all')}
-                className={`btn text-[11px] py-1 px-2.5 ${filter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
+                className={`text-[11px] font-bold py-1 px-2.5 rounded transition-all ${
+                  filter === 'all' ? 'bg-[#121212] text-[#00FF66] border border-[#00FF66]/40' : 'text-[#A0A0A0] hover:text-[#EDEDED]'
+                }`}
               >
                 All
               </button>
               {activeTab === 'tv' && (
                 <button
                   onClick={() => setFilter('favorites')}
-                  className={`btn text-[11px] py-1 px-2.5 ${filter === 'favorites' ? 'btn-primary' : 'btn-ghost'}`}
+                  className={`text-[11px] font-bold py-1 px-2.5 rounded transition-all ${
+                    filter === 'favorites' ? 'bg-[#121212] text-[#00FF66] border border-[#00FF66]/40' : 'text-[#A0A0A0] hover:text-[#EDEDED]'
+                  }`}
                 >
                   Favorites
                 </button>
               )}
               <button
                 onClick={() => setFilter('rated')}
-                className={`btn text-[11px] py-1 px-2.5 ${filter === 'rated' ? 'btn-primary' : 'btn-ghost'}`}
+                className={`text-[11px] font-bold py-1 px-2.5 rounded transition-all ${
+                  filter === 'rated' ? 'bg-[#121212] text-[#00FF66] border border-[#00FF66]/40' : 'text-[#A0A0A0] hover:text-[#EDEDED]'
+                }`}
               >
                 Rated
               </button>
               <button
                 onClick={() => setFilter('reviewed')}
-                className={`btn text-[11px] py-1 px-2.5 ${filter === 'reviewed' ? 'btn-primary' : 'btn-ghost'}`}
+                className={`text-[11px] font-bold py-1 px-2.5 rounded transition-all ${
+                  filter === 'reviewed' ? 'bg-[#121212] text-[#00FF66] border border-[#00FF66]/40' : 'text-[#A0A0A0] hover:text-[#EDEDED]'
+                }`}
               >
                 Reviewed
               </button>
@@ -384,7 +406,7 @@ export default function Profile() {
       {/* Tab 1: Overview Showcase (Top 4 & Recent Activity) */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          {/* The "Top 4" (Favorites) */}
+          {/* The "Top 4" (Favorites) with Strict Physical Media Aspect 2/3 Framing */}
           <div className="card bg-[#1E1E1E] border border-[#333333] p-6 space-y-4">
             <h2 className="text-xs font-bold uppercase tracking-widest text-[#00FF66] flex items-center gap-2">
               <Heart className="w-4 h-4 text-[#00FF66] fill-[#00FF66]" />
@@ -392,14 +414,16 @@ export default function Profile() {
             </h2>
 
             {top4.length > 0 ? (
-              <div className="grid grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                 {top4.map((item) => (
                   <Link key={`${item.type}-${item.id}`} href={`/${item.type}/${item.id}`}>
-                    <div className="relative aspect-[2/3] overflow-hidden rounded border border-[#333333] bg-[#2A2A2A] group cursor-pointer">
+                    <div className="relative aspect-[2/3] overflow-hidden rounded border border-[#333333] bg-[#2A2A2A] group cursor-pointer shadow-md">
                       {item.poster_path ? (
                         <img 
-                          src={`https://image.tmdb.org/t/p/w300${item.poster_path}`} 
+                          src={`https://image.tmdb.org/t/p/w342${item.poster_path}`} 
                           alt={item.title}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       ) : (
@@ -407,7 +431,7 @@ export default function Profile() {
                           {item.title}
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-[#121212]/80 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity p-2 flex items-end">
+                      <div className="absolute inset-0 bg-[#121212]/80 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity p-2.5 flex items-end">
                         <span className="text-[11px] font-bold text-[#00FF66] line-clamp-2">{item.title}</span>
                       </div>
                     </div>
@@ -436,8 +460,10 @@ export default function Profile() {
                       <div className="relative aspect-[2/3] overflow-hidden rounded border border-[#333333] bg-[#2A2A2A]">
                         {item.poster_path ? (
                           <img 
-                            src={`https://image.tmdb.org/t/p/w300${item.poster_path}`} 
+                            src={`https://image.tmdb.org/t/p/w342${item.poster_path}`} 
                             alt={item.title}
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                         ) : (
@@ -481,7 +507,13 @@ export default function Profile() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-14 aspect-[2/3] overflow-hidden rounded border border-[#333333] bg-[#2A2A2A] shrink-0">
                       {item.poster_path && (
-                        <img src={`https://image.tmdb.org/t/p/w92${item.poster_path}`} alt={item.title} className="w-full h-full object-cover" />
+                        <img 
+                          src={`https://image.tmdb.org/t/p/w154${item.poster_path}`} 
+                          alt={item.title} 
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover" 
+                        />
                       )}
                     </div>
                     <div>
