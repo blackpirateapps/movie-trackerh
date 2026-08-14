@@ -497,14 +497,29 @@ The codebase incorporates high-performance full-stack optimizations to eliminate
   - Replaced server-side Axios calls with native `fetch` API (`{ next: { revalidate: 3600 } }`), enabling Next.js Request Memoization and Data Cache to deduplicate identical TMDB calls during render passes.
 - **TMDB Image Size Standardization** ([`src/components/MovieCard.tsx`](file:///home/dog/git/movie-trackerh/src/components/MovieCard.tsx) & [`src/components/TVShowCard.tsx`](file:///home/dog/git/movie-trackerh/src/components/TVShowCard.tsx)):
   - Standardized poster grid sizes to `/w342` with `loading="lazy"` and `decoding="async"` for optimal WebP image delivery and zero layout shifts.
-- **CSV Chunked Batch Import Engine** ([`src/app/import/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/import/page.tsx) & [`src/app/api/import/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/import/route.ts)):
-  - Added `action: 'batch_import'` with client-side chunking (25 items per batch). Prevents Vercel serverless function 10s/60s timeouts and TMDB rate-limiting during large CSV imports.
-- **Multi-Tab SWR Focus Sync** ([`src/app/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/page.tsx)):
-  - Added `window.addEventListener('focus', ...)` revalidation listener to sync dashboard state across browser tabs when user returns focus to a tab.
-- **Universal Search Debouncing** ([`src/app/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/page.tsx) & [`src/components/Navbar.tsx`](file:///home/dog/git/movie-trackerh/src/components/Navbar.tsx)):
-  - Implemented 350ms debounced live search effect to prevent keystroke flooding.
+---
+
+## 17. Composite Indexes for Single-Digit Millisecond Database Performance
+
+Added high-precision composite indexes to [`backend/db/schema.sql`](file:///home/dog/git/movie-trackerh/backend/db/schema.sql) and [`backend/lib/turso.ts`](file:///home/dog/git/movie-trackerh/backend/lib/turso.ts) matching exact `WHERE`, `ORDER BY`, and `GROUP BY` execution paths:
+
+- **Dashboard Timeline & Activity**:
+  - `idx_user_movies_timeline` on `user_movies(user_id, watched_date DESC, updated_at DESC)`
+  - `idx_user_tv_shows_timeline` on `user_tv_shows(user_id, updated_at DESC)`
+  - `idx_user_episodes_timeline` on `user_episodes(user_id, watched_date DESC, updated_at DESC)`
+- **Stats Dashboard Covering Indexes (Zero Row Scans)**:
+  - `idx_user_movies_stats` on `user_movies(user_id, watched_date, rating)`
+  - `idx_user_tv_shows_stats` on `user_tv_shows(user_id, rating)`
+  - `idx_user_episodes_stats` on `user_episodes(user_id, watched_date, watched)`
+- **Next Episode Resolution Engine**:
+  - `idx_user_episodes_progress` on `user_episodes(user_id, tv_show_id, season_number DESC, episode_number DESC)`
+  - `idx_episodes_season_lookup` on `episodes(tv_show_id, season_number)`
+  - `idx_seasons_show_lookup` on `seasons(tv_show_id, season_number)`
+- **Social Graph & Watchlist Traversal**:
+  - `idx_follows_reverse` on `follows(following_id, follower_id)` (bypasses full table scan for follower lookups)
+  - `idx_watchlist_timeline` on `watchlist(user_id, created_at DESC)`
 
 ---
 
-*Document updated post Performance & Resilience Architecture implementation on 2026-08-14.*
+*Document updated post Composite Indexes implementation on 2026-08-14.*
 

@@ -179,5 +179,25 @@ CREATE INDEX IF NOT EXISTS idx_watchlist_user_id ON watchlist(user_id);
 CREATE INDEX IF NOT EXISTS idx_follows_follower_id ON follows(follower_id);
 CREATE INDEX IF NOT EXISTS idx_follows_following_id ON follows(following_id);
 
+-- Composite Indexes: Dashboard Timeline & Recent Activity
+CREATE INDEX IF NOT EXISTS idx_user_movies_timeline ON user_movies(user_id, watched_date DESC, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_tv_shows_timeline ON user_tv_shows(user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_episodes_timeline ON user_episodes(user_id, watched_date DESC, updated_at DESC);
+
+-- Composite Indexes: Stats Dashboard Aggregations & Grouping
+CREATE INDEX IF NOT EXISTS idx_user_movies_stats ON user_movies(user_id, watched_date, rating);
+CREATE INDEX IF NOT EXISTS idx_user_tv_shows_stats ON user_tv_shows(user_id, rating);
+CREATE INDEX IF NOT EXISTS idx_user_episodes_stats ON user_episodes(user_id, watched_date, watched);
+
+-- Composite Indexes: Next Episode Resolution Engine
+CREATE INDEX IF NOT EXISTS idx_user_episodes_progress ON user_episodes(user_id, tv_show_id, season_number DESC, episode_number DESC);
+CREATE INDEX IF NOT EXISTS idx_episodes_season_lookup ON episodes(tv_show_id, season_number);
+CREATE INDEX IF NOT EXISTS idx_seasons_show_lookup ON seasons(tv_show_id, season_number);
+
+-- Composite Indexes: Social Graph & Watchlist Traversal
+CREATE INDEX IF NOT EXISTS idx_follows_reverse ON follows(following_id, follower_id);
+CREATE INDEX IF NOT EXISTS idx_watchlist_timeline ON watchlist(user_id, created_at DESC);
+
+
 
 
