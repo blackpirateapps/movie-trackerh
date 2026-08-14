@@ -556,15 +556,15 @@ Added high-precision composite indexes to [`backend/db/schema.sql`](file:///home
   - [`ProfileScreen.tsx`](file:///home/dog/git/movie-trackerh/src/mobile/screens/ProfileScreen.tsx): User profile info and shortcuts for REST API key generation and data export API.
   - [`MovieDetailScreen.tsx`](file:///home/dog/git/movie-trackerh/src/mobile/screens/MovieDetailScreen.tsx): Movie poster, metadata, watchlist toggle, 1-10 star rating picker, and review input textarea.
   - [`TVDetailScreen.tsx`](file:///home/dog/git/movie-trackerh/src/mobile/screens/TVDetailScreen.tsx): TV show metadata, bulk "Mark Show as Watched" button, and seasons breakdown list.
-- **Automated GitHub Actions APK Build Pipeline**:
-  - Created [`.github/workflows/build-apk.yml`](file:///home/dog/git/movie-trackerh/.github/workflows/build-apk.yml) to compile the Android APK automatically via GitHub Actions on every push to `main` branch or manual `workflow_dispatch`.
-  - Workflow steps: Checkouts repo, sets up Node 20, Java JDK 17, and Android SDK, installs dependencies, executes `npx expo prebuild --platform android --clean`, compiles the Android APK via `./gradlew assembleDebug`, and uploads the generated APK artifact (`cinetracker-android-apk`).
+- **Automated GitHub Actions Standalone APK Build Pipeline**:
+  - Configured [`.github/workflows/build-apk.yml`](file:///home/dog/git/movie-trackerh/.github/workflows/build-apk.yml) to package offline JS assets (`npx react-native bundle --platform android --dev false --entry-file App.js --bundle-output android/app/src/main/assets/index.android.bundle`) before assembling the release/standalone APK (`./gradlew assembleRelease`). Guarantees standalone APK launches instantly on Android devices without requiring a Metro dev server.
 - **Deployment & Peer Dependency Configuration**:
-  - Added [`.npmrc`](file:///home/dog/git/movie-trackerh/.npmrc) file (`legacy-peer-deps=true`), converted root configs ([`next.config.js`](file:///home/dog/git/movie-trackerh/next.config.js), [`postcss.config.js`](file:///home/dog/git/movie-trackerh/postcss.config.js)) to standard CommonJS, added `@types/react-native` to [`package.json`](file:///home/dog/git/movie-trackerh/package.json), and excluded mobile source files (`src/mobile`, `App.js`) from [`tsconfig.json`](file:///home/dog/git/movie-trackerh/tsconfig.json) web compilation to allow Next.js native SWC compiler to build cleanly without Babel or server component import errors.
+  - Added [`.npmrc`](file:///home/dog/git/movie-trackerh/.npmrc) file (`legacy-peer-deps=true`), configured isolated [`babel.config.expo.js`](file:///home/dog/git/movie-trackerh/babel.config.expo.js) for [`metro.config.js`](file:///home/dog/git/movie-trackerh/metro.config.js), converted root web configs to CommonJS, added `@types/react-native` to [`package.json`](file:///home/dog/git/movie-trackerh/package.json), and excluded mobile source files (`src/mobile`, `App.js`) from [`tsconfig.json`](file:///home/dog/git/movie-trackerh/tsconfig.json) web compilation to allow Next.js native SWC compiler to build cleanly without Babel or server component import errors.
 
 ---
 
-*Document updated post React Native conversion & Vercel deployment fix on 2026-08-14.*
+*Document updated post Standalone Offline APK packaging & Vercel deployment fix on 2026-08-14.*
+
 
 
 

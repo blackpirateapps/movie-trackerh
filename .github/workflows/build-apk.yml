@@ -40,10 +40,22 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x android/gradlew
 
-      - name: Build Android APK (Release & Debug)
+      - name: Create Android Assets directory
+        run: mkdir -p android/app/src/main/assets
+
+      - name: Bundle React Native Offline JS Bundle
+        run: |
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file App.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
+
+      - name: Build Standalone Offline Android APK
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon || ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon || ./gradlew assembleDebug --no-daemon
 
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4
