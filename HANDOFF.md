@@ -539,5 +539,29 @@ Added high-precision composite indexes to [`backend/db/schema.sql`](file:///home
 
 ---
 
-*Document updated post Flagship Analytics Refinement on 2026-08-14.*
+## 20. React Native & Expo Mobile App Conversion & CI/CD Pipeline
+
+- **React Native Framework Architecture**:
+  - Full conversion to **Expo SDK 52 + React Native 0.76** cross-platform architecture.
+  - Root entry point [`App.js`](file:///home/dog/git/movie-trackerh/App.js) configured with `@react-navigation/native` `NavigationContainer`, Expo `StatusBar`, Bottom Tab Navigation, and Native Stack Navigation.
+  - Configuration files added: [`app.json`](file:///home/dog/git/movie-trackerh/app.json) (Expo configuration & Android package `com.blackpirateapps.cinetracker`), [`babel.config.js`](file:///home/dog/git/movie-trackerh/babel.config.js), and [`metro.config.js`](file:///home/dog/git/movie-trackerh/metro.config.js).
+- **React Native Design System Tokens & Components**:
+  - Theme palette defined in [`src/mobile/theme.ts`](file:///home/dog/git/movie-trackerh/src/mobile/theme.ts) preserving Hand-Drawn Utilitarian Dark Mode colors (`bgBase: #121212`, `bgSurface: #1E1E1E`, `accent: #00FF66`, `borderSubtle: #333333`).
+  - Mobile UI components: [`StarRating.tsx`](file:///home/dog/git/movie-trackerh/src/mobile/components/StarRating.tsx) (1-10 scale), [`MovieCard.tsx`](file:///home/dog/git/movie-trackerh/src/mobile/components/MovieCard.tsx) (2/3 aspect ratio poster with rating badge), and [`TVShowCard.tsx`](file:///home/dog/git/movie-trackerh/src/mobile/components/TVShowCard.tsx) (favorite badge & rating).
+- **Mobile Screen Hierarchy**:
+  - [`HomeScreen.tsx`](file:///home/dog/git/movie-trackerh/src/mobile/screens/HomeScreen.tsx): Brand header, quick search trigger, and horizontal scrolling carousels for trending movies and popular TV series.
+  - [`DiscoverScreen.tsx`](file:///home/dog/git/movie-trackerh/src/mobile/screens/DiscoverScreen.tsx): Real-time search with filter chips (`ALL RESULTS`, `FILMS`, `TV SHOWS`) and 2-column `FlatList` grid layout.
+  - [`FeedScreen.tsx`](file:///home/dog/git/movie-trackerh/src/mobile/screens/FeedScreen.tsx): Community activity feed with user logs, ratings, and review cards.
+  - [`StatsScreen.tsx`](file:///home/dog/git/movie-trackerh/src/mobile/screens/StatsScreen.tsx): Lifetime KPI metrics summary grid and 1-10 rating spectrum histogram.
+  - [`ProfileScreen.tsx`](file:///home/dog/git/movie-trackerh/src/mobile/screens/ProfileScreen.tsx): User profile info and shortcuts for REST API key generation and data export API.
+  - [`MovieDetailScreen.tsx`](file:///home/dog/git/movie-trackerh/src/mobile/screens/MovieDetailScreen.tsx): Movie poster, metadata, watchlist toggle, 1-10 star rating picker, and review input textarea.
+  - [`TVDetailScreen.tsx`](file:///home/dog/git/movie-trackerh/src/mobile/screens/TVDetailScreen.tsx): TV show metadata, bulk "Mark Show as Watched" button, and seasons breakdown list.
+- **Automated GitHub Actions APK Build Pipeline**:
+  - Created [`.github/workflows/build-apk.yml`](file:///home/dog/git/movie-trackerh/.github/workflows/build-apk.yml) to compile the Android APK automatically via GitHub Actions on every push to `main` branch or manual `workflow_dispatch`.
+  - Workflow steps: Checkouts repo, sets up Node 20, Java JDK 17, and Android SDK, installs dependencies, executes `npx expo prebuild --platform android --clean`, compiles the Android APK via `./gradlew assembleDebug`, and uploads the generated APK artifact (`cinetracker-android-apk`).
+
+---
+
+*Document updated post React Native conversion & GitHub Actions CI/CD pipeline setup on 2026-08-14.*
+
 
