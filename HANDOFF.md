@@ -560,11 +560,12 @@ Added high-precision composite indexes to [`backend/db/schema.sql`](file:///home
   - Created [`.github/workflows/build-apk.yml`](file:///home/dog/git/movie-trackerh/.github/workflows/build-apk.yml) to compile the Android APK automatically via GitHub Actions on every push to `main` branch or manual `workflow_dispatch`.
   - Workflow steps: Checkouts repo, sets up Node 20, Java JDK 17, and Android SDK, installs dependencies, executes `npx expo prebuild --platform android --clean`, compiles the Android APK via `./gradlew assembleDebug`, and uploads the generated APK artifact (`cinetracker-android-apk`).
 - **Deployment & Peer Dependency Configuration**:
-  - Added [`.npmrc`](file:///home/dog/git/movie-trackerh/.npmrc) file (`legacy-peer-deps=true`), set `"type": "module"` in [`package.json`](file:///home/dog/git/movie-trackerh/package.json), and aligned `next` version (`^15.1.0`) with `react` (`^18.3.1`) to resolve Node ESM warnings and Vercel deployment `ERESOLVE` peer dependency conflicts seamlessly.
+  - Added [`.npmrc`](file:///home/dog/git/movie-trackerh/.npmrc) file (`legacy-peer-deps=true`), converted root configs ([`next.config.js`](file:///home/dog/git/movie-trackerh/next.config.js), [`postcss.config.js`](file:///home/dog/git/movie-trackerh/postcss.config.js)) to standard CommonJS, added `@types/react-native` to [`package.json`](file:///home/dog/git/movie-trackerh/package.json), and excluded mobile source files (`src/mobile`, `App.js`) from [`tsconfig.json`](file:///home/dog/git/movie-trackerh/tsconfig.json) web compilation to allow Next.js native SWC compiler to build cleanly without Babel or server component import errors.
 
 ---
 
 *Document updated post React Native conversion & Vercel deployment fix on 2026-08-14.*
+
 
 
 
