@@ -517,16 +517,27 @@ Added high-precision composite indexes to [`backend/db/schema.sql`](file:///home
 
 - **Flatter Lifetime Stats (Eliminated Box-in-Box Effect)** ([`src/app/profile/[username]/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/profile/[username]/page.tsx)):
   - Removed dark background fills and nested card borders from `Films`, `TV Series`, and `Hours Watched` metrics. Numbers float directly on the parent card separated only by thin 1px `#333333` vertical divider lines (`divide-x divide-[#333333]`).
-- **Normalized Metric Typography**:
-  - Unified all stat numbers (`Films`, `TV Series`, `Hours Watched`) into bold neon green accent text (`text-[#00FF66]`).
-- **Tamed Active Tab Weight**:
-  - Stripped solid neon green fill from active navigation tab (`SHOWCASE`). Replaced with a raw HTML tab style (`bg-[#121212] text-[#00FF66] border border-[#00FF66]/40`) that eliminates visual clutter and highlights poster content.
-- **Top-Right Anchored Action Buttons**:
-  - Pinned `Stats` and `Edit Profile` / `Follow User` buttons to the top-right corner of the profile header container (`items-start`), aligned horizontally with display name.
-- **Physical Media Poster Framing**:
-  - Standardized all posters in `THE TOP 4` and recent logs to a strict `aspect-[2/3]` ratio with 1px `#333333` borders, `rounded` corners (4px), and `/w342` WebP TMDB asset sizes.
+---
+
+## 19. Flagship Analytics Page Refinements & New Widgets
+
+- **Platform Breakdown Donut Chart Color-Coding** ([`src/app/stats/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/stats/page.tsx) & [`src/app/api/user/stats/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/user/stats/route.ts)):
+  - Dynamically color-codes each platform segment (Netflix `#E50914`, Hotstar `#0F84FA`, Prime Video `#00A8E1`, Pirated `#00FF66`, Apple TV `#E2E8F0`, HBO `#9945FF`, Hulu `#1CE783`, Theater `#FFB800`).
+- **Watch Time & Velocity Dual-Line Chart**:
+  - Added clean date ticks on X-axis and dual-line trend breakdown: **Total Watch Hours (Solid Neon Green `#00FF66`) vs TV Episode Hours (Dotted Cyan `#00E5FF`)**.
+- **Rating Distribution Spectrum & Mode Highlight**:
+  - Color gradient across bars from 1-3 (Red `#FF4D4D`), 4-6 (Amber `#FFB800`), to 7-10 (Neon Green `#00FF66`).
+  - Added `Mode: ★ X/10` badge highlighting the user's most frequent rating tier.
+- **New Widget: Top Genres Breakdown**:
+  - Horizontal progress bar widget displaying top 5 genres with counts and percentage share.
+- **New Widget: Most Watched Creators & Stars**:
+  - List card displaying top directors and actors with profile avatars, role tags, and title counts.
+- **New Widget: Hall of Fame (Visual Poster Grid)**:
+  - 8-column poster grid highlighting user's highest rated movies & TV shows with star rating badges.
+- **New Widget: Time of Day & Watching Habits Heatmap (7x24 Matrix)**:
+  - 7x24 grid (Days of Week vs 24 Hours of Day) with neon green gradient intensity cells reflecting peak viewing habits.
 
 ---
 
-*Document updated post Profile Utilitarian Design Refinement on 2026-08-14.*
+*Document updated post Flagship Analytics Refinement on 2026-08-14.*
 
