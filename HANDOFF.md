@@ -559,9 +559,12 @@ Added high-precision composite indexes to [`backend/db/schema.sql`](file:///home
 - **Automated GitHub Actions APK Build Pipeline**:
   - Created [`.github/workflows/build-apk.yml`](file:///home/dog/git/movie-trackerh/.github/workflows/build-apk.yml) to compile the Android APK automatically via GitHub Actions on every push to `main` branch or manual `workflow_dispatch`.
   - Workflow steps: Checkouts repo, sets up Node 20, Java JDK 17, and Android SDK, installs dependencies, executes `npx expo prebuild --platform android --clean`, compiles the Android APK via `./gradlew assembleDebug`, and uploads the generated APK artifact (`cinetracker-android-apk`).
+- **Deployment & Peer Dependency Configuration**:
+  - Added [`.npmrc`](file:///home/dog/git/movie-trackerh/.npmrc) file (`legacy-peer-deps=true`) and aligned `next` version (`^15.1.0`) with `react` (`^18.3.1`) to resolve Vercel deployment `ERESOLVE` peer dependency conflicts seamlessly.
 
 ---
 
-*Document updated post React Native conversion & GitHub Actions CI/CD pipeline setup on 2026-08-14.*
+*Document updated post React Native conversion & Vercel deployment fix on 2026-08-14.*
+
 
 
