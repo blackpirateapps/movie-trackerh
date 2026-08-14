@@ -32,9 +32,9 @@ export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const initialTab = searchParams.get('tab') || 'api-keys';
-  const [activeTab, setActiveTab] = useState<'api-keys' | 'docs' | 'profile'>(
-    initialTab === 'profile' ? 'profile' : initialTab === 'docs' ? 'docs' : 'api-keys'
+  const initialTab = searchParams.get('tab') || 'profile';
+  const [activeTab, setActiveTab] = useState<'profile' | 'api-keys' | 'docs'>(
+    initialTab === 'api-keys' ? 'api-keys' : initialTab === 'docs' ? 'docs' : 'profile'
   );
 
   // API Keys state
@@ -487,6 +487,18 @@ print(data)
       {/* Navigation Sub-Tabs */}
       <div className="flex border-b border-[#333333] gap-2 overflow-x-auto pb-1 scrollbar-none">
         <button
+          onClick={() => setActiveTab('profile')}
+          className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t border-b-2 transition-colors whitespace-nowrap ${
+            activeTab === 'profile'
+              ? 'border-[#00FF66] text-[#00FF66] bg-[#1E1E1E]'
+              : 'border-transparent text-[#A0A0A0] hover:text-[#EDEDED] hover:bg-[#1E1E1E]/50'
+          }`}
+        >
+          <Sliders className="w-4 h-4" />
+          <span>Profile & App Preferences</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('api-keys')}
           className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t border-b-2 transition-colors whitespace-nowrap ${
             activeTab === 'api-keys'
@@ -511,18 +523,6 @@ print(data)
         >
           <BookOpen className="w-4 h-4" />
           <span>API Documentation & Tester</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('profile')}
-          className={`flex items-center gap-2 px-4 py-2.5 font-bold text-xs rounded-t border-b-2 transition-colors whitespace-nowrap ${
-            activeTab === 'profile'
-              ? 'border-[#00FF66] text-[#00FF66] bg-[#1E1E1E]'
-              : 'border-transparent text-[#A0A0A0] hover:text-[#EDEDED] hover:bg-[#1E1E1E]/50'
-          }`}
-        >
-          <Sliders className="w-4 h-4" />
-          <span>Profile & App Preferences</span>
         </button>
       </div>
 

@@ -467,9 +467,22 @@ The codebase incorporates high-performance full-stack optimizations to eliminate
   - **Deduplication & Smart Ranking**: Deduplicates entries by `${media_type}_${id}`, prioritizes cached database entries (`in_db: true`), exact/prefix title matches, and sorts by `vote_average`.
 - **Frontend Universal Search Components**:
   - **Homepage Hero Search Switcher** ([`src/app/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/page.tsx)): Features `All (Universal)` mode by default with media type badges (`FILM` vs `TV SHOW`), library indicator (`IN LIBRARY`), and TMDB vote ratings.
-  - **Global Navbar Search Modal** ([`src/components/Navbar.tsx`](file:///home/dog/git/movie-trackerh/src/components/Navbar.tsx)): Quick trigger button in sticky header with keyboard shortcut (`Cmd+K` / `Ctrl+K`), debounced live search-as-you-type overlay, and direct routing to movie/TV show pages.
+---
+
+## 14. De-congested Navigation & Centralized Dedicated Settings Page Architecture
+
+- **De-congested Navigation Header** ([`src/components/Navbar.tsx`](file:///home/dog/git/movie-trackerh/src/components/Navbar.tsx)):
+  - **Core Top-Level Links**: Streamlined top bar to contain only essential primary navigation links (`Home`, `Community`, `Feed`, `Analytics`) alongside logo and compact Universal Search input (`Cmd+K`).
+  - **User Profile Dropdown Menu**: Consolidated secondary user actions (`Settings & API Keys`, `Import Letterboxd CSV`, `View Public Profile`, `Logout`) into a single, clean user avatar dropdown menu button (`[B] username v`).
+- **Centralized Dedicated Settings Portal** ([`src/app/settings/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/settings/page.tsx)):
+  - Centralized all application settings into a dedicated portal with organized tabs:
+    - **Profile & App Preferences**: Display name, bio, website, avatar management, default grid/list layout, NSFW content filter, private account toggle.
+    - **API Keys & Integrations**: Cryptographic API key generation (`cin_live_...`), active key list, key revocation controls.
+    - **API Documentation & Tester**: Interactive live console for `/api/v1/export`, cURL / JS / Python code samples, copyable AI agent specification prompt.
+    - **Account Security & Password**: Password update form, linked account details, account deletion modal.
+  - Legacy `/profile/edit` route smoothly redirects to `/settings?tab=profile`.
 
 ---
 
-*Document updated post Universal Search implementation on 2026-08-14.*
+*Document updated post Navigation De-congestion & Centralized Settings implementation on 2026-08-14.*
 

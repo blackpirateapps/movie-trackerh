@@ -21,7 +21,10 @@ import {
   Search, 
   Sparkles, 
   Tv, 
-  Star 
+  Star,
+  ChevronDown,
+  User as UserIcon,
+  ShieldAlert
 } from 'lucide-react';
 
 interface UniversalSearchResult {
@@ -39,7 +42,10 @@ interface UniversalSearchResult {
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const router = useRouter();
+  
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Universal Search Modal State
   const [searchOpen, setSearchOpen] = useState(false);
@@ -51,6 +57,7 @@ const Navbar: React.FC = () => {
 
   // Handle Logout
   const handleLogout = async () => {
+    setUserDropdownOpen(false);
     try {
       await logout();
     } catch (error) {
@@ -58,11 +65,23 @@ const Navbar: React.FC = () => {
     }
   };
 
-  // Keyboard shortcut (Escape to close search, / or Ctrl+K to open)
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Keyboard shortcut (Escape to close search/dropdown, Ctrl+K to open search)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setSearchOpen(false);
+        setUserDropdownOpen(false);
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
@@ -124,7 +143,7 @@ const Navbar: React.FC = () => {
               href="/" 
               className="flex items-center gap-2.5 group shrink-0"
             >
-              <div className="w-8 h-8 bg-[#00FF66] text-[#121212] rounded flex items-center justify-center font-bold">
+              <div className="w-8 h-8 bg-[#00FF66] text-[#121212] rounded flex items-center justify-center font-bold shadow-sm">
                 <Film className="w-4 h-4 stroke-[2.5]" />
               </div>
               <span className="font-bold text-xl text-[#EDEDED] tracking-tight">
@@ -135,18 +154,18 @@ const Navbar: React.FC = () => {
             {/* Universal Search Quick Trigger Button */}
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[#1E1E1E] border border-[#333333] hover:border-[#00FF66] rounded-md text-xs text-[#A0A0A0] hover:text-[#EDEDED] transition-all max-w-[200px] sm:max-w-xs w-full mx-2 sm:mx-4"
+              className="flex items-center gap-2 px-3 py-1.5 bg-[#1E1E1E] border border-[#333333] hover:border-[#00FF66] rounded-md text-xs text-[#A0A0A0] hover:text-[#EDEDED] transition-all max-w-[180px] sm:max-w-xs w-full mx-2 sm:mx-4"
               title="Universal Search (Ctrl+K)"
             >
               <Search className="w-3.5 h-3.5 text-[#00FF66] shrink-0" />
-              <span className="truncate flex-1 text-left">Universal Search...</span>
+              <span className="truncate flex-1 text-left">Search...</span>
               <kbd className="hidden sm:inline-block text-[10px] font-mono bg-[#121212] border border-[#333333] px-1.5 py-0.5 rounded text-[#A0A0A0]">
                 ⌘K
               </kbd>
             </button>
 
-            {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center gap-5 font-medium text-sm">
+            {/* Desktop Clean Core Navigation Links */}
+            <div className="hidden md:flex items-center gap-6 font-medium text-sm">
               <Link 
                 href="/" 
                 className="flex items-center gap-1.5 text-[#A0A0A0] hover:text-[#EDEDED] transition-colors"
@@ -182,49 +201,74 @@ const Navbar: React.FC = () => {
                   <span>Analytics</span>
                 </Link>
               )}
-
-              {user && (
-                <Link 
-                  href="/import" 
-                  className="flex items-center gap-1.5 text-[#A0A0A0] hover:text-[#EDEDED] transition-colors"
-                >
-                  <FileUp className="w-4 h-4" />
-                  <span>Import</span>
-                </Link>
-              )}
-
-              {user && (
-                <Link 
-                  href="/settings" 
-                  className="flex items-center gap-1.5 text-[#A0A0A0] hover:text-[#EDEDED] transition-colors"
-                >
-                  <Settings className="w-4 h-4" />
-                  <span>API</span>
-                </Link>
-              )}
             </div>
 
-            {/* Desktop User Menu / Auth Buttons */}
+            {/* Desktop User Profile Dropdown / Auth Buttons */}
             <div className="hidden md:flex items-center gap-3 shrink-0">
               {user ? (
-                <div className="flex items-center gap-3">
-                  <Link 
-                    href={`/profile/${user.username}`}
-                    className="flex items-center gap-2 px-3 py-1 bg-[#1E1E1E] border border-[#333333] rounded hover:bg-[#2A2A2A] transition-colors text-sm font-medium"
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    onClick={() => setUserDropdownOpen(prev => !prev)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-[#1E1E1E] border border-[#333333] hover:border-[#00FF66] rounded transition-all text-xs font-semibold text-[#EDEDED] focus:outline-none"
                   >
                     <div className="w-5 h-5 bg-[#00FF66] text-[#121212] rounded-full flex items-center justify-center text-xs font-bold">
                       {user.username.charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-[#EDEDED]">{user.username}</span>
-                  </Link>
-                  <button 
-                    onClick={handleLogout}
-                    className="btn btn-ghost text-xs py-1.5 px-3 flex items-center gap-1.5"
-                    title="Logout"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Logout</span>
+                    <span>{user.username}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-[#A0A0A0] transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
+
+                  {/* Dropdown Menu Popup */}
+                  {userDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-56 bg-[#1E1E1E] border border-[#333333] rounded-md shadow-2xl py-1.5 z-50 animate-fadeIn space-y-1">
+                      
+                      {/* User Info Header */}
+                      <div className="px-3 py-2 border-b border-[#333333]">
+                        <p className="text-xs font-bold text-[#EDEDED] truncate">{user.display_name || user.username}</p>
+                        <p className="text-[11px] text-[#A0A0A0] truncate">@{user.username}</p>
+                        <Link 
+                          href={`/profile/${user.username}`}
+                          onClick={() => setUserDropdownOpen(false)}
+                          className="mt-1.5 inline-block text-[11px] text-[#00FF66] hover:underline font-semibold"
+                        >
+                          View Public Profile →
+                        </Link>
+                      </div>
+
+                      {/* Menu Links */}
+                      <div className="py-1">
+                        <Link
+                          href="/settings"
+                          onClick={() => setUserDropdownOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-[#EDEDED] hover:bg-[#2A2A2A] hover:text-[#00FF66] transition-colors"
+                        >
+                          <Settings className="w-4 h-4 text-[#00FF66]" />
+                          <span>Settings & API Keys</span>
+                        </Link>
+
+                        <Link
+                          href="/import"
+                          onClick={() => setUserDropdownOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-[#EDEDED] hover:bg-[#2A2A2A] hover:text-[#00FF66] transition-colors"
+                        >
+                          <FileUp className="w-4 h-4 text-[#A0A0A0]" />
+                          <span>Import Letterboxd CSV</span>
+                        </Link>
+                      </div>
+
+                      {/* Logout Divider */}
+                      <div className="border-t border-[#333333] pt-1">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-red-400 hover:bg-[#2A2A2A] hover:text-red-300 transition-colors"
+                        >
+                          <LogOut className="w-4 h-4 text-red-400" />
+                          <span>Logout</span>
+                        </button>
+                      </div>
+
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
@@ -297,22 +341,22 @@ const Navbar: React.FC = () => {
               )}
               {user && (
                 <Link 
+                  href="/settings" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2 font-medium text-sm text-[#00FF66] bg-[#1E1E1E] rounded font-bold"
+                >
+                  <Settings className="w-4 h-4" />
+                  Settings Page
+                </Link>
+              )}
+              {user && (
+                <Link 
                   href="/import" 
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-3 px-3 py-2 font-medium text-sm text-[#A0A0A0] hover:text-[#EDEDED] hover:bg-[#1E1E1E] rounded"
                 >
                   <FileUp className="w-4 h-4" />
-                  Import CSV
-                </Link>
-              )}
-              {user && (
-                <Link 
-                  href="/settings" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2 font-medium text-sm text-[#A0A0A0] hover:text-[#EDEDED] hover:bg-[#1E1E1E] rounded"
-                >
-                  <Settings className="w-4 h-4" />
-                  Settings & API
+                  Import Letterboxd CSV
                 </Link>
               )}
               
@@ -334,7 +378,7 @@ const Navbar: React.FC = () => {
                         handleLogout();
                         setMobileMenuOpen(false);
                       }}
-                      className="btn btn-secondary w-full text-xs py-2 flex items-center justify-center gap-2"
+                      className="btn btn-secondary w-full text-xs py-2 flex items-center justify-center gap-2 text-red-400"
                     >
                       <LogOut className="w-4 h-4" />
                       Logout
