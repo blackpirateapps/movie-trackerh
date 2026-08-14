@@ -83,14 +83,25 @@ interface DashboardResponse {
   lastWatchedMovies: WatchedMovieData[];
 }
 
+interface UniversalSearchResult {
+  id: number;
+  title: string;
+  media_type: 'movie' | 'tv';
+  overview: string | null;
+  release_date: string | null;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  vote_average: number | null;
+  in_db: boolean;
+}
+
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
 
-  // Search State
-  const [searchType, setSearchType] = useState<'movie' | 'tv'>('movie');
+  // Universal Search State
+  const [searchType, setSearchType] = useState<'all' | 'movie' | 'tv'>('all');
   const [query, setQuery] = useState<string>('');
-  const [movieResults, setMovieResults] = useState<Movie[]>([]);
-  const [tvResults, setTvResults] = useState<TVShow[]>([]);
+  const [universalResults, setUniversalResults] = useState<UniversalSearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState<boolean>(false);
 
   // Trending State
@@ -155,24 +166,17 @@ export default function Home() {
     loadTrending();
   }, []);
 
-  // Handle Search
+  // Handle Universal Search
   const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!query.trim()) return;
 
     setSearchLoading(true);
     try {
-      if (searchType === 'movie') {
-        const { data } = await api.get<Movie[]>(`/api/movies?query=${encodeURIComponent(query)}`);
-        setMovieResults(Array.isArray(data) ? data : []);
-        setTvResults([]);
-      } else {
-        const { data } = await api.get<TVShow[]>(`/api/tv?query=${encodeURIComponent(query)}`);
-        setTvResults(Array.isArray(data) ? data : []);
-        setMovieResults([]);
-      }
+      const { data } = await api.get<UniversalSearchResult[]>(`/api/search?q=${encodeURIComponent(query)}&type=${searchType}`);
+      setUniversalResults(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Search failed", error);
+      console.error("Universal Search failed", error);
     } finally {
       setSearchLoading(false);
     }
@@ -282,7 +286,18 @@ export default function Home() {
           <div className="max-w-2xl mx-auto pt-1">
             <div className="card-surface p-3 sm:p-4 border border-[#333333]">
               {/* Type Switcher */}
-              <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="flex items-center justify-center gap-2 mb-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setSearchType('all')}
+                  className={`btn text-xs py-1 px-3 ${
+                    searchType === 'all' ? 'btn-primary' : 'btn-ghost'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>All (Universal)</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setSearchType('movie')}
@@ -312,7 +327,13 @@ export default function Home() {
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder={searchType === 'movie' ? "Search movies..." : "Search TV shows..."}
+                    placeholder={
+                      searchType === 'all' 
+                        ? "Universal search (Movies & TV across DB + API)..." 
+                        : searchType === 'movie' 
+                        ? "Search movies..." 
+                        : "Search TV shows..."
+                    }
                     className="form-input text-sm py-2 pr-4 pl-10"
                   />
                   <Search className="w-4 h-4 text-[#A0A0A0] absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -339,25 +360,98 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Search Results Grid */}
-      {(movieResults.length > 0 || tvResults.length > 0) && (
-        <section className="py-8 px-4 max-w-6xl mx-auto">
-          <h2 className="text-lg font-bold mb-4 text-[#EDEDED] flex items-center gap-2">
-            <Search className="w-4 h-4 text-[#00FF66]" />
-            Search Results ({movieResults.length || tvResults.length})
-          </h2>
+      {/* Universal Search Results Grid */}
+      {universalResults.length > 0 && (
+        <section className="py-8 px-4 max-w-6xl mx-auto space-y-4">
+          <div className="flex items-center justify-between border-b border-[#333333] pb-2">
+            <h2 className="text-base font-bold text-[#EDEDED] flex items-center gap-2 uppercase tracking-wider text-xs">
+              <Search className="w-4 h-4 text-[#00FF66]" />
+              Universal Search Results ({universalResults.length})
+            </h2>
+            <button
+              onClick={() => setUniversalResults([])}
+              className="text-xs text-[#A0A0A0] hover:text-[#EDEDED] underline"
+            >
+              Clear Results
+            </button>
+          </div>
 
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-4">
-            {movieResults.map(movie => (
-              <Link key={movie.id} href={`/movie/${movie.id}`}>
-                <MovieCard movie={movie} />
-              </Link>
-            ))}
-            {tvResults.map(show => (
-              <Link key={show.id} href={`/tv/${show.id}`}>
-                <TVShowCard show={show} />
-              </Link>
-            ))}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+            {universalResults.map(item => {
+              const posterUrl = item.poster_path 
+                ? `https://image.tmdb.org/t/p/w300${item.poster_path}`
+                : null;
+              const releaseYear = item.release_date 
+                ? new Date(item.release_date).getFullYear()
+                : 'N/A';
+              const targetHref = item.media_type === 'movie' ? `/movie/${item.id}` : `/tv/${item.id}`;
+
+              return (
+                <Link key={`${item.media_type}_${item.id}`} href={targetHref}>
+                  <div className="group cursor-pointer flex flex-col space-y-1.5">
+                    <div className="relative aspect-[2/3] overflow-hidden rounded border border-[#333333] bg-[#2A2A2A]">
+                      {posterUrl ? (
+                        <img 
+                          src={posterUrl} 
+                          alt={item.title}
+                          loading="lazy"
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-[#2A2A2A] text-[#A0A0A0] p-2 text-center">
+                          {item.media_type === 'movie' ? (
+                            <Film className="w-8 h-8 opacity-50 mb-1" />
+                          ) : (
+                            <Tv className="w-8 h-8 opacity-50 mb-1" />
+                          )}
+                          <span className="text-[10px] font-semibold line-clamp-2">{item.title}</span>
+                        </div>
+                      )}
+                      
+                      {/* Hover Dark Overlay */}
+                      <div className="absolute inset-0 bg-[#121212]/85 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-2 text-xs text-[#EDEDED]">
+                        <span className="font-bold text-[#00FF66] text-[11px] mb-1 line-clamp-1">{item.title}</span>
+                        {item.overview && (
+                          <p className="text-[10px] text-[#A0A0A0] line-clamp-3 leading-tight">{item.overview}</p>
+                        )}
+                      </div>
+
+                      {/* In DB Badge */}
+                      {item.in_db && (
+                        <div className="absolute top-1 left-1 z-10 bg-[#00FF66] text-[#121212] border border-[#00FF66] text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shadow">
+                          IN LIBRARY
+                        </div>
+                      )}
+
+                      {/* TMDB Rating Badge */}
+                      {item.vote_average != null && (
+                        <div className="absolute top-1 right-1 z-10 bg-[#121212]/90 text-[#00FF66] border border-[#333333] px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
+                          <Star className="w-2.5 h-2.5 fill-[#00FF66] text-[#00FF66]" />
+                          <span>{Number(item.vote_average).toFixed(1)}</span>
+                        </div>
+                      )}
+
+                      {/* Type Badge */}
+                      <div className={`absolute bottom-1 left-1 z-10 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 border border-[#333333] ${
+                        item.media_type === 'movie' ? 'bg-[#121212]/90 text-[#00FF66]' : 'bg-[#121212]/90 text-purple-400'
+                      }`}>
+                        {item.media_type === 'movie' ? <Film className="w-2.5 h-2.5" /> : <Tv className="w-2.5 h-2.5" />}
+                        <span>{item.media_type === 'movie' ? 'FILM' : 'TV SHOW'}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="font-bold text-xs text-[#EDEDED] line-clamp-1 group-hover:text-[#00FF66] transition-colors">
+                        {item.title}
+                      </h3>
+                      <div className="flex items-center justify-between mt-0.5 text-[10px] text-[#A0A0A0]">
+                        <span className="uppercase font-semibold tracking-wider">{releaseYear}</span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}

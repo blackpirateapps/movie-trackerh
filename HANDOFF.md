@@ -340,6 +340,15 @@ The database relies on Turso (SQLite/LibSQL).
   - **Query Parameters**: `tvShowId` (optional, specifies active TV show to feature).
   - **Response Payload**: Returns `currentlyWatching` (featured show metadata, episode watch progress count vs total, last watched episode timestamp, next unwatched episode details including season, episode number, title, overview, air date, and still path, completion status, and `otherActiveShows` list) and `lastWatchedMovies` (list of 6 recently logged movies with 1-10 rating, review text, and watch date).
 
+### `/api/search`
+- `GET`:
+  - **Query Parameters**:
+    - `q` / `query`: Search text term.
+    - `type`: Filter mode (`all`, `movie`, `tv`). Default: `all`.
+  - **Execution**: Serverless Vercel Function executing 4 parallel search tasks via `Promise.allSettled` (Local SQLite/Turso Movies, Local SQLite/Turso TV Shows, TMDB API Movies, TMDB API TV Shows).
+  - **Deduplication & Ranking**: Merges DB and API results by media key (`${media_type}_${id}`), tags local library items (`in_db: true`), ranks title prefix matches first, and sorts by rating.
+  - **Response Payload**: JSON array of unified `UniversalSearchResult` items (`id`, `title`, `media_type`, `overview`, `release_date`, `poster_path`, `backdrop_path`, `vote_average`, `in_db`).
+
 ---
 
 ## 6. Environment Variables
@@ -450,5 +459,17 @@ The codebase incorporates high-performance full-stack optimizations to eliminate
 
 ---
 
-*Document updated post Personalized Home Dashboard & Quick Media Actions implementation on 2026-08-14.*
+## 13. Universal Search Architecture (Serverless Vercel Functions + UI)
+
+- **Backend Universal Search API Route** ([`src/app/api/search/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/search/route.ts)):
+  - **Parallel Search Execution Engine**: Fires 4 concurrent asynchronous lookups using `Promise.allSettled` to query local SQLite/Turso tables (`movies`, `tv_shows`) and external TMDB REST APIs (`/3/search/movie`, `/3/search/tv`).
+  - **Resilient Fallback & Zero Network Latency**: Uses explicit timeouts and non-blocking promise resolution so database search results return immediately even if TMDB API is offline or rate limited.
+  - **Deduplication & Smart Ranking**: Deduplicates entries by `${media_type}_${id}`, prioritizes cached database entries (`in_db: true`), exact/prefix title matches, and sorts by `vote_average`.
+- **Frontend Universal Search Components**:
+  - **Homepage Hero Search Switcher** ([`src/app/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/page.tsx)): Features `All (Universal)` mode by default with media type badges (`FILM` vs `TV SHOW`), library indicator (`IN LIBRARY`), and TMDB vote ratings.
+  - **Global Navbar Search Modal** ([`src/components/Navbar.tsx`](file:///home/dog/git/movie-trackerh/src/components/Navbar.tsx)): Quick trigger button in sticky header with keyboard shortcut (`Cmd+K` / `Ctrl+K`), debounced live search-as-you-type overlay, and direct routing to movie/TV show pages.
+
+---
+
+*Document updated post Universal Search implementation on 2026-08-14.*
 
