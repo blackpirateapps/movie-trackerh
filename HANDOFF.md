@@ -334,6 +334,12 @@ The database relies on Turso (SQLite/LibSQL).
   - `action: 'change_password'`: Verifies `currentPassword` using bcrypt and updates to `newPassword`.
   - `action: 'delete_account'`: Deletes user record (cascading dependent records) and clears the authentication HTTP-only session cookie.
 
+### `/api/user/dashboard`
+- `GET`:
+  - **Authentication**: Cookie session (authenticated user required).
+  - **Query Parameters**: `tvShowId` (optional, specifies active TV show to feature).
+  - **Response Payload**: Returns `currentlyWatching` (featured show metadata, episode watch progress count vs total, last watched episode timestamp, next unwatched episode details including season, episode number, title, overview, air date, and still path, completion status, and `otherActiveShows` list) and `lastWatchedMovies` (list of 6 recently logged movies with 1-10 rating, review text, and watch date).
+
 ---
 
 ## 6. Environment Variables
@@ -431,5 +437,18 @@ The codebase incorporates high-performance full-stack optimizations to eliminate
 
 ---
 
-*Document updated post DB Caching & Analytics Refresh implementation on 2026-08-11.*
+## 12. Personalized Home Dashboard & Quick Media Actions Architecture
+
+- **Backend Dashboard API Endpoint** ([`src/app/api/user/dashboard/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/user/dashboard/route.ts)):
+  - **Currently Watching Show Resolution**: Queries user episode activity (`user_episodes`) and tracked shows (`user_tv_shows`) ordered by most recent activity timestamp. Computes total watched episode count vs overall show episode count.
+  - **Next Episode Calculation Engine**: Automatically calculates the exact next unwatched episode (`season_number`, `episode_number`). If current season is completed, rolls over to S{season+1} E1. Returns episode metadata (title, overview, still path, air date, runtime).
+  - **Shared TV Helpers** ([`backend/lib/tvHelpers.ts`](file:///home/dog/git/movie-trackerh/backend/lib/tvHelpers.ts)): Shared TMDB API fetcher and DB cache layer for TV shows and season episode breakdowns.
+  - **Last Added Watched Movies Query**: Fetches the top 6 most recently logged/updated movies for the authenticated user from `user_movies` joined with `movies`.
+- **Frontend Logged-In Home Dashboard UI** ([`src/app/page.tsx`](file:///home/dog/git/movie-trackerh/src/app/page.tsx)):
+  - **Currently Watching Featured Card**: Displays currently active TV show, progress bar, last watched episode metadata, next episode preview card, and a primary **"MARK S{season} E{episode} AS WATCHED"** quick action button. Submitting updates the database and instantly refreshes the UI to point to the next episode. Includes horizontal chips to switch between other active shows.
+  - **Last Added Watched Movies Grid**: Displays recent watched movies with 1-10 star rating badges and review quotes. Unrated or unreviewed movies feature a **"QUICK RATE & REVIEW"** action button that expands an inline 1-10 star picker (`StarRating`) and review text area for instant saving without full page reload.
+
+---
+
+*Document updated post Personalized Home Dashboard & Quick Media Actions implementation on 2026-08-14.*
 
