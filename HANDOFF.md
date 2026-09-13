@@ -559,11 +559,11 @@ Added high-precision composite indexes to [`backend/db/schema.sql`](file:///home
 - **Automated GitHub Actions Standalone APK Build Pipeline**:
   - Configured [`.github/workflows/build-apk.yml`](file:///home/dog/git/movie-trackerh/.github/workflows/build-apk.yml) to package offline JS assets (`npx react-native bundle --platform android --dev false --entry-file App.js --bundle-output android/app/src/main/assets/index.android.bundle`) before assembling the release/standalone APK (`./gradlew assembleRelease`). Guarantees standalone APK launches instantly on Android devices without requiring a Metro dev server.
 - **Deployment & Peer Dependency Configuration**:
-  - Added [`.npmrc`](file:///home/dog/git/movie-trackerh/.npmrc) file (`legacy-peer-deps=true`), configured isolated [`babel.config.expo.js`](file:///home/dog/git/movie-trackerh/babel.config.expo.js) for [`metro.config.js`](file:///home/dog/git/movie-trackerh/metro.config.js), converted root web configs to CommonJS, added `@types/react-native` to [`package.json`](file:///home/dog/git/movie-trackerh/package.json), and excluded mobile source files (`src/mobile`, `App.js`) from [`tsconfig.json`](file:///home/dog/git/movie-trackerh/tsconfig.json) web compilation to allow Next.js native SWC compiler to build cleanly without Babel or server component import errors.
+  - Added [`.npmrc`](file:///home/dog/git/movie-trackerh/.npmrc) file (`legacy-peer-deps=true`), configured isolated [`babel.config.expo.js`](file:///home/dog/git/movie-trackerh/babel.config.expo.js) for [`metro.config.js`](file:///home/dog/git/movie-trackerh/metro.config.js), converted root web configs to CommonJS, added `@types/react-native` and `@react-native-community/cli` to [`package.json`](file:///home/dog/git/movie-trackerh/package.json) `devDependencies` (resolves React Native standalone offline JS bundle CLI command dependency in CI workflows), and excluded mobile source files (`src/mobile`, `App.js`) from [`tsconfig.json`](file:///home/dog/git/movie-trackerh/tsconfig.json) web compilation to allow Next.js native SWC compiler to build cleanly without Babel or server component import errors.
 
 ---
 
-*Document updated post Standalone Offline APK packaging & Vercel deployment fix on 2026-08-14.*
+*Document updated post Standalone Offline APK packaging & React Native CLI bundling fix on 2026-09-13.*
 
 
 
