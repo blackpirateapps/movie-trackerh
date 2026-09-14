@@ -5,6 +5,7 @@ import '../models/user_stats.dart';
 /// Provider for CineTracker Analytics & Flagship Statistics ("Apple Health for Movies & TV").
 class StatsProvider extends ChangeNotifier {
   final CineTrackerApiInterface api;
+  final CineTrackerApiInterface? fallbackMockApi;
   CineTrackerApiInterface get _api => api;
 
   bool _isLoading = false;
@@ -15,7 +16,7 @@ class StatsProvider extends ChangeNotifier {
   int? _selectedYear;
   String _media = 'all'; // 'all', 'movies', 'tv'
 
-  StatsProvider({required this.api});
+  StatsProvider({required this.api, this.fallbackMockApi});
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -45,6 +46,22 @@ class StatsProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     } catch (e) {
+      if (fallbackMockApi != null) {
+        try {
+          _stats = await fallbackMockApi!.getStats(
+            timeframe: _timeframe,
+            year: _selectedYear,
+            media: _media,
+            refresh: refresh,
+          );
+          if (_selectedYear == null && _stats != null && _stats!.availableYears.isNotEmpty) {
+            _selectedYear = _stats!.availableYears.first;
+          }
+          _isLoading = false;
+          notifyListeners();
+          return;
+        } catch (_) {}
+      }
       _errorMessage = 'Failed to load stats: $e';
       _isLoading = false;
       notifyListeners();

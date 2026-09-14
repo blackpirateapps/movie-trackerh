@@ -206,6 +206,57 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const authUser = authenticate(request, null, false);
+  if (authUser) {
+    const isFavorite = searchParams.get('favorite') === 'true';
+
+    const { rows } = await db.execute({
+      sql: `
+        SELECT 
+          ts.id, 
+          ts.name, 
+          ts.overview, 
+          ts.poster_path, 
+          ts.backdrop_path, 
+          ts.first_air_date, 
+          ts.number_of_seasons, 
+          ts.number_of_episodes, 
+          ts.vote_average,
+          uts.rating, 
+          uts.review, 
+          uts.is_favorite, 
+          uts.start_date, 
+          uts.end_date, 
+          uts.watched_where,
+          uts.created_at, 
+          uts.updated_at
+        FROM user_tv_shows uts
+        JOIN tv_shows ts ON uts.tv_show_id = ts.id
+        WHERE uts.user_id = ? ${isFavorite ? 'AND uts.is_favorite = 1' : ''}
+        ORDER BY uts.updated_at DESC
+      `,
+      args: [authUser.sub],
+    });
+
+    const formatted = rows.map(r => {
+      let watchedWhere: string[] = [];
+      if (r.watched_where) {
+        try {
+          watchedWhere = JSON.parse(r.watched_where as string);
+        } catch (e) {
+          watchedWhere = (r.watched_where as string).split(',').map(s => s.trim()).filter(Boolean);
+        }
+      }
+      return {
+        ...r,
+        is_favorite: Boolean(r.is_favorite),
+        watched_where: watchedWhere,
+      };
+    });
+
+    return NextResponse.json(formatted);
+  }
+
   return NextResponse.json({ message: 'Query or ID parameter is required.' }, { status: 400 });
 }
 

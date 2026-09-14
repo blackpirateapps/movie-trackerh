@@ -10,3 +10,6 @@ Refer to the primary instructions in [**`AGENTS.md`**](file:///home/dog/git/movi
    - Flutter: `flutter analyze --fatal-infos --fatal-warnings` & `flutter test`.
    - Never run local `flutter build` commands (CI handles build artifacts).
    - Strict Cupertino widgets only for the Flutter iOS app.
+3. **Mandatory Git Commit & Push**:
+   - Always stage, commit with descriptive messages, and `git push` to remote before concluding the turn.
+

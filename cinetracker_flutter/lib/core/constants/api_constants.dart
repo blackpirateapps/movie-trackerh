@@ -1,10 +1,14 @@
 /// API routes, headers, and default timeouts for CineTracker.
 abstract final class ApiConstants {
-  // Default base URL for local development (iOS simulator uses localhost)
-  static const String defaultBaseUrl = 'http://localhost:3000';
+  // Production live hosted backend on Vercel
+  static const String productionBaseUrl = 'https://movie-trackerh.vercel.app';
 
-  // Production fallback or custom server override
-  static const String stagingBaseUrl = 'https://cinetracker-staging.vercel.app';
+  // Local development fallbacks
+  static const String localBaseUrl = 'http://localhost:3000';
+  static const String androidEmulatorBaseUrl = 'http://10.0.2.2:3000';
+
+  // Default base URL points to the live hosted backend
+  static const String defaultBaseUrl = productionBaseUrl;
 
   // Timeout settings
   static const Duration connectTimeout = Duration(seconds: 15);

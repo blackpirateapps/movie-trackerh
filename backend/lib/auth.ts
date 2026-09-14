@@ -6,16 +6,22 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 
 export function authenticate(req: any, res: any = null, required: boolean = true): (JWTPayload & { id: number }) | null {
   let cookieHeader = '';
+  let authHeader = '';
   if (req && req.headers) {
     if (typeof req.headers.get === 'function') {
       cookieHeader = req.headers.get('cookie') || '';
+      authHeader = req.headers.get('authorization') || '';
     } else {
       cookieHeader = req.headers.cookie || '';
+      authHeader = req.headers.authorization || '';
     }
   }
 
   const cookies = parseCookie ? parseCookie(cookieHeader) : {};
-  const token = cookies.token;
+  let token = cookies.token;
+  if (!token && authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+    token = authHeader.slice(7).trim();
+  }
 
   if (!token) {
     if (required && res && typeof res.status === 'function') {

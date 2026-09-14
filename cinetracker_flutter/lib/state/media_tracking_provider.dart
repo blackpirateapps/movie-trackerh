@@ -12,6 +12,7 @@ import '../models/api_models.dart';
 /// watchlist, favorites, diary, and dashboard progression.
 class MediaTrackingProvider extends ChangeNotifier {
   final CineTrackerApiInterface api;
+  final CineTrackerApiInterface? fallbackMockApi;
   CineTrackerApiInterface get _api => api;
 
   bool _isLoading = false;
@@ -21,7 +22,7 @@ class MediaTrackingProvider extends ChangeNotifier {
   List<TvShow> _tvShows = [];
   List<DiaryEntry> _diary = [];
 
-  MediaTrackingProvider({required this.api});
+  MediaTrackingProvider({required this.api, this.fallbackMockApi});
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -86,6 +87,24 @@ class MediaTrackingProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     } catch (e) {
+      if (fallbackMockApi != null) {
+        try {
+          final results = await Future.wait([
+            fallbackMockApi!.getDashboard(refresh: true),
+            fallbackMockApi!.getMovies(),
+            fallbackMockApi!.getTvShows(),
+            fallbackMockApi!.getDiary(),
+          ]);
+
+          _dashboard = results[0] as DashboardData;
+          _movies = results[1] as List<Movie>;
+          _tvShows = results[2] as List<TvShow>;
+          _diary = results[3] as List<DiaryEntry>;
+          _isLoading = false;
+          notifyListeners();
+          return;
+        } catch (_) {}
+      }
       _errorMessage = 'Failed to load tracking data: $e';
       _isLoading = false;
       notifyListeners();

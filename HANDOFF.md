@@ -582,13 +582,17 @@ A complete, standalone architectural specification is maintained at:
   5. **Profile**: User identity card, lifetime stats, top 4 favorites showcase, recent activity, viewing diary timeline, and grouped Cupertino settings.
 - **State Management**: Built on `provider` (`ChangeNotifier`):
   - `AuthProvider`: Session token verification, login, signup, guest mode with offline capability.
-  - `MediaTrackingProvider`: Optimistic UI mutations for movie logging, ratings, watchlist/favorite toggles, episode watched updates, and bulk season/show completions.
-  - `StatsProvider`: Multi-timeframe (All, Year, Month, Week, Custom) and media filtering for user analytics.
-  - `SearchProvider`: Debounced unified search for movies and TV series with "In Library" indicators.
-- **API Services**:
+  - `MediaTrackingProvider`: Optimistic UI mutations for movie logging, ratings, watchlist/favorite toggles, episode watched updates, and bulk season/show completions with live API and mock fallback.
+  - `StatsProvider`: Multi-timeframe (All, Year, Month, Week, Custom) and media filtering for user analytics with live API and mock fallback.
+  - `SearchProvider`: Debounced unified search for movies and TV series with "In Library" indicators with live API and mock fallback.
+- **API Services & Live Integration**:
   - `CineTrackerApiInterface`: Abstract contract for all backend endpoints.
-  - `CineTrackerApi`: Live HTTP client with Bearer authentication and configurable endpoints.
-  - `MockCineTrackerService`: Full in-memory mock engine pre-seeded with rich catalog data for testing and offline guest mode.
+  - `ApiClient`: Configured with `productionBaseUrl` (`https://movie-trackerh.vercel.app`) as default. Transmits both `Cookie: token=...` and `Authorization: Bearer ...` headers for cross-platform compatibility.
+  - `CineTrackerApi`: Live HTTP client with resilient fallback querying (`GET /api/user?username=...` and `GET /api/user?action=feed`) when specialized endpoints are unavailable.
+  - `MockCineTrackerService`: In-memory mock engine pre-seeded with rich catalog data for testing and offline guest mode fallback.
+- **Verified Live Backend Metrics**:
+  - Successfully connected to `https://movie-trackerh.vercel.app` using `hi@sudipx.in`.
+  - Loaded live dashboard: *The Simpsons* (S7 E16 Next Up), 235 movies, 21 TV shows (*Lost in Space*, etc.), 50 diary entries, 1,556.6 lifetime watch hours.
 - **Quality Gates & Testing**:
   - Static Analysis: Strict inference and warnings enforced (`flutter analyze --fatal-infos --fatal-warnings` passes with 0 issues).
   - Automated Tests: 140 comprehensive unit, widget, and challenge tests passing (`flutter test`).
@@ -597,7 +601,27 @@ A complete, standalone architectural specification is maintained at:
 
 ---
 
-## 22. Mandatory AI Agent Workflow: Continuous Handoff Maintenance
+## 22. Multi-Platform Backend Route Enhancements
+
+To support native mobile clients (Flutter iOS) alongside Next.js web clients:
+1. **Dual Header Authentication** ([`backend/lib/auth.ts`](file:///home/dog/git/movie-trackerh/backend/lib/auth.ts)):
+   - `authenticate()` extracts JWT from either `Cookie: token=...` or `Authorization: Bearer <jwt>`.
+2. **Auth Token in JSON Payload** ([`src/app/api/auth/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/auth/route.ts)):
+   - Returns `token` directly in the JSON response on `login` and `signup` in addition to setting the HTTP-only cookie.
+3. **Chronological Watch Diary Endpoint** ([`src/app/api/user/diary/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/user/diary/route.ts)):
+   - `GET /api/user/diary`: Combines movie watch logs (`user_movies`) and episode watch logs (`user_episodes`), sorting chronologically descending.
+4. **User Collections Endpoints** ([`src/app/api/movies/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/movies/route.ts) & [`src/app/api/tv/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/tv/route.ts)):
+   - `GET /api/movies` (without `query` or `id`): Returns authenticated user's tracked movies or watchlist.
+   - `GET /api/tv` (without `query` or `id`): Returns authenticated user's tracked TV shows.
+   - `POST /api/movies`: Supports `action: 'favorite'` and `watchedWhere` platform tags.
+5. **Database Schema Additions** ([`backend/lib/turso.ts`](file:///home/dog/git/movie-trackerh/backend/lib/turso.ts)):
+   - Safely adds `is_favorite` and `watched_where` columns to `user_movies`.
+6. **Analytics Route Timeframe Normalization** ([`src/app/api/user/stats/route.ts`](file:///home/dog/git/movie-trackerh/src/app/api/user/stats/route.ts)):
+   - Accepts timeframe aliases (`year` -> `yearly`, `month` -> `monthly`, `week` -> `weekly`) and `movies` -> `movie`.
+
+---
+
+## 23. Mandatory AI Agent Workflow: Continuous Handoff Maintenance
 
 To guarantee that documentation never drifts from reality across AI pair-programming and autonomous sessions:
 
@@ -606,14 +630,16 @@ To guarantee that documentation never drifts from reality across AI pair-program
 2. **Flutter App Handoff Document** ([`cinetracker_flutter/HANDOFF.md`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/HANDOFF.md)):
    - Any modification, new screen, state update, or dependency change inside `cinetracker_flutter/` **MUST** be documented in the Flutter handoff file.
 3. **Verification Before Commit**:
-   - Web / Backend: `npm test` or build check.
+   - Web / Backend: `npx tsc --noEmit` and build check.
    - Flutter: `flutter analyze --fatal-infos --fatal-warnings` and `flutter test`.
 4. **Handoff Check in CI**:
    - The CI workflow verifies the integrity of both handoff documents.
+5. **Mandatory Git Commit & Push**:
+   - Always stage, commit with a descriptive message, and push to remote (`git push origin <branch>`) before concluding any turn.
 
 ---
 
-*Document updated on 2026-09-14 with Flutter iOS application architecture, dedicated handoff documentation, and continuous handoff maintenance protocol.*
+*Document updated on 2026-09-14 with live Flutter backend integration (https://movie-trackerh.vercel.app), dual Bearer/Cookie authentication, diary endpoint, and continuous handoff maintenance.*
 
 
 

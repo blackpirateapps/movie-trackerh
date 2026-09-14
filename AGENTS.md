@@ -47,3 +47,19 @@ These rules apply to all AI agents, assistant models, and developers contributin
    - Use strict TypeScript typing.
    - Ensure `ensureSchema()` runtime guard is preserved for automatic LibSQL table creation.
    - Preserve 1–10 star rating scale compatibility.
+
+---
+
+## 4. Mandatory Git Commit & Push Protocol
+
+**Whenever completing any coding task, architectural change, or bugfix in this repository, you MUST ALWAYS commit and push your changes before concluding the turn:**
+
+1. **Clean Staging & Conventional Commit**:
+   - Ensure code passes static analysis and test gates (`flutter analyze`, `flutter test`, `npx tsc --noEmit`).
+   - Stage all modified and new project files.
+   - Write a clear, descriptive commit message detailing the changes.
+
+2. **Always Push to Remote**:
+   - Run `git push` (or `git push origin <current-branch>`) to synchronize commits with the remote repository.
+   - Verify that the push succeeds without errors.
+

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/colors.dart';
 import '../../../state/auth_provider.dart';
 import '../../../state/media_tracking_provider.dart';
+import '../../../state/stats_provider.dart';
 import '../../navigation/tab_scaffold.dart';
 import 'signup_screen.dart';
 
@@ -18,9 +19,9 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController =
-      TextEditingController(text: 'alex@cinetracker.app');
+      TextEditingController(text: 'hi@sudipx.in');
   final TextEditingController _passwordController =
-      TextEditingController(text: 'password123');
+      TextEditingController(text: 'Sudip@21');
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -41,6 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final auth = context.read<AuthProvider>();
     final tracking = context.read<MediaTrackingProvider>();
+    final stats = context.read<StatsProvider>();
 
     setState(() {
       _isLoading = true;
@@ -53,6 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       if (success) {
         unawaited(tracking.loadInitialData());
+        unawaited(stats.loadStats(refresh: true));
         Navigator.of(context).pushReplacement<void, void>(
           CupertinoPageRoute<void>(builder: (ctx) => const CineTrackerTabScaffold()),
         );

@@ -3,11 +3,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import '../../../core/theme/colors.dart';
 import '../../../models/api_key.dart';
-import '../../../services/api/mock_cinetracker_service.dart';
+import '../../../services/api/api_interface.dart';
+import '../../../state/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 /// Developer Portal Screen: API Keys & Interactive Live Console.
 class DeveloperPortalScreen extends StatefulWidget {
-  const DeveloperPortalScreen({super.key});
+  final CineTrackerApiInterface? api;
+  const DeveloperPortalScreen({super.key, this.api});
 
   @override
   State<DeveloperPortalScreen> createState() => _DeveloperPortalScreenState();
@@ -24,12 +27,15 @@ class _DeveloperPortalScreenState extends State<DeveloperPortalScreen> {
   String _consoleOutput = 'Tap "Send Request" to test endpoint live...';
   bool _isSendingRequest = false;
 
-  final MockCineTrackerService _service = MockCineTrackerService();
+  CineTrackerApiInterface? _service;
 
   @override
-  void initState() {
-    super.initState();
-    _loadKeys();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_service == null) {
+      _service = widget.api ?? context.read<AuthProvider>().api;
+      _loadKeys();
+    }
   }
 
   @override
@@ -39,9 +45,11 @@ class _DeveloperPortalScreenState extends State<DeveloperPortalScreen> {
   }
 
   Future<void> _loadKeys() async {
+    final service = _service;
+    if (service == null) return;
     setState(() => _isLoadingKeys = true);
     try {
-      final keys = await _service.getApiKeys();
+      final keys = await service.getApiKeys();
       if (mounted) {
         setState(() {
           _keys.clear();
@@ -55,12 +63,14 @@ class _DeveloperPortalScreenState extends State<DeveloperPortalScreen> {
   }
 
   Future<void> _createKey() async {
+    final service = _service;
+    if (service == null) return;
     final name = _keyNameController.text.trim().isNotEmpty
         ? _keyNameController.text.trim()
         : 'Default App Key';
 
     try {
-      final res = await _service.createApiKey(name: name);
+      final res = await service.createApiKey(name: name);
       _keyNameController.clear();
       setState(() {
         _newRawKey = res.rawKey;
@@ -71,7 +81,9 @@ class _DeveloperPortalScreenState extends State<DeveloperPortalScreen> {
   }
 
   Future<void> _revokeKey(int keyId) async {
-    await _service.revokeApiKey(keyId);
+    final service = _service;
+    if (service == null) return;
+    await service.revokeApiKey(keyId);
     setState(() {
       _keys.removeWhere((k) => k.id == keyId);
     });
@@ -79,6 +91,8 @@ class _DeveloperPortalScreenState extends State<DeveloperPortalScreen> {
   }
 
   Future<void> _sendConsoleRequest() async {
+    final service = _service;
+    if (service == null) return;
     setState(() {
       _isSendingRequest = true;
       _consoleOutput = 'Executing request to $_selectedEndpoint...';
@@ -88,14 +102,14 @@ class _DeveloperPortalScreenState extends State<DeveloperPortalScreen> {
 
     try {
       if (_selectedEndpoint == '/api/v1/export') {
-        final res = await _service.exportData();
+        final res = await service.exportData();
         const encoder = JsonEncoder.withIndent('  ');
         setState(() {
           _consoleOutput = 'HTTP 200 OK\n\n${encoder.convert(res.data)}';
           _isSendingRequest = false;
         });
       } else {
-        final res = await _service.getDashboard();
+        final res = await service.getDashboard();
         const encoder = JsonEncoder.withIndent('  ');
         setState(() {
           _consoleOutput = 'HTTP 200 OK\n\n${encoder.convert(res.toJson())}';

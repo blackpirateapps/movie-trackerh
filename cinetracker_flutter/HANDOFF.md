@@ -245,12 +245,42 @@ The suite contains **140 automated tests**:
 
 ---
 
-## 7. Mandatory AI Workflow Protocol
+## 7. Live Backend Integration & Connectivity
+
+The native Flutter application connects directly to the live hosted CineTracker backend:
+
+### 7.1 Configuration & Endpoints
+- **Production URL**: `https://movie-trackerh.vercel.app` (`ApiConstants.productionBaseUrl`)
+- **Default Base URL**: `ApiConstants.defaultBaseUrl = productionBaseUrl`
+- **Dual Authentication**: `ApiClient` automatically attaches both `Cookie: token=<jwt>` and `Authorization: Bearer <jwt>` to outgoing HTTP requests, supporting both browser-compatible cookie authentication and native Bearer token authorization.
+- **Resilient Fallback Querying**: `CineTrackerApi` provides transparent fallback routes:
+  - `getMovies()`: Attempts `GET /api/movies`. If 400/error, queries user profile via `GET /api/user?username=<username>`.
+  - `getTvShows()`: Attempts `GET /api/tv`. If 400/error, queries user profile via `GET /api/user?username=<username>`.
+  - `getDiary()`: Attempts `GET /api/user/diary`. If 404, gracefully falls back to `GET /api/user?action=feed`.
+  - `getApiKeys()`: Parses both direct arrays and `{ keys: [...] }` wrappers.
+  - `getStats()`: Normalizes timeframe aliases (`year` -> `yearly`, `month` -> `monthly`, `week` -> `weekly`) and `movies` -> `movie`.
+- **Guest / Offline Resilience**: All providers (`MediaTrackingProvider`, `StatsProvider`, `SearchProvider`) accept an optional `fallbackMockApi` (`MockCineTrackerService`). If network or unauthenticated requests fail, the app gracefully falls back so UI exploration is never blocked.
+
+### 7.2 Verified Live Account Metrics
+The integration has been verified live against `https://movie-trackerh.vercel.app` using account:
+- **Email**: `hi@sudipx.in`
+- **Username**: `blackpiratex` (User ID: 1)
+- **Continue Watching Hero**: *The Simpsons* (Season 7, Episode 16: "Lisa the Iconoclast" next up)
+- **Live Movies Tracked**: 235 films (Latest: *Contact* rated 7/10)
+- **Live TV Shows Tracked**: 21 series (*Lost in Space*, *The Simpsons*, etc.)
+- **Watch Diary Entries**: 50 chronological watch events
+- **Lifetime Watch Hours**: 1,556.6 hours across 2,192 TV episodes and 235 movies
+
+---
+
+## 8. Mandatory AI Workflow Protocol
 
 Any future AI assistant modifying this application must adhere to the following workflow:
-1. **Run Static Verification First**: Verify with `flutter analyze --fatal-infos --fatal-warnings`.
-2. **Execute Full Test Suite**: Verify with `flutter test` (all 140+ tests must pass).
+1. **Run Static Verification First**: Verify with `flutter analyze --fatal-infos --fatal-warnings` (must report 0 issues).
+2. **Execute Full Test Suite**: Verify with `flutter test` (all 140 automated tests must pass).
 3. **Preserve Cupertino Identity**: Never introduce Material widgets, web-style cards, or sketch borders.
 4. **Update Handoff Documents**:
    - Always update [`HANDOFF.md`](file:///home/dog/git/movie-trackerh/HANDOFF.md) in the project root.
    - Always update [`cinetracker_flutter/HANDOFF.md`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/HANDOFF.md) whenever changes touch the Flutter mobile application.
+5. **Mandatory Git Commit & Push**:
+   - Always stage, commit with a descriptive message, and push to remote (`git push origin <branch>`) before concluding any turn.

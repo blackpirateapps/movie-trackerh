@@ -217,7 +217,7 @@ export async function ensureSchema() {
       console.error('Error auto-migrating user_movies table:', migErr);
     }
 
-    // Safely add missing profile & settings columns to users table
+    // Safely add missing profile & settings columns to users table and user_movies table
     const columnsToAdd = [
       "ALTER TABLE users ADD COLUMN display_name TEXT;",
       "ALTER TABLE users ADD COLUMN bio TEXT;",
@@ -225,7 +225,9 @@ export async function ensureSchema() {
       "ALTER TABLE users ADD COLUMN avatar_url TEXT;",
       "ALTER TABLE users ADD COLUMN pref_default_layout TEXT DEFAULT 'grid';",
       "ALTER TABLE users ADD COLUMN pref_hide_nsfw INTEGER DEFAULT 0;",
-      "ALTER TABLE users ADD COLUMN pref_is_private INTEGER DEFAULT 0;"
+      "ALTER TABLE users ADD COLUMN pref_is_private INTEGER DEFAULT 0;",
+      "ALTER TABLE user_movies ADD COLUMN is_favorite INTEGER DEFAULT 0;",
+      "ALTER TABLE user_movies ADD COLUMN watched_where TEXT;"
     ];
 
     for (const colStmt of columnsToAdd) {

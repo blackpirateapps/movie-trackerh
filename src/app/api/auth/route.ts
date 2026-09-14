@@ -10,7 +10,14 @@ export async function GET(request: NextRequest) {
   try {
     const cookieHeader = request.headers.get('cookie') || '';
     const cookies = parseCookie(cookieHeader);
-    const token = cookies.token;
+    let token = cookies.token;
+
+    if (!token) {
+      const authHeader = request.headers.get('authorization') || '';
+      if (authHeader.toLowerCase().startsWith('bearer ')) {
+        token = authHeader.slice(7).trim();
+      }
+    }
 
     if (!token) {
       return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
@@ -111,6 +118,7 @@ export async function POST(request: NextRequest) {
 
       const response = NextResponse.json({ 
         user,
+        token,
         message: 'Account created successfully!' 
       }, { status: 201 });
       response.headers.set('Set-Cookie', setCookieHeader);
@@ -157,6 +165,7 @@ export async function POST(request: NextRequest) {
       const { password: _, ...userWithoutPassword } = user;
       const response = NextResponse.json({ 
         user: userWithoutPassword,
+        token,
         message: 'Login successful!'
       }, { status: 200 });
       response.headers.set('Set-Cookie', setCookieHeader);

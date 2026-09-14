@@ -15,17 +15,21 @@ import 'api_interface.dart';
 /// Live REST API client connecting to the CineTracker backend.
 class CineTrackerApi implements CineTrackerApiInterface {
   final ApiClient _client;
+  String? _currentUsername;
 
   CineTrackerApi(this._client);
 
   ApiClient get client => _client;
+  String? get currentUsername => _currentUsername;
 
   @override
   Future<User?> checkSession() async {
     try {
       final res = await _client.get(ApiConstants.auth);
       if (res is Map && res['user'] != null) {
-        return User.fromJson(Map<String, dynamic>.from(res['user'] as Map));
+        final user = User.fromJson(Map<String, dynamic>.from(res['user'] as Map));
+        _currentUsername = user.username;
+        return user;
       }
       return null;
     } on UnauthorizedException {
@@ -42,9 +46,16 @@ class CineTrackerApi implements CineTrackerApiInterface {
       'password': password,
     });
     final user = User.fromJson(Map<String, dynamic>.from(res['user'] as Map));
+    _currentUsername = user.username;
+    final token = (res is Map && res['token'] != null)
+        ? res['token'].toString()
+        : _client.sessionToken;
+    if (token != null && token.isNotEmpty) {
+      _client.setSessionToken(token);
+    }
     final message = res['message']?.toString() ?? 'Login successful!';
     return AuthResult(
-        user: user, token: _client.sessionToken, message: message);
+        user: user, token: token, message: message);
   }
 
   @override
@@ -60,14 +71,25 @@ class CineTrackerApi implements CineTrackerApiInterface {
       'password': password,
     });
     final user = User.fromJson(Map<String, dynamic>.from(res['user'] as Map));
+    _currentUsername = user.username;
+    final token = (res is Map && res['token'] != null)
+        ? res['token'].toString()
+        : _client.sessionToken;
+    if (token != null && token.isNotEmpty) {
+      _client.setSessionToken(token);
+    }
     final message = res['message']?.toString() ?? 'Signup successful!';
     return AuthResult(
-        user: user, token: _client.sessionToken, message: message);
+        user: user, token: token, message: message);
   }
 
   @override
   Future<void> logout() async {
-    await _client.post(ApiConstants.auth, body: {'action': 'logout'});
+    try {
+      await _client.post(ApiConstants.auth, body: {'action': 'logout'});
+    } finally {
+      _currentUsername = null;
+    }
   }
 
   @override
@@ -107,9 +129,17 @@ class CineTrackerApi implements CineTrackerApiInterface {
     String media = 'all',
     bool refresh = false,
   }) async {
+    var tf = timeframe;
+    if (tf == 'year') tf = 'yearly';
+    if (tf == 'month') tf = 'monthly';
+    if (tf == 'week') tf = 'weekly';
+
+    var med = media;
+    if (med == 'movies') med = 'movie';
+
     final query = <String, dynamic>{
-      'timeframe': timeframe,
-      'media': media,
+      'timeframe': tf,
+      'media': med,
     };
     if (username != null) query['username'] = username;
     if (year != null) query['year'] = year;
@@ -128,11 +158,42 @@ class CineTrackerApi implements CineTrackerApiInterface {
     if (watchlist != null) query['watchlist'] = watchlist.toString();
     if (favorite != null) query['favorite'] = favorite.toString();
 
-    final res = await _client.get(ApiConstants.movies, queryParams: query);
-    if (res is List) {
-      return res
-          .map((m) => Movie.fromJson(Map<String, dynamic>.from(m as Map)))
-          .toList();
+    try {
+      final res = await _client.get(ApiConstants.movies, queryParams: query);
+      if (res is List) {
+        return res
+            .map((m) => Movie.fromJson(Map<String, dynamic>.from(m as Map)))
+            .toList();
+      }
+    } catch (_) {
+      // Resilient fallback: fetch from user profile if /api/movies without id/query returns 400
+      if (_currentUsername != null) {
+        final userRes = await _client.get(
+          ApiConstants.user,
+          queryParams: {'username': _currentUsername!},
+        );
+        if (userRes is Map) {
+          if (watchlist == true) {
+            final items = userRes['watchlist'];
+            if (items is List) {
+              return items
+                  .map((m) => Movie.fromJson(Map<String, dynamic>.from(m as Map)))
+                  .toList();
+            }
+          } else {
+            final items = userRes['movies'];
+            if (items is List) {
+              var list = items
+                  .map((m) => Movie.fromJson(Map<String, dynamic>.from(m as Map)))
+                  .toList();
+              if (favorite == true) {
+                list = list.where((m) => m.isFavorite).toList();
+              }
+              return list;
+            }
+          }
+        }
+      }
     }
     return [];
   }
@@ -200,11 +261,33 @@ class CineTrackerApi implements CineTrackerApiInterface {
     if (watchlist != null) query['watchlist'] = watchlist.toString();
     if (favorite != null) query['favorite'] = favorite.toString();
 
-    final res = await _client.get(ApiConstants.tv, queryParams: query);
-    if (res is List) {
-      return res
-          .map((s) => TvShow.fromJson(Map<String, dynamic>.from(s as Map)))
-          .toList();
+    try {
+      final res = await _client.get(ApiConstants.tv, queryParams: query);
+      if (res is List) {
+        return res
+            .map((s) => TvShow.fromJson(Map<String, dynamic>.from(s as Map)))
+            .toList();
+      }
+    } catch (_) {
+      // Resilient fallback: fetch from user profile if /api/tv without id/query returns 400
+      if (_currentUsername != null) {
+        final userRes = await _client.get(
+          ApiConstants.user,
+          queryParams: {'username': _currentUsername!},
+        );
+        if (userRes is Map) {
+          final items = userRes['tvShows'];
+          if (items is List) {
+            var list = items
+                .map((s) => TvShow.fromJson(Map<String, dynamic>.from(s as Map)))
+                .toList();
+            if (favorite == true) {
+              list = list.where((s) => s.isFavorite).toList();
+            }
+            return list;
+          }
+        }
+      }
     }
     return [];
   }
@@ -301,11 +384,39 @@ class CineTrackerApi implements CineTrackerApiInterface {
 
   @override
   Future<List<DiaryEntry>> getDiary() async {
-    final res = await _client.get('${ApiConstants.user}/diary');
-    if (res is List) {
-      return res
-          .map((e) => DiaryEntry.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList();
+    try {
+      final res = await _client.get('${ApiConstants.user}/diary');
+      if (res is List) {
+        return res
+            .map((e) => DiaryEntry.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+      }
+    } catch (_) {
+      // Fallback: /api/user?action=feed returns chronological watch history
+      try {
+        final feedRes = await _client.get(
+          ApiConstants.user,
+          queryParams: {'action': 'feed'},
+        );
+        if (feedRes is List) {
+          return feedRes
+              .map((e) => DiaryEntry.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+        }
+      } catch (_) {
+        // Further fallback: recentActivity from user profile
+        if (_currentUsername != null) {
+          final userRes = await _client.get(
+            ApiConstants.user,
+            queryParams: {'username': _currentUsername!},
+          );
+          if (userRes is Map && userRes['recentActivity'] is List) {
+            return (userRes['recentActivity'] as List)
+                .map((e) => DiaryEntry.fromJson(Map<String, dynamic>.from(e as Map)))
+                .toList();
+          }
+        }
+      }
     }
     return [];
   }
@@ -322,6 +433,10 @@ class CineTrackerApi implements CineTrackerApiInterface {
     final res = await _client.get(ApiConstants.keys);
     if (res is List) {
       return res
+          .map((k) => ApiKey.fromJson(Map<String, dynamic>.from(k as Map)))
+          .toList();
+    } else if (res is Map && res['keys'] is List) {
+      return (res['keys'] as List)
           .map((k) => ApiKey.fromJson(Map<String, dynamic>.from(k as Map)))
           .toList();
     }

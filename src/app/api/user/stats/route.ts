@@ -9,12 +9,17 @@ export async function GET(req: Request) {
 
     const url = new URL(req.url);
     const usernameParam = url.searchParams.get('username') || '';
-    const timeframe = url.searchParams.get('timeframe') || 'all'; // all | yearly | monthly | weekly | custom
+    let timeframe = url.searchParams.get('timeframe') || 'all'; // all | yearly | monthly | weekly | custom
+    if (timeframe === 'year') timeframe = 'yearly';
+    if (timeframe === 'month') timeframe = 'monthly';
+    if (timeframe === 'week') timeframe = 'weekly';
+
     const yearParam = url.searchParams.get('year') || String(new Date().getFullYear());
     const monthParam = url.searchParams.get('month') || String(new Date().getMonth() + 1);
     const sinceParam = url.searchParams.get('since') || '';
     const untilParam = url.searchParams.get('until') || '';
-    const mediaParam = url.searchParams.get('media') || 'all'; // all | movie | tv
+    let mediaParam = url.searchParams.get('media') || 'all'; // all | movie | tv
+    if (mediaParam === 'movies') mediaParam = 'movie';
     const forceRefresh = url.searchParams.get('refresh') === 'true';
 
     let userId: number | null = null;

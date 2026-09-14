@@ -183,6 +183,63 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const authUser = authenticate(request, null, false);
+  if (authUser) {
+    const isWatchlist = searchParams.get('watchlist') === 'true';
+    const isFavorite = searchParams.get('favorite') === 'true';
+
+    if (isWatchlist) {
+      const { rows } = await db.execute({
+        sql: `
+          SELECT 
+            m.id, 
+            m.title, 
+            m.overview, 
+            m.poster_path, 
+            m.backdrop_path, 
+            m.release_date, 
+            m.runtime, 
+            m.vote_average,
+            1 as in_watchlist,
+            w.created_at
+          FROM watchlist w
+          JOIN movies m ON w.movie_id = m.id
+          WHERE w.user_id = ?
+          ORDER BY w.created_at DESC
+        `,
+        args: [authUser.sub],
+      });
+      return NextResponse.json(rows);
+    }
+
+    const { rows } = await db.execute({
+      sql: `
+        SELECT 
+          m.id, 
+          m.title, 
+          m.overview, 
+          m.poster_path, 
+          m.backdrop_path, 
+          m.release_date, 
+          m.runtime, 
+          m.vote_average,
+          um.rating, 
+          um.review, 
+          um.watched_date,
+          COALESCE(um.is_favorite, 0) as is_favorite,
+          um.watched_where,
+          um.created_at, 
+          um.updated_at
+        FROM user_movies um
+        JOIN movies m ON um.movie_id = m.id
+        WHERE um.user_id = ? ${isFavorite ? 'AND um.is_favorite = 1' : ''}
+        ORDER BY COALESCE(um.watched_date, um.created_at) DESC
+      `,
+      args: [authUser.sub],
+    });
+    return NextResponse.json(rows);
+  }
+
   return NextResponse.json({ message: 'Query or ID parameter is required.' }, { status: 400 });
 }
 
@@ -194,7 +251,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { movieId, rating, review, watchedDate, action } = body;
+  const { movieId, rating, review, watchedDate, action, isFavorite, watchedWhere } = body;
 
   if (action === 'watchlist') {
     if (!movieId) {
@@ -226,23 +283,64 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  if (action === 'favorite') {
+    if (!movieId) {
+      return NextResponse.json({ message: 'Movie ID is required.' }, { status: 400 });
+    }
+
+    try {
+      await getAndCacheMovie(movieId);
+      let favVal: number;
+      if (isFavorite !== undefined) {
+        favVal = isFavorite ? 1 : 0;
+      } else {
+        const { rows } = await db.execute({
+          sql: 'SELECT is_favorite FROM user_movies WHERE user_id = ? AND movie_id = ?',
+          args: [authUser.sub, movieId],
+        });
+        favVal = rows.length > 0 && rows[0].is_favorite ? 0 : 1;
+      }
+
+      await db.execute({
+        sql: `
+          INSERT INTO user_movies (user_id, movie_id, is_favorite)
+          VALUES (?, ?, ?)
+          ON CONFLICT(user_id, movie_id) DO UPDATE SET
+          is_favorite = excluded.is_favorite,
+          updated_at = CURRENT_TIMESTAMP
+        `,
+        args: [authUser.sub, movieId, favVal],
+      });
+
+      return NextResponse.json({ message: 'Favorite updated', isFavorite: favVal === 1 });
+    } catch (error) {
+      console.error('Error updating favorite:', error);
+      return NextResponse.json({ message: 'Failed to update favorite.' }, { status: 500 });
+    }
+  }
+
   if (!movieId) {
     return NextResponse.json({ message: 'Movie ID is required.' }, { status: 400 });
   }
 
   try {
     await getAndCacheMovie(movieId);
+    const watchedWhereStr = watchedWhere
+      ? (Array.isArray(watchedWhere) ? JSON.stringify(watchedWhere) : String(watchedWhere))
+      : null;
+
     await db.execute({
       sql: `
-        INSERT INTO user_movies (user_id, movie_id, rating, review, watched_date)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO user_movies (user_id, movie_id, rating, review, watched_date, watched_where)
+        VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(user_id, movie_id) DO UPDATE SET
-        rating = excluded.rating,
-        review = excluded.review,
-        watched_date = excluded.watched_date,
+        rating = COALESCE(excluded.rating, user_movies.rating),
+        review = COALESCE(excluded.review, user_movies.review),
+        watched_date = COALESCE(excluded.watched_date, user_movies.watched_date),
+        watched_where = COALESCE(excluded.watched_where, user_movies.watched_where),
         updated_at = CURRENT_TIMESTAMP
       `,
-      args: [authUser.sub, movieId, rating || null, review || null, watchedDate || null],
+      args: [authUser.sub, movieId, rating || null, review || null, watchedDate || null, watchedWhereStr],
     });
 
     invalidateUserStatsCache(Number(authUser.sub || authUser.id)).catch(() => {});

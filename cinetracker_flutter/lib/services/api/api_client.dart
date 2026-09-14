@@ -64,7 +64,7 @@ class NetworkException extends ApiException {
 }
 
 class ApiClient {
-  final String baseUrl;
+  String _baseUrl;
   final Duration timeout;
   final http.Client _client;
 
@@ -75,10 +75,15 @@ class ApiClient {
     String? baseUrl,
     Duration? timeout,
     http.Client? client,
-  })  : baseUrl = (baseUrl ?? ApiConstants.defaultBaseUrl)
+  })  : _baseUrl = (baseUrl ?? ApiConstants.defaultBaseUrl)
             .replaceAll(RegExp(r'/+$'), ''),
         timeout = timeout ?? ApiConstants.requestTimeout,
         _client = client ?? http.Client();
+
+  String get baseUrl => _baseUrl;
+  void setBaseUrl(String url) {
+    _baseUrl = url.replaceAll(RegExp(r'/+$'), '');
+  }
 
   String? get sessionToken => _sessionToken;
   void setSessionToken(String? token) => _sessionToken = token;
@@ -95,11 +100,12 @@ class ApiClient {
     if (_sessionToken != null && _sessionToken!.isNotEmpty) {
       headers[ApiConstants.cookieHeader] =
           '${ApiConstants.sessionCookieName}=$_sessionToken';
+      headers[ApiConstants.authHeader] = 'Bearer $_sessionToken';
     }
 
     if (_apiKey != null && _apiKey!.isNotEmpty) {
-      headers[ApiConstants.authHeader] = 'Bearer $_apiKey';
       headers[ApiConstants.apiKeyHeader] = _apiKey!;
+      headers[ApiConstants.authHeader] = 'Bearer $_apiKey';
     }
 
     if (extraHeaders != null) {
@@ -111,7 +117,7 @@ class ApiClient {
 
   Uri _resolveUri(String path, [Map<String, dynamic>? queryParams]) {
     final cleanPath = path.startsWith('/') ? path : '/$path';
-    final fullUrl = '$baseUrl$cleanPath';
+    final fullUrl = '$_baseUrl$cleanPath';
     final uri = Uri.parse(fullUrl);
 
     if (queryParams == null || queryParams.isEmpty) {
@@ -129,7 +135,9 @@ class ApiClient {
   }
 
   void _extractSessionCookie(http.Response response) {
-    final rawSetCookie = response.headers[ApiConstants.setCookieHeader];
+    final rawSetCookie = response.headers['set-cookie'] ??
+        response.headers['Set-Cookie'] ??
+        response.headers[ApiConstants.setCookieHeader];
     if (rawSetCookie == null) return;
 
     final match =

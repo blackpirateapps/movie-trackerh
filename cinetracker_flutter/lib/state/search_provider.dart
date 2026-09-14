@@ -6,6 +6,7 @@ import '../models/search_result.dart';
 /// Provider managing global search, debounced input, unified movie/TV results, and recent history.
 class SearchProvider extends ChangeNotifier {
   final CineTrackerApiInterface api;
+  final CineTrackerApiInterface? fallbackMockApi;
   CineTrackerApiInterface get _api => api;
 
   String _query = '';
@@ -16,7 +17,7 @@ class SearchProvider extends ChangeNotifier {
   String? _errorMessage;
   Timer? _debounceTimer;
 
-  SearchProvider({required this.api});
+  SearchProvider({required this.api, this.fallbackMockApi});
 
   String get query => _query;
   String get typeFilter => _typeFilter;
@@ -59,6 +60,16 @@ class SearchProvider extends ChangeNotifier {
       addRecentSearch(query);
       notifyListeners();
     } catch (e) {
+      if (fallbackMockApi != null) {
+        try {
+          final res = await fallbackMockApi!.search(query, type: _typeFilter);
+          _results = res;
+          _isSearching = false;
+          addRecentSearch(query);
+          notifyListeners();
+          return;
+        } catch (_) {}
+      }
       _errorMessage = 'Search failed: $e';
       _isSearching = false;
       notifyListeners();

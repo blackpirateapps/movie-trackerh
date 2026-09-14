@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../../core/theme/colors.dart';
 import '../../../state/auth_provider.dart';
 import 'letterboxd_import_screen.dart';
@@ -62,6 +63,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   additionalInfo: Text(
                     user?.email ?? '—',
                     style: const TextStyle(color: CineColors.textTertiary),
+                  ),
+                ),
+              ],
+            ),
+
+            // 2. SERVER CONNECTION SECTION
+            CupertinoListSection.insetGrouped(
+              backgroundColor: CineColors.background,
+              header: const Text('SERVER CONNECTION', style: TextStyle(color: CineColors.textSecondary)),
+              children: [
+                CupertinoListTile(
+                  leading: const Icon(CupertinoIcons.cloud, color: CineColors.neonGreen),
+                  title: const Text('Host Endpoint', style: TextStyle(color: CineColors.textPrimary)),
+                  additionalInfo: Text(
+                    auth.apiClient?.baseUrl ?? ApiConstants.defaultBaseUrl,
+                    style: const TextStyle(color: CineColors.textTertiary, fontSize: 13),
+                  ),
+                ),
+                CupertinoListTile(
+                  leading: const Icon(CupertinoIcons.antenna_radiowaves_left_right, color: CineColors.neonGreen),
+                  title: const Text('Status', style: TextStyle(color: CineColors.textPrimary)),
+                  additionalInfo: Text(
+                    auth.isAuthenticated
+                        ? 'Live Backend Connected'
+                        : (auth.isGuest ? 'Guest Mode' : 'Ready to Connect'),
+                    style: TextStyle(
+                      color: auth.isAuthenticated ? CineColors.neonGreen : CineColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
