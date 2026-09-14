@@ -580,11 +580,21 @@ A complete, standalone architectural specification is maintained at:
   3. **Watchlist**: Dedicated live queue management with dynamic "Pick something for me" recommendation generator and dismiss-to-remove synchronization with `GET /api/movies?watchlist=true`.
   4. **Stats**: "Apple Health for Movies & TV" featuring KPI summaries, `fl_chart` watch time area curve, 1–10 rating distribution histogram with mode highlight, 365-day heatmap, 7x24 viewing habits matrix, and hall of fame.
   5. **Profile**: User identity card, dynamic lifetime stats (hours watched, film/TV counts), Letterboxd-style top 4 favorites showcase (`top4`), recent activity, viewing diary timeline, and grouped Cupertino settings.
-- **State Management**: Built on `provider` (`ChangeNotifier`):
+- **State Management & Offline Synchronization**:
+  - Built on `provider` (`ChangeNotifier`) with `SharedPreferences` persistence.
   - `AuthProvider`: Session token verification, login, signup, guest mode with offline capability.
-  - `MediaTrackingProvider`: Optimistic UI mutations for movie logging, ratings, watchlist/favorite toggles, episode watched updates, dedicated `_watchlistMovies` state, top 4 favorites showcase, and bulk season/show completions with live API and strict guest-only mock fallback.
+  - `MediaTrackingProvider`: Optimistic UI mutations for movie logging, ratings, watchlist/favorite toggles, episode watched updates, dedicated `_watchlistMovies` state, top 4 favorites showcase, and bulk season/show completions.
+  - **Instant Continue Watching Progression**: Tapping "Continue" on the hero card immediately updates `_dashboard.currentlyWatching`, advances `nextEpisode` to the subsequent episode, updates progress bar fraction, and refreshes UI in the exact same frame without requiring pull-to-refresh.
+  - **Offline Sync Queue (`SyncQueueService`)**: All mutating actions are recorded as `PendingAction` models in a persistent FIFO queue backed by `SharedPreferences` (`cinetracker_pending_action_queue`). Whenever internet connection is restored or available, background dispatch flushes and executes all pending mutations sequentially against the live API.
   - `StatsProvider`: Multi-timeframe (All, Year, Month, Week, Custom) and media filtering for user analytics with live API and strict guest-only mock fallback.
   - `SearchProvider`: Debounced unified search for movies and TV series with "In Library" indicators with live API and mock fallback.
+- **Long-Term Image Caching (365 Days)**:
+  - Custom `CineImageCacheManager` extending `CacheManager` with a 365-day stale retention period (`Duration(days: 365)`) and 2,000 maximum cached objects.
+  - Applied across `MediaPoster` and `HeroBackdrop` using `CachedNetworkImage` to ensure images are downloaded once to local disk storage and served without recurring network requests.
+- **TV Show Episode Listing & Breakdown**:
+  - `TvDetailScreen` dynamically fetches season details on load and on season chip selection via `_loadSeasonEpisodes(seasonNumber)`.
+  - Backend responses parse top-level `userEpisodes` maps onto individual `Episode` domain objects (`isWatched`, `userRating`, `watchedDate`).
+  - Cached in `_seasonCache` in `MediaTrackingProvider` so subsequent visits do not re-fetch.
 - **API Services & Live Integration**:
   - `CineTrackerApiInterface`: Abstract contract for all backend endpoints including `currentUsername` and `getUserProfile`.
   - `ApiClient`: Configured with `productionBaseUrl` (`https://movie-trackerh.vercel.app`) as default. Transmits both `Cookie: token=...` and `Authorization: Bearer ...` headers for cross-platform compatibility.
@@ -598,7 +608,7 @@ A complete, standalone architectural specification is maintained at:
   - Loaded live dashboard: *The Simpsons* (S7 E16 Next Up), 235 movies, 21 TV shows (*Lost in Space*, etc.), 38 watchlist titles, top 4 favorites (*Family Guy*, *Contact*, etc.), 50 diary entries, 1,557 lifetime watch hours.
 - **Quality Gates & Testing**:
   - Static Analysis: Strict inference and warnings enforced (`flutter analyze --fatal-infos --fatal-warnings` passes with 0 issues).
-  - Automated Tests: 146 comprehensive unit, widget, and challenge tests passing (`flutter test`).
+  - Automated Tests: 153 comprehensive unit, widget, and challenge tests passing (`flutter test`).
   - Standalone Build Prohibition: Never run local `flutter build` commands; release packaging is handled via GitHub Actions.
 - **Platform Network Permissions**:
   - Android (`android/app/src/main/AndroidManifest.xml`): `android.permission.INTERNET`, `android.permission.ACCESS_NETWORK_STATE`, and `android:usesCleartextTraffic="true"`.
@@ -644,12 +654,4 @@ To guarantee that documentation never drifts from reality across AI pair-program
 5. **Mandatory Git Commit & Push**:
    - Always stage, commit with a descriptive message, and push to remote (`git push origin <branch>`) before concluding any turn.
 
----
-
-*Document updated on 2026-09-14 with live Flutter backend integration (https://movie-trackerh.vercel.app), dual Bearer/Cookie authentication, diary endpoint, and continuous handoff maintenance.*
-
-
-
-
-
-
+*Document updated on 2026-09-15 with Flutter client bugfixes and caching: TV episode listing & season fetching, 365-day persistent disk image cache (CineImageCacheManager), instant Continue Watching hero card progression, and offline action sync queue (SyncQueueService).*

@@ -1,4 +1,6 @@
 import 'package:flutter/cupertino.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../core/cache/cine_image_cache_manager.dart';
 import '../../core/theme/colors.dart';
 
 /// Full-bleed or grouped hero backdrop artwork widget with a dark bottom gradient overlay
@@ -33,14 +35,13 @@ class HeroBackdrop extends StatelessWidget {
 
     if (backdropPath != null && backdropPath!.trim().isNotEmpty) {
       final url = _formatBackdropUrl(backdropPath!.trim());
-      imageContent = Image.network(
-        url,
+      imageContent = CachedNetworkImage(
+        imageUrl: url,
+        cacheManager: CineImageCacheManager.instance,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return _buildPlaceholder();
-        },
+        fadeInDuration: const Duration(milliseconds: 150),
+        placeholder: (context, url) => _buildPlaceholder(),
+        errorWidget: (context, url, error) => _buildPlaceholder(),
       );
     } else {
       imageContent = _buildPlaceholder();

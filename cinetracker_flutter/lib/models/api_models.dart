@@ -70,10 +70,13 @@ class TvShowDetail {
 
   factory TvShowDetail.fromJson(Map<String, dynamic> json) {
     final show = TvShow.fromJson(json);
+    final rawUserEpisodes = json['userEpisodes'] ?? json['user_episodes'];
+    final userEpisodes = rawUserEpisodes is Map ? rawUserEpisodes : null;
     List<Season> seasons = [];
     if (json['seasons'] is List) {
       seasons = (json['seasons'] as List)
-          .map((s) => Season.fromJson(s as Map<String, dynamic>, showId: show.id))
+          .map((s) => Season.fromJson(s as Map<String, dynamic>,
+              showId: show.id, userEpisodes: userEpisodes))
           .toList();
     }
     final genres = (json['genres'] as List?)
@@ -119,6 +122,10 @@ class SeasonDetail {
     this.episodes = const [],
   });
 
+  int get watchedEpisodesCount => episodes.where((e) => e.isWatched).length;
+  double get progressFraction =>
+      episodes.isNotEmpty ? (watchedEpisodesCount / episodes.length).clamp(0.0, 1.0) : 0.0;
+
   factory SeasonDetail.fromJson(Map<String, dynamic> json, {int showId = 0}) {
     final seasonNumber = SerializationHelpers.parseInt(
         json['season_number'] ?? json['seasonNumber'], 1);
@@ -129,12 +136,32 @@ class SeasonDetail {
     final posterPath =
         json['poster_path']?.toString() ?? json['posterPath']?.toString();
 
+    final rawUserEpisodes = json['userEpisodes'] ?? json['user_episodes'];
+    final userEpisodes = rawUserEpisodes is Map ? rawUserEpisodes : null;
+
     List<Episode> episodes = [];
     if (json['episodes'] is List) {
-      episodes = (json['episodes'] as List)
-          .map((e) => Episode.fromJson(e as Map<String, dynamic>,
-              defaultSeasonNumber: seasonNumber, showId: showId))
-          .toList();
+      episodes = (json['episodes'] as List).map((e) {
+        final epMap = Map<String, dynamic>.from(e as Map);
+        final epNum = SerializationHelpers.parseInt(
+            epMap['episode_number'] ?? epMap['episodeNumber'], 1);
+        final epKey = '${seasonNumber}_$epNum';
+        if (userEpisodes != null) {
+          final uEp = userEpisodes[epKey] ?? userEpisodes[epNum.toString()];
+          if (uEp is Map) {
+            if (uEp.containsKey('watched')) epMap['watched'] = uEp['watched'];
+            if (uEp.containsKey('isWatched')) epMap['watched'] = uEp['isWatched'];
+            if (uEp.containsKey('rating')) epMap['rating'] = uEp['rating'];
+            if (uEp.containsKey('watched_date')) {
+              epMap['watched_date'] = uEp['watched_date'];
+            }
+          } else if (uEp == true) {
+            epMap['watched'] = true;
+          }
+        }
+        return Episode.fromJson(epMap,
+            defaultSeasonNumber: seasonNumber, showId: showId);
+      }).toList();
     }
 
     return SeasonDetail(
@@ -144,6 +171,24 @@ class SeasonDetail {
       overview: overview,
       posterPath: posterPath,
       episodes: episodes,
+    );
+  }
+
+  SeasonDetail copyWith({
+    int? id,
+    int? seasonNumber,
+    String? name,
+    String? overview,
+    String? posterPath,
+    List<Episode>? episodes,
+  }) {
+    return SeasonDetail(
+      id: id ?? this.id,
+      seasonNumber: seasonNumber ?? this.seasonNumber,
+      name: name ?? this.name,
+      overview: overview ?? this.overview,
+      posterPath: posterPath ?? this.posterPath,
+      episodes: episodes ?? this.episodes,
     );
   }
 

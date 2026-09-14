@@ -32,6 +32,7 @@ void main() async {
           create: (_) => MediaTrackingProvider(
             api: liveApi,
             fallbackMockApi: mockService,
+            prefs: prefs,
           ),
         ),
         ChangeNotifierProvider<StatsProvider>(

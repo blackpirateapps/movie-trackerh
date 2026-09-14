@@ -1,4 +1,6 @@
 import 'package:flutter/cupertino.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../core/cache/cine_image_cache_manager.dart';
 import '../../core/theme/colors.dart';
 
 /// Reusable cinematic poster widget preserving a strict 2:3 aspect ratio,
@@ -41,14 +43,13 @@ class MediaPoster extends StatelessWidget {
 
     if (posterPath != null && posterPath!.trim().isNotEmpty) {
       final url = _formatImageUrl(posterPath!.trim());
-      imageContent = Image.network(
-        url,
+      imageContent = CachedNetworkImage(
+        imageUrl: url,
+        cacheManager: CineImageCacheManager.instance,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return _buildPlaceholder(isLoading: true);
-        },
+        fadeInDuration: const Duration(milliseconds: 150),
+        placeholder: (context, url) => _buildPlaceholder(isLoading: true),
+        errorWidget: (context, url, error) => _buildPlaceholder(),
       );
     } else {
       imageContent = _buildPlaceholder();

@@ -24,7 +24,8 @@ class Season {
   bool get isCompleted =>
       episodeCount > 0 && watchedEpisodesCount >= episodeCount;
 
-  factory Season.fromJson(Map<String, dynamic> json, {int showId = 0}) {
+  factory Season.fromJson(Map<String, dynamic> json,
+      {int showId = 0, Map<dynamic, dynamic>? userEpisodes}) {
     final seasonNumber = SerializationHelpers.parseInt(
         json['season_number'] ?? json['seasonNumber'], 1);
     final id = SerializationHelpers.parseInt(
@@ -35,12 +36,33 @@ class Season {
     final posterPath =
         json['poster_path']?.toString() ?? json['posterPath']?.toString();
 
+    final uEpisodes = userEpisodes ??
+        (json['userEpisodes'] is Map ? json['userEpisodes'] as Map : null) ??
+        (json['user_episodes'] is Map ? json['user_episodes'] as Map : null);
+
     List<Episode> episodes = [];
     if (json['episodes'] is List) {
-      episodes = (json['episodes'] as List)
-          .map((e) => Episode.fromJson(e as Map<String, dynamic>,
-              defaultSeasonNumber: seasonNumber, showId: showId))
-          .toList();
+      episodes = (json['episodes'] as List).map((e) {
+        final epMap = Map<String, dynamic>.from(e as Map);
+        final epNum = SerializationHelpers.parseInt(
+            epMap['episode_number'] ?? epMap['episodeNumber'], 1);
+        final epKey = '${seasonNumber}_$epNum';
+        if (uEpisodes != null) {
+          final uEp = uEpisodes[epKey] ?? uEpisodes[epNum.toString()];
+          if (uEp is Map) {
+            if (uEp.containsKey('watched')) epMap['watched'] = uEp['watched'];
+            if (uEp.containsKey('isWatched')) epMap['watched'] = uEp['isWatched'];
+            if (uEp.containsKey('rating')) epMap['rating'] = uEp['rating'];
+            if (uEp.containsKey('watched_date')) {
+              epMap['watched_date'] = uEp['watched_date'];
+            }
+          } else if (uEp == true) {
+            epMap['watched'] = true;
+          }
+        }
+        return Episode.fromJson(epMap,
+            defaultSeasonNumber: seasonNumber, showId: showId);
+      }).toList();
     }
 
     return Season(

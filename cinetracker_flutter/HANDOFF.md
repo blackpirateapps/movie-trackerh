@@ -32,6 +32,8 @@ cinetracker_flutter/
 │   ├── app.dart                             # Root CupertinoApp with CineTheme.darkTheme
 │   ├── main.dart                            # Entrypoint with MultiProvider initialization
 │   ├── core/
+│   │   ├── cache/
+│   │   │   └── cine_image_cache_manager.dart # 365-day persistent disk image cache
 │   │   ├── constants/
 │   │   │   └── api_constants.dart           # Default API base URLs and timeout configurations
 │   │   ├── theme/
@@ -43,22 +45,24 @@ cinetracker_flutter/
 │   │       └── serialization_helpers.dart   # JSON parsing sanitizers (clamping, runtime fallbacks)
 │   ├── models/
 │   │   ├── api_key.dart                     # User REST API key model
-│   │   ├── api_models.dart                  # View/detail models (MovieDetail, TvShowDetail, etc.)
-│   │   ├── dashboard_data.dart              # Continue Watching & Home dashboard payload
+│   │   ├── api_models.dart                  # View/detail models (MovieDetail, TvShowDetail, SeasonDetail)
+│   │   ├── dashboard_data.dart              # Continue Watching & Home dashboard payload with copyWith
 │   │   ├── diary_entry.dart                 # Chronological viewing timeline entry
 │   │   ├── episode.dart                     # TV Episode model with 1-10 rating & watch status
 │   │   ├── movie.dart                       # Movie model with 1-10 rating, review, platform tags
 │   │   ├── search_result.dart               # Unified movie/TV search payload
-│   │   ├── season.dart                      # TV Season model with episode lists & progress fraction
+│   │   ├── season.dart                      # TV Season model with episode lists & userEpisodes mapping
 │   │   ├── tv_show.dart                     # TV Show model with seasons and tracking state
 │   │   ├── user.dart                        # User profile model with safe display name & initials
 │   │   └── user_stats.dart                  # Flagship analytics models (heatmap, habit matrix, KPIs)
 │   ├── services/
-│   │   └── api/
-│   │       ├── api_client.dart              # Network exceptions (Unauthorized, NotFound, Conflict)
-│   │       ├── api_interface.dart           # Abstract interface contract for all endpoints
-│   │       ├── cinetracker_api.dart         # Live HTTP REST client implementation
-│   │       └── mock_cinetracker_service.dart # In-memory mock service with rich seeded data
+│   │   ├── api/
+│   │   │   ├── api_client.dart              # Network exceptions (Unauthorized, NotFound, Conflict)
+│   │   │   ├── api_interface.dart           # Abstract interface contract for all endpoints
+│   │   │   ├── cinetracker_api.dart         # Live HTTP REST client implementation
+│   │   │   └── mock_cinetracker_service.dart # In-memory mock service with rich seeded data
+│   │   └── sync/
+│   │       └── sync_queue_service.dart      # Persistent FIFO offline action queue & background sync
 │   ├── state/
 │   │   ├── auth_provider.dart               # Session, token, guest mode, and auth transitions
 │   │   ├── media_tracking_provider.dart     # Optimistic media logging, favorites, episodes
@@ -135,8 +139,9 @@ State is managed cleanly through Flutter's `provider` package using `ChangeNotif
 - **Guest Mode**: Allows immediate offline/demo exploration with a pre-authenticated guest identity without blocking the user.
 
 ### 3.2 `MediaTrackingProvider` ([`lib/state/media_tracking_provider.dart`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/lib/state/media_tracking_provider.dart))
-- **Optimistic UI Updates**: All actions (logging a movie, toggling watchlist, setting favorites, toggling episode watched status, bulk marking seasons) immediately mutate in-memory state and call `notifyListeners()`, then sync with the API in the background.
-- **Auto-Rollback on Failure**: If the API call fails, the state reverts and an error banner is presented.
+- **Instant Optimistic UI Updates**: Toggling episode watched status immediately mutates `_dashboard.currentlyWatching` in memory, incrementing watched counts, advancing `nextEpisode` to the subsequent episode in the season, and recalculating progress fractions in the exact same frame without requiring pull-to-refresh.
+- **Season & Episode Caching**: Maintains an in-memory `Map<int, Map<int, SeasonDetail>> _seasonCache`. When opening a TV show or switching seasons, `getSeasonDetail(showId, seasonNumber)` queries cache first, hits the API, maps `userEpisodes` watch status onto episodes, and synchronizes episode arrays into `_tvShows`.
+- **Offline Persistence & Queue Dispatch**: Mutations are immediately mirrored to `SharedPreferences` (`cinetracker_cached_dashboard`) and queued in `SyncQueueService` to ensure zero data loss on network drops.
 - **Computed Getters**: `favoriteMovies`, `watchedMovies`, `watchlistMovies`, `lastWatchedMovies`, and active TV shows.
 
 ### 3.3 `StatsProvider` ([`lib/state/stats_provider.dart`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/lib/state/stats_provider.dart))
@@ -147,6 +152,11 @@ State is managed cleanly through Flutter's `provider` package using `ChangeNotif
 ### 3.4 `SearchProvider` ([`lib/state/search_provider.dart`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/lib/state/search_provider.dart))
 - **Debounced Input**: 400ms timer debounce prevents hammering search endpoints during rapid typing.
 - **Unified Results**: Normalizes movies and TV shows into unified `SearchResult` items annotated with TMDB metadata and library presence badges.
+
+### 3.5 `SyncQueueService` ([`lib/services/sync/sync_queue_service.dart`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/lib/services/sync/sync_queue_service.dart))
+- **Offline-First Action Queue**: Persistent FIFO queue stored in `SharedPreferences` (`cinetracker_pending_action_queue`).
+- **Resilient Background Draining**: When network requests fail with `SocketException`, `TimeoutException`, or connection failures, actions are safely retained with incremented `retryCount` and replayed chronologically once connectivity returns.
+- **Idempotent Dispatch**: Supports `episode_watched`, `mark_season_watched`, `mark_show_watched`, `log_movie`, `toggle_movie_watchlist`, `toggle_movie_favorite`, `toggle_tv_favorite`, and `toggle_tv_watchlist`.
 
 ---
 
@@ -169,11 +179,11 @@ State is managed cleanly through Flutter's `provider` package using `ChangeNotif
 
 ### 4.2 Reusable Cupertino Components
 1. **`StarRating`** ([`lib/ui/shared/star_rating.dart`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/lib/ui/shared/star_rating.dart)): 10-star rating bar supporting continuous horizontal drag gesture or direct star tapping, with haptic feedback on each rating increment.
-2. **`MediaPoster`** ([`lib/ui/shared/media_poster.dart`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/lib/ui/shared/media_poster.dart)): Strict 2:3 aspect ratio poster with 12–16pt radius, TMDB image caching, placeholder fallback with movie title, and optional rating badge overlay.
+2. **`MediaPoster`** ([`lib/ui/shared/media_poster.dart`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/lib/ui/shared/media_poster.dart)): Strict 2:3 aspect ratio poster with 12–16pt radius, persistent 365-day disk image caching via `CachedNetworkImage` and `CineImageCacheManager`, graceful placeholder fallback with movie title, and optional rating badge overlay.
 3. **`CineProgressBar`** ([`lib/ui/shared/progress_bar.dart`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/lib/ui/shared/progress_bar.dart)): Animated progress bar with rounded ends, dark track, and neon green fill.
 4. **`CineCard`** ([`lib/ui/shared/cupertino_card.dart`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/lib/ui/shared/cupertino_card.dart)): Grouped surface card with 18pt radius, `#1E1E1E` background, and `#333333` border.
 5. **`CineDivider`** ([`lib/ui/shared/cine_divider.dart`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/lib/ui/shared/cine_divider.dart)): 0.5pt hairline divider for Cupertino lists and inset sections.
-6. **`HeroBackdrop`** ([`lib/ui/shared/hero_backdrop.dart`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/lib/ui/shared/hero_backdrop.dart)): Cinematic backdrop header with progressive dark bottom gradient overlay.
+6. **`HeroBackdrop`** ([`lib/ui/shared/hero_backdrop.dart`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/lib/ui/shared/hero_backdrop.dart)): Cinematic backdrop header with persistent 365-day disk image caching via `CineImageCacheManager` and progressive dark bottom gradient overlay.
 7. **`FrostedGlass`** ([`lib/ui/shared/frosted_glass.dart`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/lib/ui/shared/frosted_glass.dart)): `BackdropFilter` container with configurable blur and border radius.
 
 ---
@@ -233,10 +243,11 @@ Run the comprehensive test suite with:
 ```bash
 flutter test
 ```
-The suite contains **146 automated tests**:
+The suite contains **153 automated tests**:
 - **Domain Model Stress Tests** (`test/challenge/`): Verifies null safety, fallback runtimes, corrupted season arrays, and 1–10 rating clamping.
-- **Serialization Helpers Tests** (`test/challenge/`): Tests JSON type conversions and platform tag parsing.
-- **Provider & State Machine Tests** (`test/unit/`): Tests optimistic updates, rollbacks, guest mode transitions, watchlist management, and unauthenticated mock isolation.
+- **Serialization Helpers Tests** (`test/challenge/`): Tests JSON type conversions, `userEpisodes` watch mapping, and platform tag parsing.
+- **Provider & State Machine Tests** (`test/unit/`): Tests optimistic updates, rollbacks, guest mode transitions, watchlist management, unauthenticated mock isolation, and instant Continue Watching progression.
+- **Offline Sync & Caching Tests** (`test/unit/sync_and_caching_test.dart`): Tests persistent `SyncQueueService` queueing and replay, `CineImageCacheManager` 365-day retention configuration, and `MediaTrackingProvider` season caching.
 - **Widget Tests** (`test/widget/`): Tests `StarRating` drag/tap, `CineProgressBar`, `CineCard`, `CineDivider`, `MediaPoster`, `CineTrackerTabScaffold` 5-tab switching, and `MovieLogSheet` logging.
 
 ### 6.3 Local Build Prohibition
@@ -298,7 +309,7 @@ The integration has been verified live against `https://movie-trackerh.vercel.ap
 
 Any future AI assistant modifying this application must adhere to the following workflow:
 1. **Run Static Verification First**: Verify with `flutter analyze --fatal-infos --fatal-warnings` (must report 0 issues).
-2. **Execute Full Test Suite**: Verify with `flutter test` (all 140 automated tests must pass).
+2. **Execute Full Test Suite**: Verify with `flutter test` (all 153 automated tests must pass).
 3. **Preserve Cupertino Identity**: Never introduce Material widgets, web-style cards, or sketch borders.
 4. **Update Handoff Documents**:
    - Always update [`HANDOFF.md`](file:///home/dog/git/movie-trackerh/HANDOFF.md) in the project root.

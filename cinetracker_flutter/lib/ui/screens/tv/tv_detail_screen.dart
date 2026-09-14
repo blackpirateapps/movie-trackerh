@@ -30,12 +30,31 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
   TvShowDetail? _showDetail;
   int _selectedSeasonNumber = 1;
   bool _isLoading = true;
+  bool _isSeasonLoading = false;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
     _loadTvShow();
+  }
+
+  Future<void> _loadSeasonEpisodes(int seasonNumber) async {
+    if (!mounted) return;
+    setState(() {
+      _isSeasonLoading = true;
+    });
+    try {
+      final tracking = context.read<MediaTrackingProvider>();
+      await tracking.getSeasonDetail(widget.showId, seasonNumber);
+    } catch (_) {
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSeasonLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadTvShow() async {
@@ -47,15 +66,24 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
     try {
       final tracking = context.read<MediaTrackingProvider>();
       final detail = await tracking.getTvShowDetail(widget.showId);
+      int initialSeason = 1;
+      if (detail.seasons.isNotEmpty) {
+        final s = detail.seasons.firstWhere(
+          (s) => s.seasonNumber >= 1,
+          orElse: () => detail.seasons.first,
+        );
+        initialSeason = s.seasonNumber;
+      }
+
       if (mounted) {
         setState(() {
           _showDetail = detail;
-          if (detail.seasons.isNotEmpty) {
-            _selectedSeasonNumber = detail.seasons.first.seasonNumber;
-          }
+          _selectedSeasonNumber = initialSeason;
           _isLoading = false;
         });
       }
+
+      await _loadSeasonEpisodes(initialSeason);
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -74,10 +102,21 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
 
   List<Season> _resolveSeasons(MediaTrackingProvider tracking) {
     final tracked = tracking.tvShows.where((s) => s.id == widget.showId).firstOrNull;
-    if (tracked != null && tracked.seasons.isNotEmpty) {
-      return tracked.seasons;
-    }
-    return _showDetail?.seasons ?? const [];
+    final baseSeasons = (tracked != null && tracked.seasons.isNotEmpty)
+        ? tracked.seasons
+        : (_showDetail?.seasons ?? const []);
+
+    return baseSeasons.map((s) {
+      if (s.episodes.isNotEmpty) return s;
+      final cached = tracking.getCachedSeason(widget.showId, s.seasonNumber);
+      if (cached != null && cached.episodes.isNotEmpty) {
+        return s.copyWith(
+          episodes: cached.episodes,
+          episodeCount: cached.episodes.length,
+        );
+      }
+      return s;
+    }).toList();
   }
 
   Episode? _resolveNextEpisode(List<Season> seasons) {
@@ -332,7 +371,10 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
                                 return GestureDetector(
                                   onTap: () {
                                     HapticFeedback.selectionClick();
-                                    setState(() => _selectedSeasonNumber = season.seasonNumber);
+                                    if (_selectedSeasonNumber != season.seasonNumber) {
+                                      setState(() => _selectedSeasonNumber = season.seasonNumber);
+                                      _loadSeasonEpisodes(season.seasonNumber);
+                                    }
                                   },
                                   child: Container(
                                     margin: const EdgeInsets.only(right: 8),
@@ -427,7 +469,14 @@ class _TvDetailScreenState extends State<TvDetailScreen> {
                       ),
 
                       // Episodes List
-                      if (currentSeason.episodes.isEmpty)
+                      if (_isSeasonLoading && currentSeason.episodes.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(32),
+                          child: Center(
+                            child: CupertinoActivityIndicator(radius: 12),
+                          ),
+                        )
+                      else if (currentSeason.episodes.isEmpty)
                         const Padding(
                           padding: EdgeInsets.all(24),
                           child: Center(
