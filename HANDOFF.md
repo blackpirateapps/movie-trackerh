@@ -563,7 +563,57 @@ Added high-precision composite indexes to [`backend/db/schema.sql`](file:///home
 
 ---
 
-*Document updated post Standalone Offline APK packaging & React Native CLI bundling fix on 2026-09-13.*
+## 21. Native Cupertino Flutter iOS Application (`cinetracker_flutter`)
+
+In addition to the Next.js web application and React Native Android client, a brand-new **native Flutter iOS application** is established in [`cinetracker_flutter/`](file:///home/dog/git/movie-trackerh/cinetracker_flutter).
+
+### 21.1 Dedicated Handoff Specification
+A complete, standalone architectural specification is maintained at:
+👉 [**`cinetracker_flutter/HANDOFF.md`**](file:///home/dog/git/movie-trackerh/cinetracker_flutter/HANDOFF.md)
+
+### 21.2 Key Architecture & Implementation Details
+- **Product Proposition**: **"Apple Health × Apple TV × CineTracker"**. A dark-mode first, native iOS Cupertino experience with SF Symbols, SF Pro typography, and haptic feedback.
+- **Design Tokens**: `#121212` base background, `#1E1E1E` surface cards, `#2A2A2A` elevated containers, `#333333` hairline borders/dividers, and `#00FF66` CineTracker neon green accents.
+- **Navigation Architecture**: 5-Tab `CupertinoTabScaffold` ([`cinetracker_flutter/lib/ui/navigation/tab_scaffold.dart`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/lib/ui/navigation/tab_scaffold.dart)):
+  1. **Home**: Continue Watching hero card (~50-60% viewport), other shows in progress, recently watched list, and "This Week" Apple Health card.
+  2. **Library**: Segmented Movies vs. TV tabs, grid/list view toggle, and library filter chips.
+  3. **Watchlist**: Movies and TV queue with dismiss actions and a "Pick something for me" recommendation generator.
+  4. **Stats**: "Apple Health for Movies & TV" featuring KPI summaries, `fl_chart` watch time area curve, 1–10 rating distribution histogram with mode highlight, 365-day heatmap, 7x24 viewing habits matrix, and hall of fame.
+  5. **Profile**: User identity card, lifetime stats, top 4 favorites showcase, recent activity, viewing diary timeline, and grouped Cupertino settings.
+- **State Management**: Built on `provider` (`ChangeNotifier`):
+  - `AuthProvider`: Session token verification, login, signup, guest mode with offline capability.
+  - `MediaTrackingProvider`: Optimistic UI mutations for movie logging, ratings, watchlist/favorite toggles, episode watched updates, and bulk season/show completions.
+  - `StatsProvider`: Multi-timeframe (All, Year, Month, Week, Custom) and media filtering for user analytics.
+  - `SearchProvider`: Debounced unified search for movies and TV series with "In Library" indicators.
+- **API Services**:
+  - `CineTrackerApiInterface`: Abstract contract for all backend endpoints.
+  - `CineTrackerApi`: Live HTTP client with Bearer authentication and configurable endpoints.
+  - `MockCineTrackerService`: Full in-memory mock engine pre-seeded with rich catalog data for testing and offline guest mode.
+- **Quality Gates & Testing**:
+  - Static Analysis: Strict inference and warnings enforced (`flutter analyze --fatal-infos --fatal-warnings` passes with 0 issues).
+  - Automated Tests: 140 comprehensive unit, widget, and challenge tests passing (`flutter test`).
+  - Standalone Build Prohibition: Never run local `flutter build` commands; release packaging is handled via GitHub Actions.
+- **CI/CD Workflow**: [`.github/workflows/build-flutter-apk.yml`](file:///home/dog/git/movie-trackerh/.github/workflows/build-flutter-apk.yml) runs `flutter analyze`, `flutter test`, and builds release artifacts on every push and pull request.
+
+---
+
+## 22. Mandatory AI Agent Workflow: Continuous Handoff Maintenance
+
+To guarantee that documentation never drifts from reality across AI pair-programming and autonomous sessions:
+
+1. **Root Handoff Document** ([`HANDOFF.md`](file:///home/dog/git/movie-trackerh/HANDOFF.md)):
+   - Any modification to backend architecture, database schemas, API routes, or full-stack web/mobile features **MUST** be reflected in this root document.
+2. **Flutter App Handoff Document** ([`cinetracker_flutter/HANDOFF.md`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/HANDOFF.md)):
+   - Any modification, new screen, state update, or dependency change inside `cinetracker_flutter/` **MUST** be documented in the Flutter handoff file.
+3. **Verification Before Commit**:
+   - Web / Backend: `npm test` or build check.
+   - Flutter: `flutter analyze --fatal-infos --fatal-warnings` and `flutter test`.
+4. **Handoff Check in CI**:
+   - The CI workflow verifies the integrity of both handoff documents.
+
+---
+
+*Document updated on 2026-09-14 with Flutter iOS application architecture, dedicated handoff documentation, and continuous handoff maintenance protocol.*
 
 
 

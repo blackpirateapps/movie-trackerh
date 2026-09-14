@@ -37,6 +37,13 @@ jobs:
       - name: Verify Flutter & Dart Installation
         run: flutter --version
 
+      - name: Verify AI Handoff Documents Integrity
+        run: |
+          test -f ../HANDOFF.md || (echo "Missing root HANDOFF.md!" && exit 1)
+          test -f HANDOFF.md || (echo "Missing cinetracker_flutter/HANDOFF.md!" && exit 1)
+          test -f ../AGENTS.md || (echo "Missing root AGENTS.md!" && exit 1)
+          echo "All AI Handoff and workflow rule documents verified successfully."
+
       - name: Install dependencies
         run: flutter pub get
 
