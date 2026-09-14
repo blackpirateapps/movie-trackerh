@@ -1,0 +1,27 @@
+name: cinetracker_flutter
+description: "CineTracker native iOS mobile client in Flutter - Apple Health x Apple TV x CineTracker"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.2
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  provider: ^6.1.2
+  http: ^1.2.0
+  shared_preferences: ^2.3.0
+  fl_chart: ^0.69.2
+  intl: ^0.19.0
+  csv: ^6.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: false
