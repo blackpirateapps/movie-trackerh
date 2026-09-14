@@ -53,6 +53,28 @@ jobs:
       - name: Run automated test suite
         run: flutter test
 
+      - name: Configure Android Release Signing Keystore from Repository Secrets
+        if: ${{ secrets.KEYSTORE_BASE64 != '' || secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 || secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD || secrets.KEY_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.ANDROID_KEY_PASSWORD || secrets.KEYSTORE_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          echo "Decoding release signing keystore from repository secrets..."
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+
+          echo "Generating android/key.properties..."
+          cat <<EOF > android/key.properties
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
+
+          cp android/key.properties android/app/key.properties
+          echo "Keystore and key.properties configured successfully."
+
       - name: Build Android Release APK
         run: flutter build apk --release
 
@@ -60,5 +82,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cinetracker-flutter-release-apk
-          path: cinetracker_flutter/build/app/outputs/flutter-apk/app-release.apk
+          path: cinetracker_flutter/build/app/outputs/flutter-apk/*.apk
           retention-days: 30

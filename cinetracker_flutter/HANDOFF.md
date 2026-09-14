@@ -243,6 +243,14 @@ The suite contains **140 automated tests**:
 - **DO NOT run local `flutter build` commands** (such as `flutter build apk` or `flutter build ios`) in local terminal environments.
 - Standalone release packaging is exclusively handled by GitHub Actions CI ([`.github/workflows/build-flutter-apk.yml`](file:///home/dog/git/movie-trackerh/.github/workflows/build-flutter-apk.yml)).
 
+### 6.4 Android Release Keystore Signing via Repository Secrets
+The CI workflow automatically detects and signs the production APK when repository secrets are provided in GitHub (`Settings > Secrets and variables > Actions > Repository secrets`):
+- `KEYSTORE_BASE64` or `ANDROID_KEYSTORE_BASE64`: Base64-encoded string of your `.jks` or `.keystore` file (e.g. `base64 -w 0 my-release-key.jks`).
+- `KEYSTORE_PASSWORD` or `ANDROID_KEYSTORE_PASSWORD`: Password for the keystore file.
+- `KEY_ALIAS` or `ANDROID_KEY_ALIAS`: Alias name given to the signing key.
+- `KEY_PASSWORD` or `ANDROID_KEY_PASSWORD`: Password for the private key (defaults to keystore password if omitted).
+- **Graceful Fallback**: If secrets are not present, Gradle automatically falls back to debug signing config so CI builds and PR tests never fail.
+
 ---
 
 ## 7. Live Backend Integration & Connectivity
