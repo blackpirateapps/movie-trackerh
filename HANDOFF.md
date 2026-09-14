@@ -597,6 +597,9 @@ A complete, standalone architectural specification is maintained at:
   - Static Analysis: Strict inference and warnings enforced (`flutter analyze --fatal-infos --fatal-warnings` passes with 0 issues).
   - Automated Tests: 140 comprehensive unit, widget, and challenge tests passing (`flutter test`).
   - Standalone Build Prohibition: Never run local `flutter build` commands; release packaging is handled via GitHub Actions.
+- **Platform Network Permissions**:
+  - Android (`android/app/src/main/AndroidManifest.xml`): `android.permission.INTERNET`, `android.permission.ACCESS_NETWORK_STATE`, and `android:usesCleartextTraffic="true"`.
+  - iOS (`ios/Runner/Info.plist`): `NSAppTransportSecurity` configured with arbitrary loads and local networking.
 - **CI/CD Workflow**: [`.github/workflows/build-flutter-apk.yml`](file:///home/dog/git/movie-trackerh/.github/workflows/build-flutter-apk.yml) runs `flutter analyze`, `flutter test`, and builds release artifacts on every push and pull request.
 
 ---

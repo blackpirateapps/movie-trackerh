@@ -271,6 +271,14 @@ The integration has been verified live against `https://movie-trackerh.vercel.ap
 - **Watch Diary Entries**: 50 chronological watch events
 - **Lifetime Watch Hours**: 1,556.6 hours across 2,192 TV episodes and 235 movies
 
+### 7.3 Platform Network Permissions
+- **Android Manifest** ([`android/app/src/main/AndroidManifest.xml`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/android/app/src/main/AndroidManifest.xml)):
+  - `<uses-permission android:name="android.permission.INTERNET"/>` enables outgoing socket and HTTP/HTTPS traffic in standalone release APKs.
+  - `<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>` allows checking connectivity state.
+  - `android:usesCleartextTraffic="true"` allows cleartext HTTP communication for local development servers (`http://10.0.2.2:3000` or local IPs).
+- **iOS App Transport Security** ([`ios/Runner/Info.plist`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/ios/Runner/Info.plist)):
+  - `NSAppTransportSecurity` with `NSAllowsArbitraryLoads` and `NSAllowsLocalNetworking` enabled.
+
 ---
 
 ## 8. Mandatory AI Workflow Protocol
