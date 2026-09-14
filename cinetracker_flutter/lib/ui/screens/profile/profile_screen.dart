@@ -7,6 +7,7 @@ import '../../../state/media_tracking_provider.dart';
 import '../../shared/media_poster.dart';
 import '../../shared/cine_divider.dart';
 import '../movies/movie_detail_screen.dart';
+import '../tv/tv_detail_screen.dart';
 import '../diary/diary_screen.dart';
 import '../settings/settings_screen.dart';
 
@@ -29,10 +30,20 @@ class ProfileScreen extends StatelessWidget {
           bio: 'Film enthusiast & TV critic. Chasing 500 films this year.',
         );
 
+    final profile = tracking.userProfile;
+    final top4 = tracking.top4Favorites;
     final favoriteMovies = tracking.favoriteMovies;
     final lastWatched = tracking.lastWatchedMovies;
-    final totalFilms = tracking.watchedMovies.length;
-    final totalTv = tracking.tvShows.length;
+
+    final totalFilms = profile != null && profile.moviesCount > 0
+        ? profile.moviesCount
+        : tracking.watchedMovies.length;
+    final totalTv = profile != null && profile.tvShowsCount > 0
+        ? profile.tvShowsCount
+        : tracking.tvShows.length;
+    final totalHours = profile != null && profile.hoursWatched > 0
+        ? '${profile.hoursWatched}h'
+        : '${(totalFilms * 2) + (totalTv * 10)}h';
 
     return CupertinoPageScaffold(
       backgroundColor: CineColors.background,
@@ -55,6 +66,17 @@ class ProfileScreen extends StatelessWidget {
               },
               child: const Icon(CupertinoIcons.gear, color: CineColors.textPrimary, size: 22),
             ),
+          ),
+
+          CupertinoSliverRefreshControl(
+            onRefresh: () async {
+              await Future.wait([
+                tracking.refreshUserProfile(),
+                tracking.refreshMovies(),
+                tracking.refreshTvShows(),
+                tracking.refreshDashboard(silent: true),
+              ]);
+            },
           ),
 
           SliverToBoxAdapter(
@@ -158,7 +180,7 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         Container(width: 0.5, height: 28, color: CineColors.divider),
                         Expanded(
-                          child: _buildStatItem('HOURS', '187h'),
+                          child: _buildStatItem('HOURS', totalHours),
                         ),
                       ],
                     ),
@@ -176,7 +198,57 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  if (favoriteMovies.isNotEmpty)
+                  if (top4.isNotEmpty)
+                    Row(
+                      children: top4.take(4).map((item) {
+                        return Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: GestureDetector(
+                              onTap: () {
+                                if (item.type == 'tv') {
+                                  Navigator.of(context).push<void>(
+                                    CupertinoPageRoute<void>(
+                                      builder: (ctx) =>
+                                          TvDetailScreen(showId: item.id),
+                                    ),
+                                  );
+                                } else {
+                                  Navigator.of(context).push<void>(
+                                    CupertinoPageRoute<void>(
+                                      builder: (ctx) =>
+                                          MovieDetailScreen(movieId: item.id),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Column(
+                                children: [
+                                  MediaPoster(
+                                    title: item.title,
+                                    posterPath: item.posterPath,
+                                    borderRadius: 10,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    item.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: CineColors.textPrimary,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    )
+                  else if (favoriteMovies.isNotEmpty)
                     Row(
                       children: favoriteMovies.take(4).map((movie) {
                         return Expanded(
@@ -186,7 +258,8 @@ class ProfileScreen extends StatelessWidget {
                               onTap: () {
                                 Navigator.of(context).push<void>(
                                   CupertinoPageRoute<void>(
-                                    builder: (ctx) => MovieDetailScreen(movieId: movie.id),
+                                    builder: (ctx) =>
+                                        MovieDetailScreen(movieId: movie.id),
                                   ),
                                 );
                               },
@@ -210,7 +283,7 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       child: const Center(
                         child: Text(
-                          'Favorite movies will appear here',
+                          'Favorite titles will appear here',
                           style: TextStyle(color: CineColors.textTertiary, fontSize: 13),
                         ),
                       ),

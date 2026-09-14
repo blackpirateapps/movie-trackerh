@@ -577,25 +577,28 @@ A complete, standalone architectural specification is maintained at:
 - **Navigation Architecture**: 5-Tab `CupertinoTabScaffold` ([`cinetracker_flutter/lib/ui/navigation/tab_scaffold.dart`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/lib/ui/navigation/tab_scaffold.dart)):
   1. **Home**: Continue Watching hero card (~50-60% viewport), other shows in progress, recently watched list, and "This Week" Apple Health card.
   2. **Library**: Segmented Movies vs. TV tabs, grid/list view toggle, and library filter chips.
-  3. **Watchlist**: Movies and TV queue with dismiss actions and a "Pick something for me" recommendation generator.
+  3. **Watchlist**: Dedicated live queue management with dynamic "Pick something for me" recommendation generator and dismiss-to-remove synchronization with `GET /api/movies?watchlist=true`.
   4. **Stats**: "Apple Health for Movies & TV" featuring KPI summaries, `fl_chart` watch time area curve, 1–10 rating distribution histogram with mode highlight, 365-day heatmap, 7x24 viewing habits matrix, and hall of fame.
-  5. **Profile**: User identity card, lifetime stats, top 4 favorites showcase, recent activity, viewing diary timeline, and grouped Cupertino settings.
+  5. **Profile**: User identity card, dynamic lifetime stats (hours watched, film/TV counts), Letterboxd-style top 4 favorites showcase (`top4`), recent activity, viewing diary timeline, and grouped Cupertino settings.
 - **State Management**: Built on `provider` (`ChangeNotifier`):
   - `AuthProvider`: Session token verification, login, signup, guest mode with offline capability.
-  - `MediaTrackingProvider`: Optimistic UI mutations for movie logging, ratings, watchlist/favorite toggles, episode watched updates, and bulk season/show completions with live API and mock fallback.
-  - `StatsProvider`: Multi-timeframe (All, Year, Month, Week, Custom) and media filtering for user analytics with live API and mock fallback.
+  - `MediaTrackingProvider`: Optimistic UI mutations for movie logging, ratings, watchlist/favorite toggles, episode watched updates, dedicated `_watchlistMovies` state, top 4 favorites showcase, and bulk season/show completions with live API and strict guest-only mock fallback.
+  - `StatsProvider`: Multi-timeframe (All, Year, Month, Week, Custom) and media filtering for user analytics with live API and strict guest-only mock fallback.
   - `SearchProvider`: Debounced unified search for movies and TV series with "In Library" indicators with live API and mock fallback.
 - **API Services & Live Integration**:
-  - `CineTrackerApiInterface`: Abstract contract for all backend endpoints.
+  - `CineTrackerApiInterface`: Abstract contract for all backend endpoints including `currentUsername` and `getUserProfile`.
   - `ApiClient`: Configured with `productionBaseUrl` (`https://movie-trackerh.vercel.app`) as default. Transmits both `Cookie: token=...` and `Authorization: Bearer ...` headers for cross-platform compatibility.
-  - `CineTrackerApi`: Live HTTP client with resilient fallback querying (`GET /api/user?username=...` and `GET /api/user?action=feed`) when specialized endpoints are unavailable.
-  - `MockCineTrackerService`: In-memory mock engine pre-seeded with rich catalog data for testing and offline guest mode fallback.
+  - `CineTrackerApi`: Live HTTP client with dedicated `/api/movies?watchlist=true` querying and resilient fallback querying (`GET /api/user?username=...` and `GET /api/user?action=feed`) when specialized endpoints are unavailable.
+  - `MockCineTrackerService`: In-memory mock engine strictly isolated to explicit guest mode (`isGuest: true`) and hermetic unit tests.
+- **Strict Mock Isolation & Login Flow**:
+  - App startup does not blindly seed mock data when unauthenticated.
+  - Login awaits initial data hydration from the live backend while the activity indicator spins, eliminating any mock data flash or pop-in.
 - **Verified Live Backend Metrics**:
   - Successfully connected to `https://movie-trackerh.vercel.app` using `hi@sudipx.in`.
-  - Loaded live dashboard: *The Simpsons* (S7 E16 Next Up), 235 movies, 21 TV shows (*Lost in Space*, etc.), 50 diary entries, 1,556.6 lifetime watch hours.
+  - Loaded live dashboard: *The Simpsons* (S7 E16 Next Up), 235 movies, 21 TV shows (*Lost in Space*, etc.), 38 watchlist titles, top 4 favorites (*Family Guy*, *Contact*, etc.), 50 diary entries, 1,557 lifetime watch hours.
 - **Quality Gates & Testing**:
   - Static Analysis: Strict inference and warnings enforced (`flutter analyze --fatal-infos --fatal-warnings` passes with 0 issues).
-  - Automated Tests: 140 comprehensive unit, widget, and challenge tests passing (`flutter test`).
+  - Automated Tests: 146 comprehensive unit, widget, and challenge tests passing (`flutter test`).
   - Standalone Build Prohibition: Never run local `flutter build` commands; release packaging is handled via GitHub Actions.
 - **Platform Network Permissions**:
   - Android (`android/app/src/main/AndroidManifest.xml`): `android.permission.INTERNET`, `android.permission.ACCESS_NETWORK_STATE`, and `android:usesCleartextTraffic="true"`.

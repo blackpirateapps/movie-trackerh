@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/theme/colors.dart';
 import '../../../state/auth_provider.dart';
+import '../../../state/media_tracking_provider.dart';
+import '../../../state/stats_provider.dart';
 import 'letterboxd_import_screen.dart';
 import 'developer_portal_screen.dart';
 import '../auth/login_screen.dart';
@@ -190,6 +192,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   onTap: () async {
                     await HapticFeedback.mediumImpact();
+                    if (context.mounted) {
+                      context.read<MediaTrackingProvider>().clearData();
+                      context.read<StatsProvider>().clearData();
+                    }
                     await auth.logout();
                     if (context.mounted) {
                       await Navigator.of(context, rootNavigator: true).pushAndRemoveUntil<void>(

@@ -26,6 +26,9 @@ class MockCineTrackerService implements CineTrackerApiInterface {
   late List<DiaryEntry> _diary;
   late List<ApiKey> _apiKeys;
 
+  @override
+  String? get currentUsername => _currentUser.username;
+
   MockCineTrackerService() {
     resetToSeedData();
   }
@@ -1296,13 +1299,26 @@ class MockCineTrackerService implements CineTrackerApiInterface {
 
   @override
   Future<UserProfile> getUserProfile(String username) async {
+    final favMovies = _movies.where((m) => m.isFavorite).toList();
+    final top4 = favMovies.take(4).map((m) => Top4Item(
+      id: m.id,
+      title: m.title,
+      posterPath: m.posterPath,
+      rating: m.userRating?.toDouble(),
+      type: 'movie',
+    )).toList();
+
     return UserProfile(
       user: _currentUser,
       followersCount: 142,
       followingCount: 89,
       isFollowing: false,
-      favoriteMovies: _movies.where((m) => m.isFavorite).toList(),
+      favoriteMovies: favMovies,
       favoriteShows: _tvShows.where((s) => s.isFavorite).toList(),
+      moviesCount: _movies.length,
+      tvShowsCount: _tvShows.length,
+      hoursWatched: 187,
+      top4: top4,
     );
   }
 

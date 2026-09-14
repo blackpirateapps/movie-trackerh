@@ -66,6 +66,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
 
           CupertinoSliverRefreshControl(
             onRefresh: () async {
+              await tracking.refreshWatchlist();
               await tracking.refreshMovies();
               await tracking.refreshTvShows();
             },

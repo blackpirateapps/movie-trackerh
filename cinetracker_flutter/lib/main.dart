@@ -32,13 +32,13 @@ void main() async {
           create: (_) => MediaTrackingProvider(
             api: liveApi,
             fallbackMockApi: mockService,
-          )..loadInitialData(),
+          ),
         ),
         ChangeNotifierProvider<StatsProvider>(
           create: (_) => StatsProvider(
             api: liveApi,
             fallbackMockApi: mockService,
-          )..loadStats(),
+          ),
         ),
         ChangeNotifierProvider<SearchProvider>(
           create: (_) => SearchProvider(

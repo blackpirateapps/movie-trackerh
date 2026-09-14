@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/colors.dart';
 import '../../../state/auth_provider.dart';
 import '../../../state/media_tracking_provider.dart';
+import '../../../state/stats_provider.dart';
 import '../../navigation/tab_scaffold.dart';
 
 /// Cupertino Sign Up Screen.
@@ -42,6 +43,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
     final auth = context.read<AuthProvider>();
     final tracking = context.read<MediaTrackingProvider>();
+    final stats = context.read<StatsProvider>();
 
     setState(() {
       _isLoading = true;
@@ -57,11 +59,21 @@ class _SignupScreenState extends State<SignupScreen> {
 
     if (mounted) {
       if (success) {
-        unawaited(tracking.loadInitialData());
-        Navigator.of(context).pushAndRemoveUntil<void>(
-          CupertinoPageRoute<void>(builder: (ctx) => const CineTrackerTabScaffold()),
-          (route) => false,
-        );
+        tracking.clearData();
+        stats.clearData();
+        try {
+          await Future.wait([
+            tracking.loadInitialData(isGuest: false),
+            stats.loadStats(refresh: true, isGuest: false),
+          ]);
+        } catch (_) {}
+
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil<void>(
+            CupertinoPageRoute<void>(builder: (ctx) => const CineTrackerTabScaffold()),
+            (route) => false,
+          );
+        }
       } else {
         setState(() {
           _errorMessage = auth.errorMessage ?? 'Signup failed. Please try again.';

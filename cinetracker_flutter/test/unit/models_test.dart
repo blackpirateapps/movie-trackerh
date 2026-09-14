@@ -8,6 +8,7 @@ import 'package:cinetracker_flutter/models/user_stats.dart';
 import 'package:cinetracker_flutter/models/dashboard_data.dart';
 import 'package:cinetracker_flutter/models/api_key.dart';
 import 'package:cinetracker_flutter/models/diary_entry.dart';
+import 'package:cinetracker_flutter/models/api_models.dart';
 
 void main() {
   group('Movie Model Tests', () {
@@ -337,6 +338,65 @@ void main() {
       expect(entry.rating, 10);
       expect(entry.title, 'Dune: Part Two');
       expect(entry.watchedDate, DateTime(2026, 9, 8));
+    });
+  });
+
+  group('UserProfile and Top4Item Tests', () {
+    test('UserProfile parses top4 items, hours_watched, and social stats', () {
+      final json = {
+        'user': {
+          'id': 1,
+          'username': 'blackpiratex',
+          'email': 'hi@sudipx.in',
+          'display_name': 'Sudip',
+        },
+        'stats': {
+          'movies': 235,
+          'tv_shows': 21,
+          'hours_watched': 1557,
+          'followers': 2,
+          'following': 3,
+        },
+        'top4': [
+          {
+            'id': 1434,
+            'title': 'Family Guy',
+            'poster_path': '/y0NO2qox59HG4fHmtpZsTe85Y01.jpg',
+            'rating': null,
+            'type': 'tv',
+          },
+          {
+            'id': 686,
+            'title': 'Contact',
+            'poster_path': '/bCpMIywuNZeWt3i5UMLEIc0VSwM.jpg',
+            'rating': 7.0,
+            'type': 'movie',
+          },
+        ],
+        'isFollowing': false,
+      };
+
+      final profile = UserProfile.fromJson(json);
+
+      expect(profile.user.username, 'blackpiratex');
+      expect(profile.moviesCount, 235);
+      expect(profile.tvShowsCount, 21);
+      expect(profile.hoursWatched, 1557);
+      expect(profile.followersCount, 2);
+      expect(profile.followingCount, 3);
+      expect(profile.top4.length, 2);
+
+      final tvItem = profile.top4.first;
+      expect(tvItem.id, 1434);
+      expect(tvItem.title, 'Family Guy');
+      expect(tvItem.type, 'tv');
+      expect(tvItem.posterPath, '/y0NO2qox59HG4fHmtpZsTe85Y01.jpg');
+
+      final movieItem = profile.top4.last;
+      expect(movieItem.id, 686);
+      expect(movieItem.title, 'Contact');
+      expect(movieItem.type, 'movie');
+      expect(movieItem.rating, 7.0);
     });
   });
 }

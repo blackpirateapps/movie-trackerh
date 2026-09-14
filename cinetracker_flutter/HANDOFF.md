@@ -233,10 +233,10 @@ Run the comprehensive test suite with:
 ```bash
 flutter test
 ```
-The suite contains **140 automated tests**:
+The suite contains **146 automated tests**:
 - **Domain Model Stress Tests** (`test/challenge/`): Verifies null safety, fallback runtimes, corrupted season arrays, and 1–10 rating clamping.
 - **Serialization Helpers Tests** (`test/challenge/`): Tests JSON type conversions and platform tag parsing.
-- **Provider & State Machine Tests** (`test/unit/`): Tests optimistic updates, rollbacks, and guest mode transitions.
+- **Provider & State Machine Tests** (`test/unit/`): Tests optimistic updates, rollbacks, guest mode transitions, watchlist management, and unauthenticated mock isolation.
 - **Widget Tests** (`test/widget/`): Tests `StarRating` drag/tap, `CineProgressBar`, `CineCard`, `CineDivider`, `MediaPoster`, `CineTrackerTabScaffold` 5-tab switching, and `MovieLogSheet` logging.
 
 ### 6.3 Local Build Prohibition
@@ -261,13 +261,16 @@ The native Flutter application connects directly to the live hosted CineTracker 
 - **Production URL**: `https://movie-trackerh.vercel.app` (`ApiConstants.productionBaseUrl`)
 - **Default Base URL**: `ApiConstants.defaultBaseUrl = productionBaseUrl`
 - **Dual Authentication**: `ApiClient` automatically attaches both `Cookie: token=<jwt>` and `Authorization: Bearer <jwt>` to outgoing HTTP requests, supporting both browser-compatible cookie authentication and native Bearer token authorization.
+- **Dedicated Watchlist Support**: `_api.getMovies(watchlist: true)` fetches items from the live `watchlist` table. `MediaTrackingProvider` manages a dedicated `_watchlistMovies` state and optimistic toggling.
+- **Top 4 Favorites Showcase**: Letterboxd-style Top 4 favorites are parsed from `GET /api/user?username=<username>` (`top4` array of `Top4Item` models). The Profile screen dynamically renders these items with routing to movie and TV detail screens.
+- **Dynamic Profile Stats**: Lifetime hours (`hours_watched`), film counts, and TV counts are dynamically bound to live backend user stats (e.g., 1,557h for `blackpiratex`).
 - **Resilient Fallback Querying**: `CineTrackerApi` provides transparent fallback routes:
-  - `getMovies()`: Attempts `GET /api/movies`. If 400/error, queries user profile via `GET /api/user?username=<username>`.
-  - `getTvShows()`: Attempts `GET /api/tv`. If 400/error, queries user profile via `GET /api/user?username=<username>`.
-  - `getDiary()`: Attempts `GET /api/user/diary`. If 404, gracefully falls back to `GET /api/user?action=feed`.
+  - `getMovies()`: Queries `GET /api/movies`. If 400/error, queries user profile via `GET /api/user?username=<username>`.
+  - `getTvShows()`: Queries `GET /api/tv`. If 400/error, queries user profile via `GET /api/user?username=<username>`.
+  - `getDiary()`: Queries `GET /api/user/diary`. If 404, gracefully falls back to `GET /api/user?action=feed`.
   - `getApiKeys()`: Parses both direct arrays and `{ keys: [...] }` wrappers.
   - `getStats()`: Normalizes timeframe aliases (`year` -> `yearly`, `month` -> `monthly`, `week` -> `weekly`) and `movies` -> `movie`.
-- **Guest / Offline Resilience**: All providers (`MediaTrackingProvider`, `StatsProvider`, `SearchProvider`) accept an optional `fallbackMockApi` (`MockCineTrackerService`). If network or unauthenticated requests fail, the app gracefully falls back so UI exploration is never blocked.
+- **Strict Mock Isolation (Zero Flash on Login)**: `fallbackMockApi` is strictly restricted to explicit guest mode (`isGuest: true`) or offline unit testing. When a user logs in, previous data is cleared and initial data is hydrated before navigating, guaranteeing zero mock data pop-in.
 
 ### 7.2 Verified Live Account Metrics
 The integration has been verified live against `https://movie-trackerh.vercel.app` using account:
@@ -276,8 +279,10 @@ The integration has been verified live against `https://movie-trackerh.vercel.ap
 - **Continue Watching Hero**: *The Simpsons* (Season 7, Episode 16: "Lisa the Iconoclast" next up)
 - **Live Movies Tracked**: 235 films (Latest: *Contact* rated 7/10)
 - **Live TV Shows Tracked**: 21 series (*Lost in Space*, *The Simpsons*, etc.)
+- **Watchlist Titles Tracked**: 38 titles (*Minions & Monsters*, *Popular Theory*, *Joyland*, etc.)
+- **Top 4 Favorites Showcase**: *Family Guy*, *Contact*, *Maborosi*, *Still Walking*
 - **Watch Diary Entries**: 50 chronological watch events
-- **Lifetime Watch Hours**: 1,556.6 hours across 2,192 TV episodes and 235 movies
+- **Lifetime Watch Hours**: 1,557 hours across TV episodes and movies
 
 ### 7.3 Platform Network Permissions
 - **Android Manifest** ([`android/app/src/main/AndroidManifest.xml`](file:///home/dog/git/movie-trackerh/cinetracker_flutter/android/app/src/main/AndroidManifest.xml)):

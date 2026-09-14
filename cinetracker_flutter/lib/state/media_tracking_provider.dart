@@ -21,6 +21,8 @@ class MediaTrackingProvider extends ChangeNotifier {
   List<Movie> _movies = [];
   List<TvShow> _tvShows = [];
   List<DiaryEntry> _diary = [];
+  List<Movie> _watchlistMovies = [];
+  UserProfile? _userProfile;
 
   MediaTrackingProvider({required this.api, this.fallbackMockApi});
 
@@ -30,6 +32,8 @@ class MediaTrackingProvider extends ChangeNotifier {
   List<Movie> get movies => _movies;
   List<TvShow> get tvShows => _tvShows;
   List<DiaryEntry> get diary => _diary;
+  UserProfile? get userProfile => _userProfile;
+  List<Top4Item> get top4Favorites => _userProfile?.top4 ?? const [];
 
   // Convenient filtered getters
   TvShow? get featuredShow => _dashboard?.featuredShow;
@@ -41,8 +45,7 @@ class MediaTrackingProvider extends ChangeNotifier {
 
   List<Movie> get watchedMovies =>
       _movies.where((m) => m.isWatched).toList();
-  List<Movie> get watchlistMovies =>
-      _movies.where((m) => m.inWatchlist).toList();
+  List<Movie> get watchlistMovies => _watchlistMovies;
   List<Movie> get favoriteMovies =>
       _movies.where((m) => m.isFavorite).toList();
   List<Movie> get unratedMovies =>
@@ -66,11 +69,50 @@ class MediaTrackingProvider extends ChangeNotifier {
   List<TvShow> get favoriteTvShows =>
       _tvShows.where((s) => s.isFavorite).toList();
 
-  /// Initial multi-resource load
-  Future<void> loadInitialData() async {
+  /// Reset all local state (e.g. on logout or before a fresh login)
+  void clearData() {
+    _dashboard = null;
+    _movies = [];
+    _tvShows = [];
+    _diary = [];
+    _watchlistMovies = [];
+    _userProfile = null;
+    _errorMessage = null;
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Initial multi-resource load.
+  /// If [isGuest] is true, it may populate seeded mock data if offline/unauthenticated.
+  /// When [isGuest] is false, it strictly loads live backend data and never displays mock data.
+  Future<void> loadInitialData({bool isGuest = false}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
+
+    if (isGuest && fallbackMockApi != null) {
+      try {
+        final results = await Future.wait([
+          fallbackMockApi!.getDashboard(refresh: true),
+          fallbackMockApi!.getMovies(),
+          fallbackMockApi!.getTvShows(),
+          fallbackMockApi!.getDiary(),
+          fallbackMockApi!.getMovies(watchlist: true),
+        ]);
+
+        _dashboard = results[0] as DashboardData;
+        _movies = results[1] as List<Movie>;
+        _tvShows = results[2] as List<TvShow>;
+        _diary = results[3] as List<DiaryEntry>;
+        _watchlistMovies = results[4] as List<Movie>;
+        try {
+          _userProfile = await fallbackMockApi!.getUserProfile('guest_cinephile');
+        } catch (_) {}
+        _isLoading = false;
+        notifyListeners();
+        return;
+      } catch (_) {}
+    }
 
     try {
       final results = await Future.wait([
@@ -78,33 +120,25 @@ class MediaTrackingProvider extends ChangeNotifier {
         _api.getMovies(),
         _api.getTvShows(),
         _api.getDiary(),
+        _api.getMovies(watchlist: true),
       ]);
 
       _dashboard = results[0] as DashboardData;
       _movies = results[1] as List<Movie>;
       _tvShows = results[2] as List<TvShow>;
       _diary = results[3] as List<DiaryEntry>;
+      _watchlistMovies = results[4] as List<Movie>;
+
+      final username = _api.currentUsername;
+      if (username != null && username.isNotEmpty) {
+        try {
+          _userProfile = await _api.getUserProfile(username);
+        } catch (_) {}
+      }
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      if (fallbackMockApi != null) {
-        try {
-          final results = await Future.wait([
-            fallbackMockApi!.getDashboard(refresh: true),
-            fallbackMockApi!.getMovies(),
-            fallbackMockApi!.getTvShows(),
-            fallbackMockApi!.getDiary(),
-          ]);
-
-          _dashboard = results[0] as DashboardData;
-          _movies = results[1] as List<Movie>;
-          _tvShows = results[2] as List<TvShow>;
-          _diary = results[3] as List<DiaryEntry>;
-          _isLoading = false;
-          notifyListeners();
-          return;
-        } catch (_) {}
-      }
       _errorMessage = 'Failed to load tracking data: $e';
       _isLoading = false;
       notifyListeners();
@@ -155,6 +189,28 @@ class MediaTrackingProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       if (!silent) _errorMessage = 'Failed to refresh diary: $e';
+    }
+  }
+
+  /// Refreshes watchlist collection from live backend
+  Future<void> refreshWatchlist({bool silent = false}) async {
+    try {
+      _watchlistMovies = await _api.getMovies(watchlist: true);
+      notifyListeners();
+    } catch (e) {
+      if (!silent) _errorMessage = 'Failed to refresh watchlist: $e';
+    }
+  }
+
+  /// Refreshes user profile from live backend
+  Future<void> refreshUserProfile({bool silent = false}) async {
+    final username = _api.currentUsername;
+    if (username == null || username.isEmpty) return;
+    try {
+      _userProfile = await _api.getUserProfile(username);
+      notifyListeners();
+    } catch (e) {
+      if (!silent) _errorMessage = 'Failed to refresh profile: $e';
     }
   }
 
@@ -226,22 +282,47 @@ class MediaTrackingProvider extends ChangeNotifier {
 
   /// Optimistically toggles movie watchlist status
   Future<void> toggleMovieWatchlist(int movieId) async {
+    final wlIdx = _watchlistMovies.indexWhere((m) => m.id == movieId);
     final movieIdx = _movies.indexWhere((m) => m.id == movieId);
-    if (movieIdx != -1) {
-      final current = _movies[movieIdx].inWatchlist;
-      _movies[movieIdx] = _movies[movieIdx].copyWith(inWatchlist: !current);
-      notifyListeners();
+    final wasInWatchlist = wlIdx != -1;
+    Movie? removedMovie;
+
+    if (wasInWatchlist) {
+      removedMovie = _watchlistMovies.removeAt(wlIdx);
+    } else if (movieIdx != -1) {
+      _watchlistMovies.insert(
+          0, _movies[movieIdx].copyWith(inWatchlist: true));
+    } else {
+      _watchlistMovies.insert(
+        0,
+        Movie(
+          id: movieId,
+          title: 'Movie #$movieId',
+          inWatchlist: true,
+        ),
+      );
     }
+
+    if (movieIdx != -1) {
+      _movies[movieIdx] =
+          _movies[movieIdx].copyWith(inWatchlist: !wasInWatchlist);
+    }
+    notifyListeners();
 
     try {
       await _api.toggleMovieWatchlist(movieId);
     } catch (e) {
       // Revert on error
-      if (movieIdx != -1) {
-        final current = _movies[movieIdx].inWatchlist;
-        _movies[movieIdx] = _movies[movieIdx].copyWith(inWatchlist: !current);
-        notifyListeners();
+      if (wasInWatchlist && removedMovie != null) {
+        _watchlistMovies.insert(wlIdx, removedMovie);
+      } else if (!wasInWatchlist) {
+        _watchlistMovies.removeWhere((m) => m.id == movieId);
       }
+      if (movieIdx != -1) {
+        _movies[movieIdx] =
+            _movies[movieIdx].copyWith(inWatchlist: wasInWatchlist);
+      }
+      notifyListeners();
     }
   }
 

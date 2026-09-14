@@ -12,6 +12,7 @@ import '../../models/api_models.dart';
 /// both [CineTrackerApi] (live REST) and [MockCineTrackerService] (hermetic in-memory mock).
 abstract class CineTrackerApiInterface {
   // Session & Authentication
+  String? get currentUsername;
   Future<User?> checkSession();
   Future<AuthResult> login({required String email, required String password});
   Future<AuthResult> signup(

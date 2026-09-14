@@ -4,20 +4,32 @@ import 'package:cinetracker_flutter/models/user.dart';
 import 'package:cinetracker_flutter/models/api_models.dart';
 import 'package:cinetracker_flutter/services/api/api_client.dart';
 import 'package:cinetracker_flutter/services/api/mock_cinetracker_service.dart';
+import 'package:cinetracker_flutter/models/dashboard_data.dart';
 import 'package:cinetracker_flutter/state/auth_provider.dart';
+import 'package:cinetracker_flutter/state/media_tracking_provider.dart';
 
 class FailingMockService extends MockCineTrackerService {
   final bool returnNullSession;
   final bool throwOnCheckSession;
   final bool throwOnLogin;
   final bool throwOnSignup;
+  final bool throwOnDashboard;
 
   FailingMockService({
     this.returnNullSession = false,
     this.throwOnCheckSession = false,
     this.throwOnLogin = false,
     this.throwOnSignup = false,
+    this.throwOnDashboard = false,
   });
+
+  @override
+  Future<DashboardData> getDashboard({int? tvShowId, bool refresh = false}) async {
+    if (throwOnDashboard) {
+      throw const UnauthorizedException('Unauthorized');
+    }
+    return super.getDashboard(tvShowId: tvShowId, refresh: refresh);
+  }
 
   @override
   Future<User?> checkSession() async {
@@ -387,4 +399,89 @@ void main() {
       expect(prefs.getBool('cinetracker_is_guest'), isNull);
     });
   });
-}
+
+    group('MediaTrackingProvider Watchlist, Profile & Mock Isolation Tests', () {
+      late MockCineTrackerService mockApi;
+
+      setUp(() {
+        mockApi = MockCineTrackerService();
+      });
+
+      test('loadInitialData(isGuest: false) fails on unauthenticated 401 without loading mock data', () async {
+        final failingApi = FailingMockService(throwOnDashboard: true);
+        final provider = MediaTrackingProvider(
+          api: failingApi,
+          fallbackMockApi: mockApi,
+        );
+
+        expect(provider.movies, isEmpty);
+        expect(provider.dashboard, isNull);
+        expect(provider.watchlistMovies, isEmpty);
+
+        await provider.loadInitialData(isGuest: false);
+
+        // Verify it did NOT silently fall back to mock data
+        expect(provider.movies, isEmpty);
+        expect(provider.dashboard, isNull);
+        expect(provider.watchlistMovies, isEmpty);
+        expect(provider.errorMessage, isNotNull);
+      });
+
+      test('loadInitialData(isGuest: true) loads mock data for guest mode', () async {
+        final failingApi = FailingMockService(throwOnDashboard: true);
+        final provider = MediaTrackingProvider(
+          api: failingApi,
+          fallbackMockApi: mockApi,
+        );
+
+        await provider.loadInitialData(isGuest: true);
+
+        expect(provider.movies, isNotEmpty);
+        expect(provider.dashboard, isNotNull);
+        expect(provider.watchlistMovies, isNotEmpty);
+        expect(provider.top4Favorites, isNotEmpty);
+      });
+
+      test('loadInitialData populates dedicated watchlistMovies from getMovies(watchlist: true)', () async {
+        final provider = MediaTrackingProvider(api: mockApi);
+
+        await provider.loadInitialData();
+
+        expect(provider.watchlistMovies, isNotEmpty);
+        expect(provider.userProfile?.top4, isNotEmpty);
+        expect(provider.top4Favorites, isNotEmpty);
+        expect(provider.userProfile?.hoursWatched, 187);
+      });
+
+      test('toggleMovieWatchlist optimistically adds and removes from watchlistMovies', () async {
+        final provider = MediaTrackingProvider(api: mockApi);
+        await provider.loadInitialData();
+
+        final initialWatchlistCount = provider.watchlistMovies.length;
+        final movieToToggle = provider.watchlistMovies.first;
+
+        await provider.toggleMovieWatchlist(movieToToggle.id);
+        expect(provider.watchlistMovies.any((m) => m.id == movieToToggle.id), false);
+        expect(provider.watchlistMovies.length, initialWatchlistCount - 1);
+
+        await provider.toggleMovieWatchlist(movieToToggle.id);
+        expect(provider.watchlistMovies.any((m) => m.id == movieToToggle.id), true);
+        expect(provider.watchlistMovies.length, initialWatchlistCount);
+      });
+
+      test('clearData() completely flushes all cached tracking and profile state', () async {
+        final provider = MediaTrackingProvider(api: mockApi);
+        await provider.loadInitialData();
+        expect(provider.watchlistMovies, isNotEmpty);
+        expect(provider.dashboard, isNotNull);
+
+        provider.clearData();
+
+        expect(provider.movies, isEmpty);
+        expect(provider.watchlistMovies, isEmpty);
+        expect(provider.dashboard, isNull);
+        expect(provider.userProfile, isNull);
+        expect(provider.top4Favorites, isEmpty);
+      });
+    });
+  }

@@ -28,10 +28,34 @@ class StatsProvider extends ChangeNotifier {
 
   List<int> get availableYears => _stats?.availableYears ?? [DateTime.now().year];
 
-  Future<void> loadStats({bool refresh = false}) async {
+  void clearData() {
+    _stats = null;
+    _errorMessage = null;
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> loadStats({bool refresh = false, bool isGuest = false}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
+
+    if (isGuest && fallbackMockApi != null) {
+      try {
+        _stats = await fallbackMockApi!.getStats(
+          timeframe: _timeframe,
+          year: _selectedYear,
+          media: _media,
+          refresh: refresh,
+        );
+        if (_selectedYear == null && _stats != null && _stats!.availableYears.isNotEmpty) {
+          _selectedYear = _stats!.availableYears.first;
+        }
+        _isLoading = false;
+        notifyListeners();
+        return;
+      } catch (_) {}
+    }
 
     try {
       _stats = await _api.getStats(
@@ -46,22 +70,6 @@ class StatsProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      if (fallbackMockApi != null) {
-        try {
-          _stats = await fallbackMockApi!.getStats(
-            timeframe: _timeframe,
-            year: _selectedYear,
-            media: _media,
-            refresh: refresh,
-          );
-          if (_selectedYear == null && _stats != null && _stats!.availableYears.isNotEmpty) {
-            _selectedYear = _stats!.availableYears.first;
-          }
-          _isLoading = false;
-          notifyListeners();
-          return;
-        } catch (_) {}
-      }
       _errorMessage = 'Failed to load stats: $e';
       _isLoading = false;
       notifyListeners();

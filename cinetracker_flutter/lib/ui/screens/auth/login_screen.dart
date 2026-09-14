@@ -54,11 +54,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (mounted) {
       if (success) {
-        unawaited(tracking.loadInitialData());
-        unawaited(stats.loadStats(refresh: true));
-        Navigator.of(context).pushReplacement<void, void>(
-          CupertinoPageRoute<void>(builder: (ctx) => const CineTrackerTabScaffold()),
-        );
+        tracking.clearData();
+        stats.clearData();
+        try {
+          await Future.wait([
+            tracking.loadInitialData(isGuest: false),
+            stats.loadStats(refresh: true, isGuest: false),
+          ]);
+        } catch (_) {}
+
+        if (mounted) {
+          Navigator.of(context).pushReplacement<void, void>(
+            CupertinoPageRoute<void>(builder: (ctx) => const CineTrackerTabScaffold()),
+          );
+        }
       } else {
         setState(() {
           _errorMessage = auth.errorMessage ?? 'Invalid email or password.';
@@ -71,13 +80,21 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleGuest() async {
     final auth = context.read<AuthProvider>();
     final tracking = context.read<MediaTrackingProvider>();
+    final stats = context.read<StatsProvider>();
     await HapticFeedback.selectionClick();
     auth.continueAsGuest();
     if (mounted) {
-      unawaited(tracking.loadInitialData());
-      Navigator.of(context).pushReplacement<void, void>(
-        CupertinoPageRoute<void>(builder: (ctx) => const CineTrackerTabScaffold()),
-      );
+      tracking.clearData();
+      stats.clearData();
+      await Future.wait([
+        tracking.loadInitialData(isGuest: true),
+        stats.loadStats(isGuest: true),
+      ]);
+      if (mounted) {
+        Navigator.of(context).pushReplacement<void, void>(
+          CupertinoPageRoute<void>(builder: (ctx) => const CineTrackerTabScaffold()),
+        );
+      }
     }
   }
 

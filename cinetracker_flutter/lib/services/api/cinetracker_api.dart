@@ -20,6 +20,8 @@ class CineTrackerApi implements CineTrackerApiInterface {
   CineTrackerApi(this._client);
 
   ApiClient get client => _client;
+
+  @override
   String? get currentUsername => _currentUsername;
 
   @override

@@ -202,6 +202,47 @@ class ApiKeyCreateResult {
   }
 }
 
+/// Represents an item in the Letterboxd-style Top 4 Favorites showcase.
+class Top4Item {
+  final int id;
+  final String title;
+  final String? posterPath;
+  final double? rating;
+  final String type; // 'movie' or 'tv'
+
+  const Top4Item({
+    required this.id,
+    required this.title,
+    this.posterPath,
+    this.rating,
+    required this.type,
+  });
+
+  factory Top4Item.fromJson(Map<String, dynamic> json) {
+    return Top4Item(
+      id: SerializationHelpers.parseInt(
+          json['id'] ?? json['movieId'] ?? json['tvShowId']),
+      title: json['title']?.toString() ??
+          json['name']?.toString() ??
+          json['movieTitle']?.toString() ??
+          json['tvShowName']?.toString() ??
+          'Untitled',
+      posterPath:
+          json['poster_path']?.toString() ?? json['posterPath']?.toString(),
+      rating: SerializationHelpers.parseDouble(json['rating']),
+      type: json['type']?.toString() ?? 'movie',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        if (posterPath != null) 'poster_path': posterPath,
+        if (rating != null) 'rating': rating,
+        'type': type,
+      };
+}
+
 /// User profile and social stats.
 class UserProfile {
   final User user;
@@ -210,6 +251,10 @@ class UserProfile {
   final bool isFollowing;
   final List<Movie> favoriteMovies;
   final List<TvShow> favoriteShows;
+  final int moviesCount;
+  final int tvShowsCount;
+  final int hoursWatched;
+  final List<Top4Item> top4;
 
   const UserProfile({
     required this.user,
@@ -218,14 +263,31 @@ class UserProfile {
     this.isFollowing = false,
     this.favoriteMovies = const [],
     this.favoriteShows = const [],
+    this.moviesCount = 0,
+    this.tvShowsCount = 0,
+    this.hoursWatched = 0,
+    this.top4 = const [],
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     final user = User.fromJson(json['user'] as Map<String, dynamic>? ?? json);
-    final followers =
-        SerializationHelpers.parseInt(json['followersCount'] ?? json['followers_count']);
-    final following =
-        SerializationHelpers.parseInt(json['followingCount'] ?? json['following_count']);
+    final statsMap = json['stats'] is Map
+        ? json['stats'] as Map<String, dynamic>
+        : const <String, dynamic>{};
+    final followers = SerializationHelpers.parseInt(statsMap['followers'] ??
+        json['followersCount'] ??
+        json['followers_count']);
+    final following = SerializationHelpers.parseInt(statsMap['following'] ??
+        json['followingCount'] ??
+        json['following_count']);
+    final moviesCount = SerializationHelpers.parseInt(statsMap['movies'] ??
+        (json['movies'] is List ? (json['movies'] as List).length : 0));
+    final tvShowsCount = SerializationHelpers.parseInt(statsMap['tv_shows'] ??
+        (json['tvShows'] is List ? (json['tvShows'] as List).length : 0));
+    final hoursWatched = SerializationHelpers.parseInt(
+        statsMap['hours_watched'] ??
+            statsMap['hoursWatched'] ??
+            json['hours_watched']);
     final isFollowing = SerializationHelpers.parseBool(
         json['isFollowing'] ?? json['is_following']);
 
@@ -243,6 +305,14 @@ class UserProfile {
           .toList();
     }
 
+    List<Top4Item> top4Items = [];
+    if (json['top4'] is List) {
+      top4Items = (json['top4'] as List)
+          .map((item) =>
+              Top4Item.fromJson(Map<String, dynamic>.from(item as Map)))
+          .toList();
+    }
+
     return UserProfile(
       user: user,
       followersCount: followers,
@@ -250,6 +320,10 @@ class UserProfile {
       isFollowing: isFollowing,
       favoriteMovies: favMovies,
       favoriteShows: favShows,
+      moviesCount: moviesCount,
+      tvShowsCount: tvShowsCount,
+      hoursWatched: hoursWatched,
+      top4: top4Items,
     );
   }
 }
