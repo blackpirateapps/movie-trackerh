@@ -249,7 +249,7 @@ The CI workflow automatically detects and signs the production APK when reposito
 - `KEYSTORE_PASSWORD` or `ANDROID_KEYSTORE_PASSWORD`: Password for the keystore file.
 - `KEY_ALIAS` or `ANDROID_KEY_ALIAS`: Alias name given to the signing key.
 - `KEY_PASSWORD` or `ANDROID_KEY_PASSWORD`: Password for the private key (defaults to keystore password if omitted).
-- **Graceful Fallback**: If secrets are not present, Gradle automatically falls back to debug signing config so CI builds and PR tests never fail.
+- **Graceful Fallback**: The workflow injects secrets into step environment variables and checks `if [ -n "$KEYSTORE_BASE64" ]` in bash. If secrets are not present, Gradle automatically falls back to debug signing config so CI builds and PR tests never fail.
 
 ---
 
